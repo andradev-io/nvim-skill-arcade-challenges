@@ -4,6 +4,14 @@ Community challenges for [nvim-skill-arcade](https://github.com/dev-vinicius-and
 static website where anyone can design and submit one.
 
 * **Submit:** open the site (GitHub Pages of this repo), fill the form, press *Submit as pull request*.
+* **Play while you write:** the *Play it* panel is a real Vim-keys editor (CodeMirror 6 + `@replit/codemirror-vim`,
+  vendored in `site/vendor`, no CDN) preloaded with your start buffer and cursor. It updates as you edit the form, counts
+  keys against par, times you, and runs the same end-state check as the game (buffer text and cursor, normal mode).
+  It is stock Vim emulation, not your Neovim: your keybinds and plugins are not active, and plugin-specific
+  challenges and non-text assertions (windows, quickfix ...) are flagged as "only in Neovim".
+* **Replay check:** *Check the reference keys* replays your solution with a small approximate interpreter, and
+  *Test in Neovim* gives you
+  `:ArcadeTry <downloaded file>` to play the draft for real with your own keybinds. Nothing is saved.
 * **Play:** in Neovim run `:ArcadeSync`; the challenges join your runs and practice (marked *community*).
 * **Review:** every PR is replayed by CI in a real headless Neovim before a human looks at it.
 

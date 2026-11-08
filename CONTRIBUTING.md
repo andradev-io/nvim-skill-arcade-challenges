@@ -45,6 +45,11 @@ sort noh tabnew copen cclose cc cn cp vim vimgrep only sp vs b tabclose` (with a
 
 ## Test it before you open the PR
 
+In Neovim, play the draft: download the JSON from the site and run `:ArcadeTry path/to/<id>.json` (nothing is saved).
+The page's *Try it here* box gives a quick approximate check without leaving the browser.
+
+To run the same replay CI does:
+
 ```sh
 ARCADE_PLUGIN=../nvim-skill-arcade nvim --headless -u NONE -l scripts/validate.lua challenges
 ```

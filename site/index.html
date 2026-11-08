@@ -4,68 +4,136 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Skill Arcade Challenges</title>
-<meta name="description" content="Submit and browse community challenges for nvim-skill-arcade.">
+<meta name="description" content="Design, test and submit community challenges for nvim-skill-arcade.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script>
+  // apply a saved theme before first paint (no flash)
+  try { var t = localStorage.getItem("arcade-theme"); if (t === "light" || t === "dark") { document.documentElement.setAttribute("data-theme", t); } } catch (e) {}
+</script>
 <style>
+  /* Tokens follow andradev.io: JetBrains Mono, olive accent, flat surfaces, 10px cards, 15px inputs. */
   :root {
-    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6779; --line: #d9dee7;
-    --accent: #2f6fdb; --accent-text: #ffffff; --ok: #1a7f4b; --bad: #c0392b; --code: #eef1f6;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --primary: #222222;
+    --text: #000000;
+    --accent: #b4b96b;        /* olive: borders, labels, placeholders, primary buttons */
+    --accent-ink: #6c7027;    /* darker olive for small text on white (contrast) */
+    --on-accent: #000000;
+    --border: rgba(0, 0, 0, .12);
+    --shadow: rgba(34, 34, 34, .10);
+    --code: #f1eeee;
+    --success: #6f7a14;
+    --warning: #8a7a1f;
+    --info: #2f7790;
+    --error: #d12f2f;
+    --radius-card: 10px;
+    --radius-input: 15px;
+    --font: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #12151c; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa4b5; --line: #2c3340;
-      --accent: #5b94f0; --accent-text: #0c1018; --ok: #4cc38a; --bad: #ff7b6b; --code: #232a36;
+      --bg: #121212; --surface: #222222; --primary: #f5f5f5; --text: #f5f5f5;
+      --accent-ink: #b4b96b; --border: rgba(255, 255, 255, .12); --shadow: rgba(245, 245, 245, .08);
+      --code: #181818; --success: #b3bb4b; --warning: #b3a24b; --info: #4b9bb3; --error: #ff4d4d;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #12151c; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa4b5; --line: #2c3340;
-    --accent: #5b94f0; --accent-text: #0c1018; --ok: #4cc38a; --bad: #ff7b6b; --code: #232a36;
+    --bg: #121212; --surface: #222222; --primary: #f5f5f5; --text: #f5f5f5;
+    --accent-ink: #b4b96b; --border: rgba(255, 255, 255, .12); --shadow: rgba(245, 245, 245, .08);
+    --code: #181818; --success: #b3bb4b; --warning: #b3a24b; --info: #4b9bb3; --error: #ff4d4d;
   }
+
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, sans-serif; }
-  header, main { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
-  header { padding-top: 28px; padding-bottom: 8px; }
-  h1 { margin: 0 0 4px; font-size: 26px; }
-  h2 { font-size: 17px; margin: 0 0 12px; }
-  p.lead { color: var(--muted); margin: 0 0 12px; max-width: 70ch; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; padding-bottom: 40px; }
-  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
-  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
-  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 3px; }
-  input, select, textarea {
-    width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
-    padding: 7px 9px; font: inherit;
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.6 var(--font); }
+  header, main, footer { max-width: 1120px; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
+  header { padding-top: 28px; padding-bottom: 8px; position: relative; }
+  h1 { margin: 0 0 6px; font-size: 24px; font-weight: 700; padding-right: 96px; }
+  h2 { font-size: 15px; font-weight: 700; margin: 0 0 12px; }
+  p.lead { color: var(--text); opacity: .8; margin: 0 0 12px; max-width: 74ch; }
+  a { color: var(--accent-ink); }
+  code { background: var(--code); padding: 1px 5px; border-radius: 6px; font-family: inherit; font-size: .95em; }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; padding-bottom: 40px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  section {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card);
+    padding: 16px; box-shadow: 0 1px 4px var(--shadow); margin-bottom: 16px;
   }
-  textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; min-height: 84px; resize: vertical; }
-  input.mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
-  .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
-  details { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
-  summary { cursor: pointer; color: var(--muted); font-size: 13px; }
-  .help { font-size: 12px; color: var(--muted); margin: 3px 0 0; }
-  pre { background: var(--code); border-radius: 8px; padding: 12px; overflow: auto; font-size: 12.5px; max-height: 360px; margin: 8px 0; }
+  .stack > section:last-child { margin-bottom: 0; }
+
+  label { display: block; font-size: 12px; color: var(--accent-ink); margin: 12px 0 4px; letter-spacing: .02em; }
+  input, select, textarea {
+    width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--accent);
+    border-radius: var(--radius-input); padding: 8px 12px; font: inherit; outline: none;
+  }
+  input::placeholder, textarea::placeholder { color: var(--accent-ink); opacity: .75; }
+  input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 2px var(--accent); }
+  textarea { min-height: 84px; resize: vertical; font-size: 13px; }
+  input[type="checkbox"] { width: auto; accent-color: var(--accent); }
+  .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  details { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 8px; }
+  summary { cursor: pointer; color: var(--accent-ink); font-size: 12px; }
+  .help { font-size: 12px; opacity: .7; margin: 4px 0 0; }
+
+  pre {
+    background: var(--code); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 10px 12px;
+    overflow: auto; font: inherit; font-size: 12.5px; max-height: 320px; margin: 4px 0 8px; white-space: pre;
+  }
   .errors { list-style: none; padding: 0; margin: 8px 0; }
-  .errors li { color: var(--bad); font-size: 13px; padding: 2px 0; }
-  .ok { color: var(--ok); font-size: 13px; }
+  .errors li { color: var(--error); font-size: 13px; padding: 2px 0; }
+  .ok { color: var(--success); font-size: 13px; }
+
   .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   button, a.btn {
-    background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
-    padding: 8px 12px; font: inherit; cursor: pointer; text-decoration: none; display: inline-block;
+    background: transparent; color: var(--text); border: 1px solid var(--accent); border-radius: var(--radius-input);
+    padding: 7px 14px; font: inherit; font-size: 13px; cursor: pointer; text-decoration: none; display: inline-block;
   }
-  button.primary, a.btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  button:hover, a.btn:hover { background: var(--code); }
+  button.primary, a.btn.primary { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+  button.primary:hover, a.btn.primary:hover { filter: brightness(1.06); background: var(--accent); }
+  button:focus-visible, a.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .disabled { opacity: .45; pointer-events: none; }
-  .notice { font-size: 13px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 10px; margin: 12px 0 0; }
-  ul.list { list-style: none; padding: 0; margin: 8px 0 0; max-height: 360px; overflow: auto; }
-  ul.list li { border-top: 1px solid var(--line); padding: 8px 0; font-size: 14px; }
-  ul.list small { color: var(--muted); }
-  footer { max-width: 1100px; margin: 0 auto; padding: 0 16px 32px; color: var(--muted); font-size: 13px; }
-  a { color: var(--accent); }
+  .notice { font-size: 12.5px; opacity: .8; border-left: 3px solid var(--accent); padding-left: 10px; margin: 12px 0 0; }
+
+  ul.list { list-style: none; padding: 0; margin: 8px 0 0; max-height: 300px; overflow: auto; }
+  ul.list li { border-top: 1px solid var(--border); padding: 8px 0; font-size: 13px; }
+  ul.list small { opacity: .7; }
+
+  .cmd { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; margin-top: 6px; }
+  .cmd code { flex: 1 1 220px; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-input); overflow-x: auto; white-space: nowrap; }
+  ol.steps { margin: 10px 0 0; padding-left: 20px; font-size: 13px; opacity: .85; }
+
+  .verdict { font-size: 13px; margin: 6px 0; }
+  .verdict .tag { display: inline-block; min-width: 4.2em; font-weight: 700; }
+  .v-ok { color: var(--success); } .v-bad { color: var(--error); } .v-warn { color: var(--warning); } .v-info { color: var(--info); }
+  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+  @media (max-width: 520px) { .two { grid-template-columns: minmax(0, 1fr); } }
+  .diffrow { font-size: 12.5px; border-top: 1px solid var(--border); padding: 4px 0; }
+  .diffrow b { color: var(--accent-ink); }
+
+  .statusbar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 13px; margin: 0 0 8px; }
+  .badge { border: 1px solid var(--accent); border-radius: 999px; padding: 1px 12px; font-weight: 700; }
+  .badge.pass { background: var(--success); color: #000; border-color: var(--success); }
+  .badge.run { color: var(--info); border-color: var(--info); }
+  .flag { font-size: 12.5px; color: var(--warning); margin: 0 0 6px; }
+  #editor { min-height: 140px; }
+  [hidden] { display: none !important; }
+  #theme { position: absolute; top: 28px; right: 16px; padding: 5px 12px; }
+  footer { padding-bottom: 32px; opacity: .7; font-size: 12.5px; }
 </style>
 </head>
 <body>
 <header>
+  <button id="theme" type="button" aria-label="Toggle light / dark theme">theme</button>
   <h1>Skill Arcade Challenges</h1>
   <p class="lead">Design a challenge for <a href="https://github.com/dev-vinicius-andrade/nvim-skill-arcade">nvim-skill-arcade</a>.
   A challenge is <b>data</b>: a start buffer plus the expected end state. Any key sequence that reaches it wins.
-  Your reference solution is replayed by CI before anything is published, and no uploaded code is ever executed.</p>
+  Try it as you write it, here or in Neovim. Your reference solution is replayed by CI before anything is published,
+  and no uploaded code is ever executed.</p>
 </header>
 
 <main class="grid">
@@ -75,7 +143,7 @@
     <label for="title">Title</label>
     <input id="title" maxlength="60" placeholder="Swap two words">
     <div class="row">
-      <div><label for="id">id (file name)</label><input id="id" class="mono" maxlength="40" placeholder="swap-two-words"></div>
+      <div><label for="id">id (file name)</label><input id="id" maxlength="40" placeholder="swap-two-words"></div>
       <div><label for="area">Skill area</label><select id="area"></select></div>
       <div><label for="level">Level 1-5</label><select id="level"></select></div>
     </div>
@@ -114,12 +182,12 @@
       </div>
       <div class="row">
         <div><label for="float_text">A floating window contains</label><input id="float_text" maxlength="80" placeholder="ARC:"></div>
-        <div><label for="marks">Marks (a=3, b=11)</label><input id="marks" class="mono" placeholder="a=3,b=11"></div>
-        <div><label for="alt_buffer"><input id="alt_buffer" type="checkbox" style="width:auto"> end in the other buffer</label></div>
+        <div><label for="marks">Marks (a=3, b=11)</label><input id="marks" placeholder="a=3,b=11"></div>
+        <div><label for="alt_buffer"><input id="alt_buffer" type="checkbox"> end in the other buffer</label></div>
       </div>
       <div class="row">
         <div><label for="preset">Preset set-up</label><select id="preset"></select></div>
-        <div><label for="preset_rows">Preset lines (1,4,9)</label><input id="preset_rows" class="mono" placeholder="4,9"></div>
+        <div><label for="preset_rows">Preset lines (1,4,9)</label><input id="preset_rows" placeholder="4,9"></div>
       </div>
       <p class="help">Presets: <b>diagnostics</b> plants warnings on those lines ("ARC: ..."), <b>splits</b> opens three windows,
       <b>alt_buffer</b> puts you in a second buffer, <b>quickfix_hits</b> fills the quickfix list with those lines.</p>
@@ -127,7 +195,7 @@
 
     <h2 style="margin-top:18px">3. Reference solution and lesson</h2>
     <label for="solution">Reference keys (Vim notation, e.g. <code>ci"new&lt;Esc&gt;</code>)</label>
-    <input id="solution" class="mono" maxlength="120" placeholder='dwA <Esc>p'>
+    <input id="solution" maxlength="120" placeholder='dwA <Esc>p'>
     <p class="help" id="keycount"></p>
     <label for="why">Why this is the better way</label>
     <textarea id="why" maxlength="300" rows="2" placeholder="dw deletes a word with its space; p puts it back after the last word."></textarea>
@@ -148,15 +216,15 @@
     </details>
   </section>
 
-  <div>
+  <div class="stack">
     <section>
       <h2>Result</h2>
       <div id="status"></div>
       <ul class="errors" id="errors"></ul>
       <pre id="json"></pre>
       <div class="actions">
-        <button id="copy">Copy JSON</button>
-        <button id="download">Download file</button>
+        <button id="copy" type="button">Copy JSON</button>
+        <button id="download" type="button">Download file</button>
         <a class="btn primary disabled" id="pr" target="_blank" rel="noopener">Submit as pull request</a>
       </div>
       <p class="notice">"Submit" opens GitHub's new-file page prefilled with this challenge; GitHub forks the repo and opens a pull
@@ -164,7 +232,64 @@
       If the link is too long for your browser, use Copy JSON and add <code>challenges/&lt;id&gt;.json</code> yourself.</p>
     </section>
 
-    <section style="margin-top:16px">
+    <section id="play">
+      <h2>Play it</h2>
+      <div class="notice" style="margin:0 0 10px">Stock Vim emulation in the browser, not your Neovim: your own keybinds and plugins are
+      <b>not</b> active here, and some keys (windows, quickfix, <code>:g</code> with ranges, registers beyond the basics) may behave
+      slightly differently. Use <b>Test in Neovim</b> below for the real thing.</div>
+      <div id="playflags"></div>
+      <div class="statusbar" aria-live="polite">
+        <span id="pbadge" class="badge">ready</span>
+        <span id="pkeys">keys 0 / par -</span>
+        <span id="ptime">0.0s</span>
+        <span id="pmode">normal</span>
+      </div>
+      <div id="editor"></div>
+      <p class="help" id="pdetail">Click the editor and play. The clock starts on your first key.</p>
+      <div class="actions">
+        <button id="preplay" type="button">Reset</button>
+        <button id="pshow" type="button" aria-expanded="false">Show expected</button>
+      </div>
+      <div id="pexpected" hidden>
+        <label>Expected end state</label>
+        <pre id="pexptext"></pre>
+      </div>
+    </section>
+
+    <section id="try-nvim">
+      <h2>Test in Neovim</h2>
+      <p class="help" style="margin-top:0">Play the draft with your own keybinds and plugins. Nothing is saved: no points, bests or stats.</p>
+      <label for="dlfolder">Folder where the downloaded file lands</label>
+      <input id="dlfolder" value="~/Downloads" spellcheck="false">
+      <div class="cmd">
+        <code id="cmd">:ArcadeTry ~/Downloads/challenge.json</code>
+        <button id="copycmd" type="button">Copy command</button>
+      </div>
+      <div class="actions">
+        <button id="dlcopy" type="button" class="primary">Download file + copy command</button>
+      </div>
+      <ol class="steps">
+        <li>Download the file (button above), or save the JSON yourself.</li>
+        <li>In Neovim paste the command and press Enter.</li>
+        <li>Solve it your way. Fix the draft here and repeat until it feels right.</li>
+      </ol>
+      <p class="help" id="trynote"></p>
+    </section>
+
+    <section id="sim">
+      <h2>Check the reference keys</h2>
+      <p class="help" style="margin-top:0">Replays your reference keys on the start buffer with a small approximate interpreter
+      (common normal-mode keys only). Neovim and the CI replay are the authority.</p>
+      <div id="simverdict"></div>
+      <div class="two">
+        <div><label>Start</label><pre id="simstart"></pre></div>
+        <div><label>Expected</label><pre id="simexp"></pre></div>
+      </div>
+      <label>Reference keys replayed here</label>
+      <pre id="simreplay"></pre>
+    </section>
+
+    <section>
       <h2>Published challenges</h2>
       <input id="filter" placeholder="Filter by title, area or author">
       <p class="help" id="count"></p>
@@ -174,6 +299,8 @@
   </div>
 </main>
 <footer>Challenges are data only and validated by the same schema the plugin uses. See CONTRIBUTING.md in the repository.</footer>
+<script src="sim.js"></script>
+<script src="vendor/arcade-editor.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -191,8 +191,266 @@
     pr.href = okLink ? url : "#";
     pr.classList.toggle("disabled", !okLink);
     pr.title = (!r.errors.length && !okLink) ? "Too long for a link: use Copy JSON" : "";
+    renderTry(r);
+    renderSim(r);
+    renderPlay(r);
     return { json: json, id: r.data.id, ok: !r.errors.length };
   }
+
+  // ── test in Neovim: one-line :ArcadeTry command ─────────────────────────
+  function store(k, v) {
+    try { if (v === undefined) { return localStorage.getItem(k); } localStorage.setItem(k, v); } catch (e) { /* private mode */ }
+    return null;
+  }
+  $("dlfolder").value = store("arcade-folder") || "~/Downloads";
+
+  function tryCommand(id) {
+    var folder = $("dlfolder").value.trim().replace(/[\\\/]+$/, "") || "~/Downloads";
+    var path = (folder + "/" + (id || "challenge") + ".json").replace(/ /g, "\\ ");
+    return ":ArcadeTry " + path;
+  }
+
+  function renderTry(r) {
+    $("cmd").textContent = tryCommand(r.data.id);
+    var bad = r.errors.length > 0;
+    $("dlcopy").classList.toggle("disabled", bad);
+    $("trynote").textContent = bad
+      ? "Fix the errors on the left first: Neovim refuses drafts that break the safety schema."
+      : "Needs a nvim-skill-arcade version with :ArcadeTry (update the plugin if the command is missing).";
+  }
+
+  function copyText(s) {
+    if (navigator.clipboard && navigator.clipboard.writeText) { return navigator.clipboard.writeText(s).catch(function () {}); }
+    var t = document.createElement("textarea");
+    t.value = s; document.body.appendChild(t); t.select();
+    try { document.execCommand("copy"); } catch (e) { /* ignore */ }
+    document.body.removeChild(t);
+  }
+  function flash(btn, msg) {
+    var old = btn.textContent;
+    btn.textContent = msg;
+    setTimeout(function () { btn.textContent = old; }, 1400);
+  }
+  function downloadJson(r) {
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([r.json], { type: "application/json" }));
+    a.download = (r.id || "challenge") + ".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  $("dlfolder").addEventListener("input", function () { store("arcade-folder", $("dlfolder").value); render(); });
+  $("copycmd").addEventListener("click", function () { copyText($("cmd").textContent); flash($("copycmd"), "Copied"); });
+  $("dlcopy").addEventListener("click", function () {
+    var r = render();
+    if (!r.ok) { return; }
+    downloadJson(r);
+    copyText($("cmd").textContent);
+    flash($("dlcopy"), "Downloaded, command copied");
+  });
+
+  // ── in-page simulator ───────────────────────────────────────────────────
+  function verdict(kind, tag, msg) {
+    var d = document.createElement("div");
+    d.className = "verdict v-" + kind;
+    var b = document.createElement("span"); b.className = "tag"; b.textContent = tag;
+    d.appendChild(b); d.appendChild(document.createTextNode(msg));
+    return d;
+  }
+  function withCursor(text, cur) {
+    var lines = text.split("\n");
+    return lines.map(function (l, i) { return i === (cur[0] - 1) ? l + "   <- cursor " + cur[0] + "," + cur[1] : l; }).join("\n");
+  }
+
+  function renderSim(r) {
+    var c = r.data, e = c.expect || {};
+    var box = $("simverdict");
+    box.innerHTML = "";
+    var startCur = c.cursor || [1, 0];
+    $("simstart").textContent = withCursor(c.text || "", startCur);
+    $("simexp").textContent = e.text !== undefined ? e.text + (e.cursor ? "\n\n-- cursor: " + e.cursor.join(",") : "") : (e.cursor ? "-- cursor: " + e.cursor.join(",") : "(no text expectation)");
+
+    var simpleOnly = ["text", "cursor"];
+    var others = Object.keys(e).filter(function (k) { return simpleOnly.indexOf(k) < 0; });
+    if (!Object.keys(e).length || !c.text) {
+      box.appendChild(verdict("info", "wait", "Fill the start buffer and an expected end state to run the check."));
+      $("simreplay").textContent = "";
+      return;
+    }
+    if (others.length) {
+      box.appendChild(verdict("info", "note", "Also checked, but only in Neovim: " + others.join(", ") + ". Use Test in Neovim for those."));
+    }
+
+    var sims = e.text !== undefined || e.cursor;
+    if (!sims) { $("simreplay").textContent = ""; return; }
+    var startState = { text: c.text, cursor: startCur };
+    var at0 = ArcadeSim.check({ text: e.text, cursor: e.cursor }, startState, false);
+    if (e.text !== undefined && ArcadeSim.linesEqual(c.text, e.text, false) && !e.cursor) {
+      box.appendChild(verdict("bad", "start", "The start buffer already equals the expected text: nothing to do."));
+    } else if (at0.ok && others.length === 0) {
+      box.appendChild(verdict("bad", "start", "Already solved at the start. CI rejects that: change the start or the expected state."));
+    } else {
+      box.appendChild(verdict("ok", "start", "Not solved at the start, good."));
+    }
+
+    // reference replay
+    var rep = c.solution ? ArcadeSim.replay(c.text, startCur, c.solution) : null;
+    var pre = $("simreplay");
+    if (!rep) {
+      pre.textContent = "";
+    } else if (rep.unsupported) {
+      pre.textContent = "(stopped at " + rep.unsupported + ")";
+      box.appendChild(verdict("info", "replay", "Cannot preview '" + rep.unsupported + "' here. That is fine: use Test in Neovim to be sure."));
+    } else {
+      pre.textContent = withCursor(rep.text, rep.cursor);
+      var chk = ArcadeSim.check({ text: e.text, cursor: e.cursor }, rep, !!c.loose);
+      if (others.length) {
+        box.appendChild(verdict("info", "replay", "Text/cursor part: " + (chk.ok ? "reached" : "not reached") + " by the reference keys."));
+      } else if (chk.ok) {
+        box.appendChild(verdict("ok", "replay", "Reference keys reach the expected state (" + ArcadeSim.tokens(c.solution).length + " keys)."));
+      } else {
+        var which = chk.parts.filter(function (p) { return !p.ok; }).map(function (p) { return p.name; }).join(" and ");
+        box.appendChild(verdict("bad", "replay", "Reference keys do not reach the expected " + which + ". Compare the buffers below (the preview is approximate)."));
+      }
+    }
+
+  }
+
+  // ── Play it: real Vim keys in the browser (stock Vim emulation) ─────────
+  var ed = null, draft = null, loadedKey = null;
+  var play = { keys: 0, t0: null, timer: null, passed: null };
+
+  function ensureEditor() {
+    if (!ed && window.ArcadeEditor) {
+      ed = window.ArcadeEditor.create($("editor"), { onKey: onPlayKey, onUpdate: evalPlay });
+    }
+    return ed;
+  }
+  function parOf(c) { return c.solution ? ArcadeSim.tokens(c.solution).length : 0; }
+  function secs() { return play.t0 === null ? 0 : (performance.now() - play.t0) / 1000; }
+  function keyRank(keys, par) {
+    if (!par) { return ""; }
+    return keys <= par ? "S" : keys <= par * 1.5 ? "A" : keys <= par * 2 ? "B" : "C";
+  }
+
+  function paintBar() {
+    var par = draft ? parOf(draft) : 0;
+    var badge = $("pbadge");
+    var done = play.passed;
+    var keys = done ? done.keys : play.keys;
+    var t = done ? done.secs : secs();
+    $("pkeys").textContent = "keys " + keys + " / par " + (par || "-") + (par && done ? "  (" + keyRank(keys, par) + ")" : "");
+    $("ptime").textContent = t.toFixed(1) + "s";
+    $("pmode").textContent = ed ? ed.mode() : "normal";
+    if (done) { badge.textContent = "PASS"; badge.className = "badge pass"; }
+    else if (play.t0 !== null) { badge.textContent = "playing"; badge.className = "badge run"; }
+    else { badge.textContent = "ready"; badge.className = "badge"; }
+  }
+  function stopTimer() { if (play.timer) { clearInterval(play.timer); play.timer = null; } }
+
+  function onPlayKey() {
+    if (play.passed) { return; }
+    play.keys++;
+    if (play.t0 === null) {
+      play.t0 = performance.now();
+      play.timer = setInterval(paintBar, 100);
+    }
+  }
+
+  function playable(c) {
+    var e = c && c.expect;
+    return !!(e && (e.text !== undefined || e.cursor) && c.text);
+  }
+
+  function evalPlay() {
+    if (!ed || !draft) { return; }
+    paintBar();
+    var detail = $("pdetail");
+    if (!playable(draft)) {
+      detail.textContent = "Add start text and an expected text or cursor to play. Other assertions only run in Neovim.";
+      return;
+    }
+    if (play.passed) {
+      var p = play.passed, par = parOf(draft);
+      detail.textContent = "Solved in " + p.keys + " keys and " + p.secs.toFixed(1) + "s" +
+        (par ? " (par " + par + " keys, key rank " + keyRank(p.keys, par) + ")" : "") + ". Reset to try another route.";
+      return;
+    }
+    if (play.keys === 0) { detail.textContent = "Click the editor and play. The clock starts on your first key."; return; }
+    // same semantics as the plugin: end state only, and the editor must be in normal mode
+    var state = { text: ed.text(), cursor: ed.cursor() };
+    var chk = ArcadeSim.check({ text: draft.expect.text, cursor: draft.expect.cursor }, state, !!draft.loose);
+    if (chk.ok && ed.mode() === "normal") {
+      play.passed = { keys: play.keys, secs: secs() };
+      stopTimer();
+      paintBar();
+      return evalPlay();
+    }
+    var miss = chk.parts.filter(function (x) { return !x.ok; }).map(function (x) { return x.name; });
+    detail.textContent = ed.mode() !== "normal" && chk.ok
+      ? "State matches, but you are in " + ed.mode() + " mode: press Esc (the game also needs normal mode)."
+      : "Not there yet: " + miss.join(" and ") + " differ" + (miss.length === 1 ? "s" : "") + ".";
+  }
+
+  function resetPlay() {
+    if (!ensureEditor() || !draft) { return; }
+    stopTimer();
+    play.keys = 0; play.t0 = null; play.passed = null;
+    ed.setText(draft.text || "", draft.cursor || [1, 0]);
+    paintBar();
+    evalPlay();
+  }
+
+  function renderPlay(r) {
+    var c = r.data;
+    draft = c;
+    var flags = $("playflags");
+    flags.innerHTML = "";
+    function flag(msg) { var p = document.createElement("p"); p.className = "flag"; p.textContent = msg; flags.appendChild(p); }
+    var e = c.expect || {};
+    var others = Object.keys(e).filter(function (k) { return k !== "text" && k !== "cursor"; });
+    if (c.needs || c.area === "plugins" || (c.helps && Object.keys(c.helps).length)) {
+      flag("Plugin-specific challenge: your plugins are not simulated here. Only the stock-Vim route can be played; check the plugin route in Neovim.");
+    }
+    if (others.length) { flag("Not checkable in the browser: " + others.join(", ") + ". They are only judged in Neovim."); }
+    if (c.preset) { flag("Preset '" + c.preset + "' (diagnostics, windows, quickfix ...) is not created here."); }
+
+    var exp = $("pexptext");
+    exp.textContent = (e.text !== undefined ? e.text : "(no text expectation)") + (e.cursor ? "\n\n-- cursor: row " + e.cursor[0] + (e.cursor[1] !== undefined ? ", col " + e.cursor[1] : "") : "");
+
+    if (!ensureEditor()) {
+      $("pdetail").textContent = "The editor script did not load (vendor/arcade-editor.js).";
+      return;
+    }
+    var key = JSON.stringify([c.text, c.cursor]);
+    if (key !== loadedKey) { loadedKey = key; resetPlay(); } else { evalPlay(); }
+  }
+
+  $("preplay").addEventListener("click", function () { resetPlay(); if (ed) { ed.focus(); } });
+  $("pshow").addEventListener("click", function () {
+    var box = $("pexpected"), open = box.hidden;
+    box.hidden = !open;
+    $("pshow").setAttribute("aria-expanded", String(open));
+    $("pshow").textContent = open ? "Hide expected" : "Show expected";
+  });
+
+  // ── theme toggle (auto -> follows the system; click to force) ───────────
+  (function () {
+    var root = document.documentElement;
+    function current() {
+      var t = root.getAttribute("data-theme");
+      if (t) { return t; }
+      return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    function label() { $("theme").textContent = current() === "dark" ? "light mode" : "dark mode"; }
+    $("theme").addEventListener("click", function () {
+      var next = current() === "dark" ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      store("arcade-theme", next);
+      label();
+    });
+    label();
+  })();
 
   Array.prototype.forEach.call(document.querySelectorAll("#form input, #form textarea, #form select"), function (el) {
     el.addEventListener("input", render);
