@@ -10,8 +10,8 @@ static website where anyone can design and submit one.
   It is stock Vim emulation, not your Neovim: your keybinds and plugins are not active, and plugin-specific
   challenges and non-text assertions (windows, quickfix ...) are flagged as "only in Neovim".
 * **Replay check:** *Check the reference keys* replays your solution with a small approximate interpreter, and
-  *Test in Neovim* gives you
-  `:ArcadeTry <downloaded file>` to play the draft for real with your own keybinds. Nothing is saved.
+  *Join in Neovim* gives your draft a room code and the command `:ArcadeJoin ARC1.…` to play it for real with your own
+  keybinds and plugins. No upload, nothing is saved.
 * **Play:** in Neovim run `:ArcadeSync`; the challenges join your runs and practice (marked *community*).
 * **Review:** every PR is replayed by CI in a real headless Neovim before a human looks at it.
 

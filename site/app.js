@@ -210,13 +210,24 @@
     return ":ArcadeTry " + path;
   }
 
+  // room code: ARC1.<base64url of the minified draft JSON>. Decoded and schema-checked by the plugin.
+  function draftCode(data) {
+    var bytes = new TextEncoder().encode(JSON.stringify(data)), bin = "";
+    for (var i = 0; i < bytes.length; i++) { bin += String.fromCharCode(bytes[i]); }
+    return "ARC1." + btoa(bin).split("+").join("-").split("/").join("_").replace(/=+$/, "");
+  }
+
   function renderTry(r) {
-    $("cmd").textContent = tryCommand(r.data.id);
     var bad = r.errors.length > 0;
+    var code = draftCode(r.data);
+    $("cmd").textContent = ":ArcadeJoin " + code;
+    $("filecmd").textContent = tryCommand(r.data.id);
+    $("copycmd").classList.toggle("disabled", bad);
     $("dlcopy").classList.toggle("disabled", bad);
+    $("codeinfo").textContent = bad ? "" : "Room code: " + code.length + " characters.";
     $("trynote").textContent = bad
       ? "Fix the errors on the left first: Neovim refuses drafts that break the safety schema."
-      : "Needs a nvim-skill-arcade version with :ArcadeTry (update the plugin if the command is missing).";
+      : "Needs a nvim-skill-arcade version with :ArcadeJoin / :ArcadeTry (update the plugin if the command is missing).";
   }
 
   function copyText(s) {
@@ -245,7 +256,7 @@
     var r = render();
     if (!r.ok) { return; }
     downloadJson(r);
-    copyText($("cmd").textContent);
+    copyText($("filecmd").textContent);
     flash($("dlcopy"), "Downloaded, command copied");
   });
 
