@@ -1,0 +1,13 @@
+{
+  "id": "only-this-window",
+  "title": "One window only",
+  "area": "windows",
+  "level": 2,
+  "brief": "Three windows are open. Close every window except the one you are in.",
+  "text": "too many windows",
+  "preset": "splits",
+  "solution": "<C-w>o",
+  "expect": { "windows": 1 },
+  "why": "<C-w>o (:only) closes all other windows; <C-w>c closes just the current one.",
+  "author": "dev-vinicius-andrade"
+}

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skill Arcade Challenges</title>
+<meta name="description" content="Submit and browse community challenges for nvim-skill-arcade.">
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6779; --line: #d9dee7;
+    --accent: #2f6fdb; --accent-text: #ffffff; --ok: #1a7f4b; --bad: #c0392b; --code: #eef1f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151c; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa4b5; --line: #2c3340;
+      --accent: #5b94f0; --accent-text: #0c1018; --ok: #4cc38a; --bad: #ff7b6b; --code: #232a36;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151c; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa4b5; --line: #2c3340;
+    --accent: #5b94f0; --accent-text: #0c1018; --ok: #4cc38a; --bad: #ff7b6b; --code: #232a36;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, sans-serif; }
+  header, main { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+  header { padding-top: 28px; padding-bottom: 8px; }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  h2 { font-size: 17px; margin: 0 0 12px; }
+  p.lead { color: var(--muted); margin: 0 0 12px; max-width: 70ch; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; padding-bottom: 40px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 3px; }
+  input, select, textarea {
+    width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
+    padding: 7px 9px; font: inherit;
+  }
+  textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; min-height: 84px; resize: vertical; }
+  input.mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+  details { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  .help { font-size: 12px; color: var(--muted); margin: 3px 0 0; }
+  pre { background: var(--code); border-radius: 8px; padding: 12px; overflow: auto; font-size: 12.5px; max-height: 360px; margin: 8px 0; }
+  .errors { list-style: none; padding: 0; margin: 8px 0; }
+  .errors li { color: var(--bad); font-size: 13px; padding: 2px 0; }
+  .ok { color: var(--ok); font-size: 13px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  button, a.btn {
+    background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
+    padding: 8px 12px; font: inherit; cursor: pointer; text-decoration: none; display: inline-block;
+  }
+  button.primary, a.btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .disabled { opacity: .45; pointer-events: none; }
+  .notice { font-size: 13px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 10px; margin: 12px 0 0; }
+  ul.list { list-style: none; padding: 0; margin: 8px 0 0; max-height: 360px; overflow: auto; }
+  ul.list li { border-top: 1px solid var(--line); padding: 8px 0; font-size: 14px; }
+  ul.list small { color: var(--muted); }
+  footer { max-width: 1100px; margin: 0 auto; padding: 0 16px 32px; color: var(--muted); font-size: 13px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Skill Arcade Challenges</h1>
+  <p class="lead">Design a challenge for <a href="https://github.com/dev-vinicius-andrade/nvim-skill-arcade">nvim-skill-arcade</a>.
+  A challenge is <b>data</b>: a start buffer plus the expected end state. Any key sequence that reaches it wins.
+  Your reference solution is replayed by CI before anything is published, and no uploaded code is ever executed.</p>
+</header>
+
+<main class="grid">
+  <section id="form">
+    <h2>1. Describe the challenge</h2>
+
+    <label for="title">Title</label>
+    <input id="title" maxlength="60" placeholder="Swap two words">
+    <div class="row">
+      <div><label for="id">id (file name)</label><input id="id" class="mono" maxlength="40" placeholder="swap-two-words"></div>
+      <div><label for="area">Skill area</label><select id="area"></select></div>
+      <div><label for="level">Level 1-5</label><select id="level"></select></div>
+    </div>
+
+    <label for="brief">Task (describe the END STATE, not the keys)</label>
+    <textarea id="brief" maxlength="240" rows="2" placeholder="Make the line read: world hello"></textarea>
+
+    <label for="text">Start buffer</label>
+    <textarea id="text" rows="5" placeholder="hello world"></textarea>
+    <div class="row">
+      <div><label for="crow">Cursor row (1-based)</label><input id="crow" type="number" min="1" value="1"></div>
+      <div><label for="ccol">Cursor col (0-based)</label><input id="ccol" type="number" min="0" value="0"></div>
+      <div><label for="ft">Filetype</label><select id="ft"></select></div>
+    </div>
+
+    <h2 style="margin-top:18px">2. Expected end state</h2>
+    <label for="etext">Expected buffer text (leave empty to ignore)</label>
+    <textarea id="etext" rows="4" placeholder="world hello"></textarea>
+    <p class="help">Trailing spaces and blank lines at the end are ignored.</p>
+    <div class="row">
+      <div><label for="erow">Expected cursor row</label><input id="erow" type="number" min="1" placeholder="-"></div>
+      <div><label for="ecol">Expected cursor col</label><input id="ecol" type="number" min="0" placeholder="any"></div>
+    </div>
+
+    <details>
+      <summary>More assertions and presets (windows, tabs, quickfix, diagnostics, marks)</summary>
+      <div class="row">
+        <div><label for="windows">Windows in the tab</label><input id="windows" type="number" min="1" max="6"></div>
+        <div><label for="layout">Layout</label><select id="layout"><option value="">any</option><option>row</option><option>col</option></select></div>
+        <div><label for="extra_tabs">New tabs open</label><input id="extra_tabs" type="number" min="0" max="3"></div>
+      </div>
+      <div class="row">
+        <div><label for="qidx">Quickfix current index</label><input id="qidx" type="number" min="1"></div>
+        <div><label for="qsize">Quickfix size</label><input id="qsize" type="number" min="0"></div>
+        <div><label for="qall">Every quickfix item contains</label><input id="qall" maxlength="60"></div>
+      </div>
+      <div class="row">
+        <div><label for="float_text">A floating window contains</label><input id="float_text" maxlength="80" placeholder="ARC:"></div>
+        <div><label for="marks">Marks (a=3, b=11)</label><input id="marks" class="mono" placeholder="a=3,b=11"></div>
+        <div><label for="alt_buffer"><input id="alt_buffer" type="checkbox" style="width:auto"> end in the other buffer</label></div>
+      </div>
+      <div class="row">
+        <div><label for="preset">Preset set-up</label><select id="preset"></select></div>
+        <div><label for="preset_rows">Preset lines (1,4,9)</label><input id="preset_rows" class="mono" placeholder="4,9"></div>
+      </div>
+      <p class="help">Presets: <b>diagnostics</b> plants warnings on those lines ("ARC: ..."), <b>splits</b> opens three windows,
+      <b>alt_buffer</b> puts you in a second buffer, <b>quickfix_hits</b> fills the quickfix list with those lines.</p>
+    </details>
+
+    <h2 style="margin-top:18px">3. Reference solution and lesson</h2>
+    <label for="solution">Reference keys (Vim notation, e.g. <code>ci"new&lt;Esc&gt;</code>)</label>
+    <input id="solution" class="mono" maxlength="120" placeholder='dwA <Esc>p'>
+    <p class="help" id="keycount"></p>
+    <label for="why">Why this is the better way</label>
+    <textarea id="why" maxlength="300" rows="2" placeholder="dw deletes a word with its space; p puts it back after the last word."></textarea>
+    <div class="row">
+      <div><label for="hint">Hint (optional)</label><input id="hint" maxlength="120"></div>
+      <div><label for="author">Your GitHub name</label><input id="author" maxlength="40"></div>
+    </div>
+
+    <details>
+      <summary>Plugin tips (shown to players who have that kind of plugin)</summary>
+      <div class="row">
+        <div><label for="hgroup">Plugin group</label><select id="hgroup"></select></div>
+        <div><label for="plugin_par">Keys with the plugin</label><input id="plugin_par" type="number" min="1" max="50"></div>
+        <div><label for="needs">Only offer if player has</label><select id="needs"></select></div>
+      </div>
+      <label for="htip">Tip</label>
+      <input id="htip" maxlength="200" placeholder="a surround plugin wraps it in 3-4 keys">
+    </details>
+  </section>
+
+  <div>
+    <section>
+      <h2>Result</h2>
+      <div id="status"></div>
+      <ul class="errors" id="errors"></ul>
+      <pre id="json"></pre>
+      <div class="actions">
+        <button id="copy">Copy JSON</button>
+        <button id="download">Download file</button>
+        <a class="btn primary disabled" id="pr" target="_blank" rel="noopener">Submit as pull request</a>
+      </div>
+      <p class="notice">"Submit" opens GitHub's new-file page prefilled with this challenge; GitHub forks the repo and opens a pull
+      request for you. CI replays your reference solution (must fail at the start and pass after your keys) and a maintainer reviews it.
+      If the link is too long for your browser, use Copy JSON and add <code>challenges/&lt;id&gt;.json</code> yourself.</p>
+    </section>
+
+    <section style="margin-top:16px">
+      <h2>Published challenges</h2>
+      <input id="filter" placeholder="Filter by title, area or author">
+      <p class="help" id="count"></p>
+      <ul class="list" id="list"></ul>
+      <p class="notice">In Neovim: <code>:ArcadeSync</code> downloads them. They join your runs and practice, marked as community.</p>
+    </section>
+  </div>
+</main>
+<footer>Challenges are data only and validated by the same schema the plugin uses. See CONTRIBUTING.md in the repository.</footer>
+<script src="app.js"></script>
+</body>
+</html>

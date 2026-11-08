@@ -1,0 +1,15 @@
+{
+  "id": "bracket-the-word",
+  "title": "Put the word in brackets",
+  "area": "textobjects",
+  "level": 2,
+  "brief": "Turn value into [value].",
+  "text": "value",
+  "cursor": [1, 2],
+  "solution": "ciw[<C-r>\"]<Esc>",
+  "expect": { "text": "[value]" },
+  "helps": { "surround": "one surround command wraps a word in 3-4 keys, e.g. ysiw] or saiw]" },
+  "plugin_par": 4,
+  "why": "ciw deletes the word into the unnamed register; <C-r>\" pastes it back while typing. A surround plugin does it in one go.",
+  "author": "dev-vinicius-andrade"
+}

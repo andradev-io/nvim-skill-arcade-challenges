@@ -1,0 +1,29 @@
+name: validate challenges
+
+on:
+  pull_request:
+    paths:
+      - "challenges/**"
+      - "scripts/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # the engine that judges challenges is the plugin itself
+      - uses: actions/checkout@v4
+        with:
+          repository: dev-vinicius-andrade/nvim-skill-arcade
+          path: .plugin
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: stable
+      - name: Schema check + replay every reference solution
+        run: ARCADE_PLUGIN=.plugin nvim --headless -u NONE -l scripts/validate.lua challenges

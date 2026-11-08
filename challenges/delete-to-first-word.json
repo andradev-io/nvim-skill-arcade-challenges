@@ -1,0 +1,13 @@
+{
+  "id": "delete-to-first-word",
+  "title": "Drop the first word",
+  "area": "motions",
+  "level": 1,
+  "brief": "Delete the first word and its comma and space, leaving: beta, gamma",
+  "text": "alpha, beta, gamma",
+  "cursor": [1, 0],
+  "solution": "df<Space>",
+  "expect": { "text": "beta, gamma" },
+  "why": "df{char} deletes through the next {char}. dt{char} would stop before it.",
+  "author": "dev-vinicius-andrade"
+}

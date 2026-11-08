@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "nvim-skill-arcade community challenge",
+  "description": "Editor hint only. The authoritative check is lua/skill_arcade/schema.lua in nvim-skill-arcade plus the CI replay.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "area", "level", "brief", "text", "solution", "expect", "why"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "maxLength": 40, "description": "must equal the file name without .json" },
+    "title": { "type": "string", "maxLength": 60 },
+    "area": { "enum": ["motions", "textobjects", "editing", "search", "macros", "registers", "marks", "windows", "quickfix", "diagnostics", "plugins"] },
+    "level": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "brief": { "type": "string", "maxLength": 240, "description": "the END STATE to reach, never the keys" },
+    "text": { "type": "string", "maxLength": 2000, "description": "start buffer, at most 40 lines" },
+    "cursor": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 1, "maxItems": 2, "description": "[row (1-based), col (0-based)]" },
+    "ft": { "enum": ["text", "lua", "python", "javascript", "markdown", "json", "html"] },
+    "loose": { "type": "boolean", "description": "ignore leading whitespace when comparing text" },
+    "solution": { "type": "string", "maxLength": 120, "description": "reference keys in Vim notation; replayed by CI; limited ex commands" },
+    "why": { "type": "string", "maxLength": 300 },
+    "hint": { "type": "string", "maxLength": 120 },
+    "author": { "type": "string", "maxLength": 40 },
+    "par_seconds": { "type": "integer", "minimum": 3, "maximum": 120 },
+    "plugin_par": { "type": "integer", "minimum": 1, "maximum": 50 },
+    "needs": { "enum": ["jump", "surround", "textobjects", "comment", "picker", "keyhints", "files", "bookmarks", "trouble", "replace", "multicursor", "move", "treesitter"] },
+    "helps": { "type": "object", "maxProperties": 13, "additionalProperties": { "type": "string", "maxLength": 200 } },
+    "preset": { "enum": ["diagnostics", "splits", "alt_buffer", "quickfix_hits"] },
+    "preset_rows": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "maxItems": 10 },
+    "expect": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "text": { "type": "string", "maxLength": 2000 },
+        "cursor": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 1, "maxItems": 2 },
+        "at": { "type": "array", "prefixItems": [{ "type": "integer" }, { "type": "string", "maxLength": 60 }, { "enum": ["first", "last"] }], "minItems": 2, "maxItems": 3 },
+        "marks": { "type": "object", "propertyNames": { "pattern": "^[a-z]$" }, "additionalProperties": { "type": "integer" } },
+        "windows": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "layout": { "enum": ["row", "col"] },
+        "extra_tabs": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "quickfix": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "idx": { "type": "integer" }, "size": { "type": "integer" }, "all_contain": { "type": "string", "maxLength": 60 } }
+        },
+        "float_text": { "type": "string", "maxLength": 80 },
+        "alt_buffer": { "type": "boolean" }
+      }
+    }
+  }
+}
