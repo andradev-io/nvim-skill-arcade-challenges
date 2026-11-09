@@ -1,0 +1,129 @@
+import { useEffect, useImperativeHandle, useRef } from 'react'
+import type { Ref } from 'react'
+import Box from '@mui/material/Box'
+import { EditorState } from '@codemirror/state'
+import { EditorView, lineNumbers } from '@codemirror/view'
+import { getCM, vim } from '@replit/codemirror-vim'
+import type { Cursor } from '../../core/types'
+
+export type VimMode = 'normal' | 'insert' | 'visual'
+
+export interface VimEditorHandle {
+  mode: () => VimMode
+  text: () => string
+  cursor: () => Cursor
+  focus: () => void
+}
+
+interface Props {
+  initialText: string
+  initialCursor: Cursor
+  /** Fired on every real key press, before Vim handles it. */
+  onKey: () => void
+  /** Fired after the document, cursor or mode may have changed. */
+  onSync: () => void
+  ref: Ref<VimEditorHandle>
+}
+
+const MODIFIERS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'AltGraph'])
+const P = 'var(--mui-palette-'
+
+const cmTheme = EditorView.theme({
+  '&': { color: `${P}text-primary)`, backgroundColor: `${P}background-paper)`, fontSize: '13px' },
+  '&.cm-focused': { outline: `2px solid ${P}primary-main)` },
+  '.cm-scroller': { fontFamily: 'inherit', lineHeight: '1.6', maxHeight: '320px' },
+  '.cm-content': { padding: '10px 4px', minHeight: '110px', caretColor: `${P}primary-main)` },
+  '.cm-gutters': { backgroundColor: 'transparent', color: `${P}primary-main)`, border: 'none', opacity: '.7' },
+  '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'transparent' },
+  '.cm-fat-cursor': { background: `${P}primary-main) !important`, color: `${P}primary-contrastText) !important` },
+  '&:not(.cm-focused) .cm-fat-cursor': {
+    background: 'transparent !important',
+    outline: `1px solid ${P}primary-main)`,
+    color: 'inherit !important',
+  },
+  '.cm-selectionBackground': { background: `${P}primary-main) !important`, opacity: '.35' },
+  '.cm-vim-panel': {
+    background: `${P}background-default)`,
+    color: `${P}text-primary)`,
+    fontFamily: 'inherit',
+    padding: '4px 10px',
+  },
+  '.cm-vim-panel input': {
+    background: 'transparent',
+    color: 'inherit',
+    border: 'none',
+    outline: 'none',
+    fontFamily: 'inherit',
+    width: '80%',
+  },
+})
+
+/** Stock Vim emulation (CodeMirror 6 + @replit/codemirror-vim). Your own Neovim keybinds are not active here. */
+export function VimEditor({ initialText, initialCursor, onKey, onSync, ref }: Props) {
+  const host = useRef<HTMLDivElement>(null)
+  const view = useRef<EditorView | null>(null)
+  const hooks = useRef({ onKey, onSync })
+  useEffect(() => {
+    hooks.current = { onKey, onSync }
+  })
+
+  useEffect(() => {
+    const parent = host.current
+    if (!parent) return
+    const v = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc: initialText,
+        extensions: [
+          vim({ status: false }),
+          lineNumbers(),
+          cmTheme,
+          EditorView.lineWrapping,
+          EditorView.contentAttributes.of({ 'aria-label': 'Vim editor for the challenge', spellcheck: 'false' }),
+          EditorView.updateListener.of(() => hooks.current.onSync()),
+        ],
+      }),
+    })
+    view.current = v
+    const cm = getCM(v)
+    if (cm) {
+      const row = Math.max(1, Math.min(v.state.doc.lines, initialCursor[0] || 1))
+      const len = v.state.doc.line(row).length
+      cm.setCursor(row - 1, Math.max(0, Math.min(Math.max(0, len - 1), initialCursor[1] || 0)))
+      cm.on('vim-mode-change', () => hooks.current.onSync())
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (MODIFIERS.has(e.key)) return
+      hooks.current.onKey()
+      setTimeout(() => hooks.current.onSync(), 0)
+    }
+    v.contentDOM.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      v.contentDOM.removeEventListener('keydown', onKeyDown, true)
+      v.destroy()
+      view.current = null
+    }
+    // Created once per mount: the parent remounts it (key) whenever the start buffer changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useImperativeHandle(ref, () => ({
+    mode: () => {
+      const v = view.current && getCM(view.current)?.state.vim
+      return !v ? 'normal' : v.insertMode ? 'insert' : v.visualMode ? 'visual' : 'normal'
+    },
+    text: () => view.current?.state.doc.toString() ?? '',
+    cursor: () => {
+      const c = view.current && getCM(view.current)?.getCursor()
+      return c ? [c.line + 1, c.ch] : [1, 0]
+    },
+    focus: () => view.current?.focus(),
+  }))
+
+  return (
+    <Box
+      ref={host}
+      sx={{ border: 1, borderColor: 'primary.main', borderRadius: '15px', overflow: 'hidden', minHeight: 140 }}
+    />
+  )
+}

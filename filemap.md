@@ -1,0 +1,38 @@
+# File map
+
+- `CLAUDE.md` — agent instructions: stack, commands, conventions
+- `README.md` — overview, how it fits together, safety model, local use, maintainer setup
+- `CONTRIBUTING.md` — how to write a good challenge, fields, solution rules, how to test a draft
+- `challenges/*.json` — published community challenges (file name = id)
+- `schema/challenge.schema.json` — JSON schema of a challenge (editor help; the real gate is the plugin schema)
+- `scripts/validate.lua` — headless Neovim: schema check + replay of every reference solution
+- `scripts/build.lua` — same checks, then writes the `community.json` bundle that `:ArcadeSync` downloads
+- `.github/workflows/validate.yml` — on PRs: Neovim replay of challenges; lint, typecheck, tests and build of the site
+- `.github/workflows/pages.yml` — on main: tests, site build, bundle build, deploy to GitHub Pages
+- `package.json`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `index.html` — site toolchain and entry HTML
+- `src/main.tsx` — React root: MUI providers and CSS layer order
+- `src/App.tsx` — page layout; lazy-loads the play panel (CodeMirror chunk)
+- `src/theme.ts` — MUI light/dark theme (andradev.io look: JetBrains Mono, olive accent)
+- `src/index.css` — CSS layer order
+- `src/core/types.ts` — `Challenge`, `Expect`, `DraftForm`, `State`
+- `src/core/keys.ts` — Vim key tokens, key count, S/A/B/C key rank
+- `src/core/compare.ts` — `linesEqual` / `check` (same end-state rules as the plugin), browser-checkable helpers
+- `src/core/replay.ts` — approximate normal-mode interpreter for the reference-keys preview
+- `src/core/schema.ts` — form → challenge JSON, schema checks, safe-solution rules, PR link
+- `src/core/roomCode.ts` — `ARC1.` room code encode/decode, `:ArcadeJoin` / `:ArcadeTry` command text
+- `src/core/core.test.ts` — tests for keys, compare, replay, room code and schema
+- `src/store/draftStore.ts` — zustand store of the form (saved to localStorage, fails soft)
+- `src/hooks/useDraft.ts` — derived challenge, errors, JSON, room code and PR link
+- `src/hooks/usePlay.ts` — one play round: key count, clock from the first key, end-state judging
+- `src/hooks/useCommunity.ts` — fetches the published `community.json` once, fails soft
+- `src/hooks/useClipboard.ts` — copy helper with feedback, file download
+- `src/components/layout/TopBar.tsx` — title, intro, light/dark toggle
+- `src/components/common/` — `Field` (store-bound input), `Row`, `Section`, `CodeBlock`
+- `src/components/draft/DraftForm.tsx` — the three form sections
+- `src/components/draft/ResultPanel.tsx` — validation result, JSON, copy / download / submit as pull request
+- `src/components/play/VimEditor.tsx` — CodeMirror 6 + Vim emulation wrapper
+- `src/components/play/PlaySession.tsx` — status bar, editor and buttons of one round
+- `src/components/play/PlayPanel.tsx` — "Play it": notes, flags, round remount on change / Reset
+- `src/components/join/JoinBox.tsx` — room code command and the file alternative
+- `src/components/sim/SimCheck.tsx` — start-state verdict and reference-keys replay
+- `src/components/published/PublishedList.tsx` — filterable list of published challenges

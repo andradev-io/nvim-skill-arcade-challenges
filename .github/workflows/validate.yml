@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - "challenges/**"
+      - "src/**"
+      - "package*.json"
+      - "index.html"
+      - "vite.config.ts"
       - "scripts/**"
       - ".github/workflows/**"
   workflow_dispatch:
@@ -27,3 +31,18 @@ jobs:
           version: stable
       - name: Schema check + replay every reference solution
         run: ARCADE_PLUGIN=.plugin nvim --headless -u NONE -l scripts/validate.lua challenges
+
+  site:
+    # the React site: lint, typecheck, unit tests and a production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build

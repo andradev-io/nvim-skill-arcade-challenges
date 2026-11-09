@@ -5,7 +5,7 @@ static website where anyone can design and submit one.
 
 * **Submit:** open the site (GitHub Pages of this repo), fill the form, press *Submit as pull request*.
 * **Play while you write:** the *Play it* panel is a real Vim-keys editor (CodeMirror 6 + `@replit/codemirror-vim`,
-  vendored in `site/vendor`, no CDN) preloaded with your start buffer and cursor. It updates as you edit the form, counts
+  bundled by Vite, no CDN) preloaded with your start buffer and cursor. It updates as you edit the form, counts
   keys against par, times you, and runs the same end-state check as the game (buffer text and cursor, normal mode).
   It is stock Vim emulation, not your Neovim: your keybinds and plugins are not active, and plugin-specific
   challenges and non-text assertions (windows, quickfix ...) are flagged as "only in Neovim".
@@ -18,13 +18,13 @@ static website where anyone can design and submit one.
 ## How it fits together
 
 ```
-site/  (form + published list)      challenges/*.json  (one file per challenge, file name = id)
+src/  (React site: form, play, list)  challenges/*.json  (one file per challenge, file name = id)
    |  "Submit" -> GitHub new-file URL -> pull request
    v
 .github/workflows/validate.yml   schema check + replay every reference solution (PR)
-.github/workflows/pages.yml      on main: build _site/community.json + deploy site (Pages)
+.github/workflows/pages.yml      on main: tests + site build + dist/community.json, deploy (Pages)
    v
-:ArcadeSync  ->  https://<user>.github.io/nvim-skill-arcade-challenges/community.json
+:ArcadeSync  ->  <site url>/community.json   (GitHub Pages, or the custom domain once set)
 ```
 
 The engine that judges a challenge is the plugin itself (`skill_arcade.validate`), checked out by CI, so the
@@ -42,12 +42,23 @@ website, CI and the game can never disagree about what a valid challenge is.
 
 ## Local use
 
+Site (Node 22):
+
+```sh
+npm ci
+npm run dev        # http://localhost:5173
+npm run lint && npm run typecheck && npm test && npm run build
+```
+
+Challenges (needs Neovim and the plugin checked out next to this repo):
+
 ```sh
 git clone https://github.com/dev-vinicius-andrade/nvim-skill-arcade ../nvim-skill-arcade
 ARCADE_PLUGIN=../nvim-skill-arcade nvim --headless -u NONE -l scripts/validate.lua challenges
-ARCADE_PLUGIN=../nvim-skill-arcade nvim --headless -u NONE -l scripts/build.lua challenges dist/community.json
-cd site && python -m http.server    # then open http://localhost:8000 (copy dist/community.json next to index.html)
+ARCADE_PLUGIN=../nvim-skill-arcade nvim --headless -u NONE -l scripts/build.lua challenges public/community.json
 ```
+
+The second `build.lua` line writes the bundle into `public/` so `npm run dev` shows the published list (git-ignored).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how to write a good challenge.
 

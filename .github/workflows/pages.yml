@@ -23,17 +23,23 @@ jobs:
         with:
           repository: dev-vinicius-andrade/nvim-skill-arcade
           path: .plugin
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Build the site
+        run: npm run build
       - uses: rhysd/action-setup-vim@v1
         with:
           neovim: true
           version: stable
       - name: Build the bundle (fails if any challenge is invalid)
-        run: ARCADE_PLUGIN=.plugin nvim --headless -u NONE -l scripts/build.lua challenges _site/community.json
-      - name: Assemble the site
-        run: cp -r site/. _site/
+        run: ARCADE_PLUGIN=.plugin nvim --headless -u NONE -l scripts/build.lua challenges dist/community.json
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: dist
 
   deploy:
     needs: build
