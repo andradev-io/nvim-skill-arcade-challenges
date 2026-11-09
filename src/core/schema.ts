@@ -20,6 +20,48 @@ export const EMPTY_FORM: DraftForm = {
   hgroup: '', htip: '', pluginPar: '', needs: '',
 }
 
+/** Inverse of buildChallenge: fills the form from a challenge (an example or a published one). */
+export function challengeToForm(c: Partial<Challenge>): DraftForm {
+  const e: Expect = c.expect ?? {}
+  const num = (n: number | undefined): string => (n === undefined ? '' : String(n))
+  const [hgroup, htip] = Object.entries(c.helps ?? {})[0] ?? ['', '']
+  return {
+    ...EMPTY_FORM,
+    title: c.title ?? '',
+    id: c.id ?? '',
+    idTouched: !!c.id,
+    area: c.area ?? 'motions',
+    level: String(c.level ?? 2),
+    brief: c.brief ?? '',
+    text: c.text ?? '',
+    crow: String(c.cursor?.[0] ?? 1),
+    ccol: String(c.cursor?.[1] ?? 0),
+    ft: c.ft ?? 'text',
+    etext: e.text ?? '',
+    erow: num(e.cursor?.[0]),
+    ecol: num(e.cursor?.[1]),
+    windows: num(e.windows),
+    layout: e.layout ?? '',
+    extraTabs: num(e.extra_tabs),
+    qidx: num(e.quickfix?.idx),
+    qsize: num(e.quickfix?.size),
+    qall: e.quickfix?.all_contain ?? '',
+    floatText: e.float_text ?? '',
+    marks: Object.entries(e.marks ?? {}).map(([k, v]) => `${k}=${v}`).join(','),
+    altBuffer: !!e.alt_buffer,
+    preset: c.preset ?? '',
+    presetRows: (c.preset_rows ?? []).join(','),
+    solution: c.solution ?? '',
+    why: c.why ?? '',
+    hint: c.hint ?? '',
+    author: c.author ?? '',
+    hgroup,
+    htip,
+    pluginPar: num(c.plugin_par),
+    needs: c.needs ?? '',
+  }
+}
+
 function exName(cmdline: string): string | null {
   let s = cmdline
   let before: string

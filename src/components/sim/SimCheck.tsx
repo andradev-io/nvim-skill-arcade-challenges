@@ -1,5 +1,6 @@
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
+import Stack from '@mui/material/Stack'
 import { useMemo } from 'react'
 import { check, linesEqual, neovimOnlyKeys } from '../../core/compare'
 import { keyCount } from '../../core/keys'
@@ -7,7 +8,6 @@ import { replay } from '../../core/replay'
 import type { Challenge, Cursor } from '../../core/types'
 import { useDraft } from '../../hooks/useDraft'
 import { CodeBlock } from '../common/CodeBlock'
-import { Section } from '../common/Section'
 
 type Severity = 'success' | 'error' | 'info'
 interface Verdict {
@@ -72,7 +72,7 @@ export function SimCheck() {
   const { data } = useDraft()
   const { verdicts, replayed } = useMemo(() => analyse(data), [data])
   return (
-    <Section title="Check the reference keys" id="sim">
+    <Stack spacing={1.5}>
       <Box sx={{ fontSize: 12, color: 'text.secondary' }}>
         Replays your reference keys on the start buffer with a small approximate interpreter (common normal-mode keys only).
         Neovim and the CI replay are the authority.
@@ -87,6 +87,6 @@ export function SimCheck() {
         <CodeBlock label="Expected" maxHeight={200}>{expectedView(data)}</CodeBlock>
       </Box>
       <CodeBlock label="Reference keys replayed here" maxHeight={200}>{replayed}</CodeBlock>
-    </Section>
+    </Stack>
   )
 }

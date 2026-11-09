@@ -11,7 +11,7 @@
 - `.github/workflows/pages.yml` — on main: tests, site build, bundle build, deploy to GitHub Pages
 - `package.json`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `index.html` — site toolchain and entry HTML
 - `src/main.tsx` — React root: MUI providers and CSS layer order
-- `src/App.tsx` — page layout; lazy-loads the play panel (CodeMirror chunk)
+- `src/App.tsx` — page: top bar, hero, workspace, published list
 - `src/theme.ts` — MUI light/dark theme (andradev.io look: JetBrains Mono, olive accent)
 - `src/index.css` — CSS layer order
 - `src/core/types.ts` — `Challenge`, `Expect`, `DraftForm`, `State`
@@ -26,13 +26,17 @@
 - `src/hooks/usePlay.ts` — one play round: key count, clock from the first key, end-state judging
 - `src/hooks/useCommunity.ts` — fetches the published `community.json` once, fails soft
 - `src/hooks/useClipboard.ts` — copy helper with feedback, file download
-- `src/components/layout/TopBar.tsx` — title, intro, light/dark toggle
+- `src/components/layout/TopBar.tsx` — brand, GitHub link, light/dark toggle
 - `src/components/common/` — `Field` (store-bound input), `Row`, `Section`, `CodeBlock`
 - `src/components/draft/DraftForm.tsx` — the three form sections
 - `src/components/draft/ResultPanel.tsx` — validation result, JSON, copy / download / submit as pull request
 - `src/components/play/VimEditor.tsx` — CodeMirror 6 + Vim emulation wrapper
 - `src/components/play/PlaySession.tsx` — status bar, editor and buttons of one round
-- `src/components/play/PlayPanel.tsx` — "Play it": notes, flags, round remount on change / Reset
+- `src/components/play/PlayPanel.tsx` — Play tab: notes, flags, round remount on change / Reset
 - `src/components/join/JoinBox.tsx` — room code command and the file alternative
 - `src/components/sim/SimCheck.tsx` — start-state verdict and reference-keys replay
-- `src/components/published/PublishedList.tsx` — filterable list of published challenges
+- `src/components/published/PublishedList.tsx` — filterable cards of published challenges, "Use as template"
+- `src/examples.ts` — ready-made drafts (first visit loads the first one; the picker loads the others)
+- `src/components/layout/Hero.tsx` — headline, three steps, "Try the example" / "Start blank"
+- `src/components/layout/Workspace.tsx` — form on the left, sticky tabbed toolbox (Play, Check, Neovim, Submit) on the right
+- `src/components/draft/ExamplePicker.tsx` — chips that load an example or a blank form
