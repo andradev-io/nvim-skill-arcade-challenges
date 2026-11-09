@@ -11,7 +11,6 @@ import { useState } from 'react'
 import { fileCommand, joinCommand } from '../../core/roomCode'
 import { downloadText, useClipboard } from '../../hooks/useClipboard'
 import { useDraft } from '../../hooks/useDraft'
-import { Section } from '../common/Section'
 
 const FOLDER_KEY = 'arcade-folder'
 
@@ -60,7 +59,7 @@ export function JoinBox() {
   }
 
   return (
-    <Section title="Join in Neovim" id="join">
+    <Stack spacing={1.5}>
       <Typography variant="caption" color="text.secondary">
         Your draft gets a <b>room code</b>. Paste it in Neovim and play with your own keybinds and plugins. Nothing is
         saved: no points, bests or stats. The code carries the whole draft, so there is no upload and nothing to clean up.
@@ -107,6 +106,6 @@ export function JoinBox() {
           </Stack>
         </AccordionDetails>
       </Accordion>
-    </Section>
+    </Stack>
   )
 }

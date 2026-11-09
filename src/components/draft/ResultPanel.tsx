@@ -5,13 +5,12 @@ import Typography from '@mui/material/Typography'
 import { useDraft } from '../../hooks/useDraft'
 import { downloadText, useClipboard } from '../../hooks/useClipboard'
 import { CodeBlock } from '../common/CodeBlock'
-import { Section } from '../common/Section'
 
 export function ResultPanel() {
   const { data, errors, json, ok, prUrl, prTooLong } = useDraft()
   const { copy, copied } = useClipboard()
   return (
-    <Section title="Result">
+    <Stack spacing={1.5}>
       {ok ? (
         <Alert severity="success">Looks valid. CI will replay your solution in Neovim.</Alert>
       ) : (
@@ -45,6 +44,6 @@ export function ResultPanel() {
         for you. CI replays your reference solution (must fail at the start and pass after your keys) and a maintainer
         reviews it. If the link is too long, use Copy JSON and add challenges/&lt;id&gt;.json yourself.
       </Typography>
-    </Section>
+    </Stack>
   )
 }
