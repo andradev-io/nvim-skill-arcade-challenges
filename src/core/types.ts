@@ -18,6 +18,15 @@ export interface Expect {
   marks?: Record<string, number>
 }
 
+export type Forbid = 'hjkl' | 'arrows' | 'mouse'
+
+/** A track: the buffer is a text-grid map, reach the goal cell (touching the checkpoints in order). */
+export interface Track {
+  goal: Cursor
+  checkpoints?: Cursor[]
+  forbid?: Forbid[]
+}
+
 export interface Challenge {
   id: string
   title: string
@@ -28,6 +37,7 @@ export interface Challenge {
   cursor: Cursor
   ft?: string
   expect: Expect
+  track?: Track
   preset?: string
   preset_rows?: number[]
   solution: string
@@ -74,6 +84,13 @@ export interface DraftForm {
   htip: string
   pluginPar: string
   needs: string
+  /** track area only: goal cell, checkpoints as "row:col, row:col", key rules */
+  goalRow: string
+  goalCol: string
+  checkpoints: string
+  forbidHjkl: boolean
+  forbidArrows: boolean
+  forbidMouse: boolean
 }
 
 export interface State {

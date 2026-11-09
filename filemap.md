@@ -18,6 +18,8 @@
 - `src/core/keys.ts` — Vim key tokens, key count, S/A/B/C key rank
 - `src/core/compare.ts` — `linesEqual` / `check` (same end-state rules as the plugin), browser-checkable helpers
 - `src/core/replay.ts` — approximate normal-mode interpreter for the reference-keys preview
+- `src/core/track.ts` — track rules: checkpoint stepping in order, goal/untouched-map verdict, rules line
+- `src/components/draft/TrackSection.tsx` — "Track" form section for `area: track`: clickable map editor, checkpoints, key rules
 - `src/core/schema.ts` — form → challenge JSON, schema checks, safe-solution rules, PR link
 - `src/core/roomCode.ts` — `ARC1.` room code encode/decode, `:ArcadeJoin` / `:ArcadeTry` command text
 - `src/core/core.test.ts` — tests for keys, compare, replay, room code and schema

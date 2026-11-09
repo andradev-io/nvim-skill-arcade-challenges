@@ -18,10 +18,12 @@ export interface VimEditorHandle {
 interface Props {
   initialText: string
   initialCursor: Cursor
-  /** Fired on every real key press, before Vim handles it. */
-  onKey: () => void
+  /** Fired on every real key press, before Vim handles it. Return true to swallow the key. */
+  onKey: (key: string, mode: string) => boolean
   /** Fired after the document, cursor or mode may have changed. */
   onSync: () => void
+  /** Track rule "no mouse": clicks never move the cursor. */
+  noMouse?: boolean
   ref: Ref<VimEditorHandle>
 }
 
@@ -59,12 +61,14 @@ const cmTheme = EditorView.theme({
 })
 
 /** Stock Vim emulation (CodeMirror 6 + @replit/codemirror-vim). Your own Neovim keybinds are not active here. */
-export function VimEditor({ initialText, initialCursor, onKey, onSync, ref }: Props) {
+export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse = false, ref }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const hooks = useRef({ onKey, onSync })
+  const lockMouse = useRef(noMouse)
   useEffect(() => {
     hooks.current = { onKey, onSync }
+    lockMouse.current = noMouse
   })
 
   useEffect(() => {
@@ -92,14 +96,43 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, ref }: Pr
       cm.setCursor(row - 1, Math.max(0, Math.min(Math.max(0, len - 1), initialCursor[1] || 0)))
       cm.on('vim-mode-change', () => hooks.current.onSync())
     }
+    // some input paths (IME, automation) insert the character even after keydown was cancelled: drop it too
+    let swallowed = false
+    const onBeforeInput = (e: InputEvent) => {
+      if (!swallowed) return
+      e.preventDefault()
+      swallowed = false
+    }
     const onKeyDown = (e: KeyboardEvent) => {
       if (MODIFIERS.has(e.key)) return
-      hooks.current.onKey()
+      const vimState = cm?.state.vim
+      const mode = !vimState ? 'normal' : vimState.insertMode ? 'insert' : vimState.visualMode ? 'visual' : 'normal'
+      if (hooks.current.onKey(e.key, mode)) {
+        // a key family this track forbids: Vim never sees it
+        e.preventDefault()
+        e.stopPropagation()
+        swallowed = true
+        setTimeout(() => {
+          swallowed = false
+        }, 50)
+        return
+      }
       setTimeout(() => hooks.current.onSync(), 0)
     }
+    // a track with "no mouse": clicks may focus the editor but never move the cursor
+    const onMouseDown = (e: MouseEvent) => {
+      if (!lockMouse.current) return
+      e.preventDefault()
+      e.stopPropagation()
+      v.focus()
+    }
     v.contentDOM.addEventListener('keydown', onKeyDown, true)
+    v.contentDOM.addEventListener('mousedown', onMouseDown, true)
+    v.contentDOM.addEventListener('beforeinput', onBeforeInput, true)
     return () => {
+      v.contentDOM.removeEventListener('beforeinput', onBeforeInput, true)
       v.contentDOM.removeEventListener('keydown', onKeyDown, true)
+      v.contentDOM.removeEventListener('mousedown', onMouseDown, true)
       v.destroy()
       view.current = null
     }

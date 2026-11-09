@@ -4,6 +4,7 @@ import { keyCount, keyRank, tokens } from './keys'
 import { replay } from './replay'
 import { decodeDraft, encodeDraft, fileCommand } from './roomCode'
 import { buildChallenge, EMPTY_FORM, unsafeSolution } from './schema'
+import { checkpointsReached } from './track'
 import type { DraftForm } from './types'
 
 const form = (patch: Partial<DraftForm>): DraftForm => ({ ...EMPTY_FORM, ...patch })
@@ -99,6 +100,49 @@ describe('schema', () => {
   })
 })
 
+describe('track', () => {
+  const base = { area: 'track', title: 'T', brief: 'b', why: 'w', solution: '$', text: 'S...X', crow: '1', ccol: '0' }
+  it('derives expect from the goal and keeps the map', () => {
+    const r = buildChallenge(form({ ...base, goalRow: '1', goalCol: '4' }))
+    expect(r.errors).toEqual([])
+    expect(r.data.track).toEqual({ goal: [1, 4] })
+    expect(r.data.expect).toEqual({ text: 'S...X', cursor: [1, 4] })
+  })
+  it('applies the plugin schema rules', () => {
+    const e = (patch: Partial<DraftForm>) => buildChallenge(form({ ...base, goalRow: '1', goalCol: '4', ...patch })).errors
+    expect(e({ goalRow: '', goalCol: '' })).toContain('set the goal cell (row and column)')
+    expect(e({ goalCol: '9' })).toContain('track goal is outside the map')
+    expect(e({ checkpoints: '1:4' })).toContain('checkpoints must be different cells, none of them the goal')
+    expect(e({ checkpoints: '1:9' })).toContain('checkpoint 1:9 is outside the map')
+    expect(e({ checkpoints: 'x' })).toContain('checkpoints must look like 2:3, 4:5 (row:col)')
+    expect(e({ checkpoints: '1:1, 1:2, 1:3, 1:1, 1:2, 1:3, 1:0' })).toContain('at most 6 checkpoints')
+    expect(e({ goalCol: '0' })).toContain('the start cell is already the goal')
+    expect(e({ goalCol: '0', checkpoints: '1:2' })).toEqual([])
+    expect(e({ text: 'S…X' })).toContain('track maps must be plain ASCII (columns are bytes in Neovim)')
+  })
+  it('keeps the key rules', () => {
+    const r = buildChallenge(form({ ...base, goalRow: '1', goalCol: '4', forbidHjkl: true, forbidMouse: true }))
+    expect(r.data.track?.forbid).toEqual(['hjkl', 'mouse'])
+  })
+  it('replays % } marks search and records visited cells', () => {
+    expect(replay('(~[~]~)~', [1, 0], '%').cursor).toEqual([1, 6])
+    expect(replay('a\nb\n\nc\nd', [1, 0], '}j').cursor).toEqual([4, 0])
+    expect(replay('a\nb\nc\nd\ne', [1, 0], 'maG`a').cursor).toEqual([1, 0])
+    expect(replay('one two\nX here', [1, 0], '/X<CR>').cursor).toEqual([2, 0])
+    expect(replay('a\n b\nc', [1, 0], '+').cursor).toEqual([2, 1])
+    const r = replay('S .1. .2. X', [1, 0], 'f1f2fX')
+    expect(r.visited).toEqual([[1, 0], [1, 3], [1, 7], [1, 10]])
+  })
+  it('judges checkpoints in order and flags forbidden keys', () => {
+    const t = { goal: [1, 10] as [number, number], checkpoints: [[1, 3], [1, 7]] as [number, number][] }
+    expect(checkpointsReached(t, replay('S .1. .2. X', [1, 0], 'f1f2fX').visited)).toBe(2)
+    expect(checkpointsReached(t, replay('S .1. .2. X', [1, 0], 'f2f1').visited)).toBe(0)
+    expect(replay('a\nb', [1, 0], 'j', ['hjkl']).blocked).toBe('j')
+    expect(replay('a\nb', [1, 0], '2G', ['hjkl']).blocked).toBeNull()
+    expect(replay('a j', [1, 0], 'fj', ['hjkl']).blocked).toBeNull()
+  })
+})
+
 describe('examples', () => {
   it('round trip through the form and pass the schema', async () => {
     const { EXAMPLES } = await import('../examples')
@@ -116,6 +160,19 @@ describe('examples', () => {
       const res = replay(c.text, c.cursor, c.solution)
       expect(res.unsupported, c.id).toBeNull()
       expect(check(c.expect, res).ok, c.id).toBe(true)
+    }
+  })
+  it('track examples visit every checkpoint in order without forbidden keys', async () => {
+    const { EXAMPLES } = await import('../examples')
+    const tracks = EXAMPLES.filter((x) => x.challenge.track)
+    expect(tracks.length).toBeGreaterThanOrEqual(3)
+    for (const { challenge: c } of tracks) {
+      const t = c.track!
+      const res = replay(c.text, c.cursor, c.solution, t.forbid)
+      expect(res.unsupported, c.id).toBeNull()
+      expect(res.blocked, c.id).toBeNull()
+      expect(checkpointsReached(t, res.visited), c.id).toBe(t.checkpoints?.length ?? 0)
+      expect(res.cursor, c.id).toEqual(t.goal)
     }
   })
 })

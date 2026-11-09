@@ -37,6 +37,26 @@ See `schema/challenge.schema.json`. Required: `id title area level brief text so
 `preset` prepares the arena: `diagnostics` (warnings "ARC: ..." on `preset_rows`), `splits` (3 windows),
 `alt_buffer` (you start in a second buffer), `quickfix_hits` (quickfix filled from `preset_rows`).
 
+## Tracks (`area: "track"`)
+
+The buffer is a text-grid map and the task is to reach a goal cell, optionally touching ordered checkpoints and with
+whole key families switched off. Only the end state is judged, so players' own keybinds and plugins work.
+
+```json
+{ "area": "track", "text": "S...X\n.....", "cursor": [1, 0],
+  "track": { "goal": [1, 4], "checkpoints": [[2, 2]], "forbid": ["hjkl", "arrows"] }, "solution": "j2lgg$" }
+```
+
+| key | meaning |
+|---|---|
+| `track.goal` | `[row, col]` (row 1-based, col 0-based) the cursor must end on |
+| `track.checkpoints` | up to 6 cells, touched in this order; distinct, never the goal |
+| `track.forbid` | any of `hjkl`, `arrows`, `mouse` (buffer-local, only on this map) |
+
+`expect` is derived (cursor on the goal, map unchanged) and can be left out. The map must be ASCII and the cursor
+start may equal the goal only when there are checkpoints. In the site's form, the *Track* section has a clickable map
+to place start, goal and checkpoints. The reference `solution` is replayed in CI and must visit every checkpoint in order.
+
 ## Reference solution rules
 
 Vim notation (`<Esc>`, `<CR>`, `<C-v>`, `<Space>` ...), max 120 characters. Allowed ex commands: `s g v m t co d y j norm

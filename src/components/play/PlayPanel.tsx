@@ -19,6 +19,10 @@ function flagsFor(c: Challenge): string[] {
 }
 
 function expectedText(c: Challenge): string {
+  if (c.track) {
+    const cps = (c.track.checkpoints ?? []).map(([r, k]) => `${r},${k}`).join(' -> ')
+    return `${c.text}\n\n-- goal: row ${c.track.goal[0]}, col ${c.track.goal[1]}${cps ? `\n-- checkpoints in order: ${cps}` : ''}`
+  }
   const e = c.expect
   const cur = e.cursor ? `-- cursor: row ${e.cursor[0]}${e.cursor[1] !== undefined ? `, col ${e.cursor[1]}` : ''}` : ''
   return (e.text !== undefined ? e.text : '(no text expectation)') + (cur ? `\n\n${cur}` : '')
@@ -30,7 +34,7 @@ export function PlayPanel() {
   const [expectedOpen, setExpectedOpen] = useState(false)
   const playable = isPlayable(data)
   // a new start buffer or cursor, or Reset, starts a fresh round with a fresh editor
-  const roundKey = `${run}|${data.text}|${data.cursor.join(',')}`
+  const roundKey = `${run}|${data.text}|${data.cursor.join(',')}|${JSON.stringify(data.track ?? null)}`
 
   return (
     <Stack spacing={1.5}>

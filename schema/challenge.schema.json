@@ -4,11 +4,28 @@
   "description": "Editor hint only. The authoritative check is lua/skill_arcade/schema.lua in nvim-skill-arcade plus the CI replay.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "title", "area", "level", "brief", "text", "solution", "expect", "why"],
+  "required": ["id", "title", "area", "level", "brief", "text", "solution", "why"],
+  "anyOf": [{ "required": ["expect"] }, { "required": ["track"] }],
   "properties": {
+    "track": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["goal"],
+      "description": "area \"track\": the text is a grid map; reach goal, touching checkpoints in order. expect is derived (cursor on goal, text unchanged) and may be left out. ASCII map only.",
+      "properties": {
+        "goal": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 2, "maxItems": 2, "description": "[row (1-based), col (0-based)]" },
+        "checkpoints": {
+          "type": "array",
+          "maxItems": 6,
+          "items": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 2, "maxItems": 2 },
+          "description": "cells to touch in this order; distinct, never the goal"
+        },
+        "forbid": { "type": "array", "uniqueItems": true, "items": { "enum": ["hjkl", "arrows", "mouse"] } }
+      }
+    },
     "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "maxLength": 40, "description": "must equal the file name without .json" },
     "title": { "type": "string", "maxLength": 60 },
-    "area": { "enum": ["motions", "textobjects", "editing", "search", "macros", "registers", "marks", "windows", "quickfix", "diagnostics", "plugins"] },
+    "area": { "enum": ["motions", "textobjects", "editing", "search", "macros", "registers", "marks", "windows", "quickfix", "diagnostics", "track", "plugins"] },
     "level": { "type": "integer", "minimum": 1, "maximum": 5 },
     "brief": { "type": "string", "maxLength": 240, "description": "the END STATE to reach, never the keys" },
     "text": { "type": "string", "maxLength": 2000, "description": "start buffer, at most 40 lines" },
