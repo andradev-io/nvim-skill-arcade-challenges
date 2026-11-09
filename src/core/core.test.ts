@@ -98,3 +98,24 @@ describe('schema', () => {
     expect(r.errors).toContain('marks must look like a=3,b=11')
   })
 })
+
+describe('examples', () => {
+  it('round trip through the form and pass the schema', async () => {
+    const { EXAMPLES } = await import('../examples')
+    const { challengeToForm } = await import('./schema')
+    for (const ex of EXAMPLES) {
+      const r = buildChallenge(challengeToForm(ex.challenge))
+      expect(r.errors, ex.label).toEqual([])
+      expect(r.data, ex.label).toEqual(ex.challenge)
+    }
+  })
+  it('text examples reach their end state with the reference keys', async () => {
+    const { EXAMPLES } = await import('../examples')
+    for (const { challenge: c } of EXAMPLES) {
+      if (c.expect.text === undefined) continue
+      const res = replay(c.text, c.cursor, c.solution)
+      expect(res.unsupported, c.id).toBeNull()
+      expect(check(c.expect, res).ok, c.id).toBe(true)
+    }
+  })
+})

@@ -1,10 +1,10 @@
 import Alert from '@mui/material/Alert'
+import Stack from '@mui/material/Stack'
 import { useState } from 'react'
 import { isPlayable, neovimOnlyKeys } from '../../core/compare'
 import type { Challenge } from '../../core/types'
 import { useDraft } from '../../hooks/useDraft'
 import { CodeBlock } from '../common/CodeBlock'
-import { Section } from '../common/Section'
 import { PlaySession } from './PlaySession'
 
 function flagsFor(c: Challenge): string[] {
@@ -33,7 +33,7 @@ export function PlayPanel() {
   const roundKey = `${run}|${data.text}|${data.cursor.join(',')}`
 
   return (
-    <Section title="Play it" id="play">
+    <Stack spacing={1.5}>
       <Alert severity="info" variant="outlined">
         Stock Vim emulation in the browser, not your Neovim: your own keybinds and plugins are <b>not</b> active here, and
         some keys (windows, quickfix, :g with ranges, registers beyond the basics) may behave slightly differently. Use
@@ -53,9 +53,13 @@ export function PlayPanel() {
           onToggleExpected={() => setExpectedOpen((o) => !o)}
         />
       ) : (
-        <Alert severity="info">Add start text and an expected text or cursor to play. Other assertions only run in Neovim.</Alert>
+        <Alert severity="info">
+          {data.text
+            ? 'This challenge has no text or cursor expectation, so it is judged only in Neovim. Use the Neovim tab to play it.'
+            : 'Add start text and an expected text or cursor to play here. Other assertions only run in Neovim.'}
+        </Alert>
       )}
       {expectedOpen && <CodeBlock label="Expected end state">{expectedText(data)}</CodeBlock>}
-    </Section>
+    </Stack>
   )
 }
