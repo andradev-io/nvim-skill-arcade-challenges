@@ -9,7 +9,13 @@ export interface ReplayResult {
   cursor: Cursor
   /** First key the interpreter could not handle, if it stopped early. */
   unsupported: string | null
+  /** Cursor after every command (row 1-based, col 0-based), starting cell included. Used for track checkpoints. */
+  visited: Cursor[]
+  /** First key of a forbidden family (hjkl / arrows) the solution used, if any. */
+  blocked: string | null
 }
+
+const ARROWS = new Set(['<Left>', '<Right>', '<Up>', '<Down>'])
 
 interface Motion {
   o?: number
@@ -21,7 +27,7 @@ interface Motion {
 const lit = (t: string): string => (t === '<Space>' ? ' ' : t === '<lt>' ? '<' : t)
 const cls = (ch: string): number => (/\s/.test(ch) ? 0 : /\w/.test(ch) ? 2 : 1)
 
-export function replay(text: string, cursor: Cursor, solution: string): ReplayResult {
+export function replay(text: string, cursor: Cursor, solution: string, forbid: string[] = []): ReplayResult {
   let lines = String(text).replace(/\r\n/g, '\n').split('\n')
   let r = Math.max(0, Math.min(lines.length, cursor[0] || 1) - 1)
   let c = cursor[1] || 0
@@ -29,6 +35,14 @@ export function replay(text: string, cursor: Cursor, solution: string): ReplayRe
   const toks = tokens(solution)
   let i = 0
   let fail: string | null = null
+  let blocked: string | null = null
+  const visited: Cursor[] = [[r + 1, c]]
+  const marks: Record<string, Cursor> = {}
+  const isForbidden = (k: string | undefined): boolean => {
+    if (!k) return false
+    if (forbid.includes('hjkl') && 'hjkl'.includes(k) && k.length === 1) return true
+    return forbid.includes('arrows') && ARROWS.has(k)
+  }
 
   const clamp = () => {
     r = Math.max(0, Math.min(lines.length - 1, r))
@@ -103,6 +117,44 @@ export function replay(text: string, cursor: Cursor, solution: string): ReplayRe
         return { line: Math.min(lines.length - 1, r + count), from: r }
       case 'k':
         return { line: Math.max(0, r - count), from: r }
+      case '+':
+        return { line: Math.min(lines.length - 1, r + count), from: r }
+      case '-':
+        return { line: Math.max(0, r - count), from: r }
+      case '|':
+        return { o: off(r, Math.min(count - 1, Math.max(0, L.length - 1))) }
+      case '}':
+      case '{': {
+        // paragraph: next blank line in the direction (or the buffer edge)
+        const dir = k === '}' ? 1 : -1
+        let row = r
+        for (let n = 0; n < count; n++) {
+          while (row + dir >= 0 && row + dir < lines.length && lines[row].trim() === '') row += dir
+          while (row + dir >= 0 && row + dir < lines.length && lines[row].trim() !== '') row += dir
+          if (lines[row].trim() !== '') break
+        }
+        const edge = lines[row].trim() !== ''
+        return { o: off(row, edge && dir === 1 ? Math.max(0, lines[row].length - 1) : 0), inclusive: edge && dir === 1 }
+      }
+      case '%': {
+        const pairs = '()[]{}'
+        let s = o
+        while (s < f.length && f[s] !== '\n' && !pairs.includes(f[s])) s++
+        if (s >= f.length || f[s] === '\n') return null
+        const idx = pairs.indexOf(f[s])
+        const open = idx % 2 === 0
+        const self = f[s]
+        const other = pairs[open ? idx + 1 : idx - 1]
+        let depth = 0
+        for (let q = s; q >= 0 && q < f.length; q += open ? 1 : -1) {
+          if (f[q] === self) depth++
+          else if (f[q] === other) {
+            depth--
+            if (depth === 0) return { o: q, inclusive: true }
+          }
+        }
+        return null
+      }
       case 'G':
         return {
           line: arg === 'none' ? lines.length - 1 : Math.min(lines.length - 1, count - 1),
@@ -425,12 +477,61 @@ export function replay(text: string, cursor: Cursor, solution: string): ReplayRe
           clamp()
         } else unsupported('g' + (toks[i] || ''))
         break
+      case 'm': {
+        const name = toks[i++]
+        if (name && /^[a-zA-Z]$/.test(name)) marks[name] = [r, c]
+        else unsupported('m' + (name || ''))
+        break
+      }
+      case '`':
+      case "'": {
+        const name = toks[i++]
+        const mk = name ? marks[name] : undefined
+        if (!mk) {
+          unsupported(t + (name || ''))
+          break
+        }
+        r = Math.min(mk[0], lines.length - 1)
+        c = t === '`' ? mk[1] : firstNonBlank(r)
+        clamp()
+        break
+      }
+      case '/': {
+        let pat = ''
+        while (i < toks.length && toks[i] !== '<CR>') pat += lit(toks[i++])
+        i++
+        let re: RegExp
+        try {
+          re = new RegExp(pat, 'g')
+        } catch {
+          unsupported('/' + pat)
+          break
+        }
+        const f = flat()
+        re.lastIndex = o + 1
+        let m = re.exec(f)
+        if (!m) {
+          re.lastIndex = 0
+          m = re.exec(f)
+        }
+        if (!m) {
+          unsupported('/' + pat)
+          break
+        }
+        putCursor(m.index)
+        break
+      }
       case 'd':
       case 'c':
       case 'y':
+        if (isForbidden(toks[i])) blocked = blocked ?? toks[i]
         operator(t, cnt, count, L, o)
         break
       default:
+        if (isForbidden(t)) {
+          blocked = blocked ?? t
+          break
+        }
         if (t === 'f' || t === 't' || t === 'F' || t === 'T') mo = motion(t, cnt, lit(toks[i++]))
         else if (t === 'G' && !count) mo = motion('G', 1, 'none')
         else mo = motion(t, cnt, count ? 'n' : 'none')
@@ -440,10 +541,13 @@ export function replay(text: string, cursor: Cursor, solution: string): ReplayRe
         }
         if (mo.line !== undefined) {
           r = mo.line
-          c = t === 'G' ? firstNonBlank(r) : Math.min(c, Math.max(0, lines[r].length - 1))
+          c = t === 'G' || t === '+' || t === '-' ? firstNonBlank(r) : Math.min(c, Math.max(0, lines[r].length - 1))
         } else putCursor(mo.o as number)
     }
-    if (!fail) clamp()
+    if (!fail) {
+      clamp()
+      visited.push([r + 1, c])
+    }
   }
-  return { text: lines.join('\n'), cursor: [r + 1, c], unsupported: fail }
+  return { text: lines.join('\n'), cursor: [r + 1, c], unsupported: fail, visited, blocked }
 }

@@ -13,6 +13,7 @@ import { useDraftStore } from '../../store/draftStore'
 import { Field } from '../common/Field'
 import { Row } from '../common/Row'
 import { Section } from '../common/Section'
+import { TrackSection } from './TrackSection'
 
 const LEVELS = ['1', '2', '3', '4', '5']
 
@@ -143,10 +144,11 @@ function Solution() {
 }
 
 export function DraftForm() {
+  const isTrack = useDraftStore((s) => s.form.area === 'track')
   return (
     <Stack spacing={2}>
       <Describe />
-      <Expected />
+      {isTrack ? <TrackSection /> : <Expected />}
       <Solution />
     </Stack>
   )

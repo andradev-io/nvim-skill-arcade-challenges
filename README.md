@@ -9,6 +9,9 @@ static website where anyone can design and submit one.
   keys against par, times you, and runs the same end-state check as the game (buffer text and cursor, normal mode).
   It is stock Vim emulation, not your Neovim: your keybinds and plugins are not active, and plugin-specific
   challenges and non-text assertions (windows, quickfix ...) are flagged as "only in Neovim".
+* **Tracks:** pick the skill area `track` to draw a text-grid map; a clickable editor places start, goal and ordered
+  checkpoints, and key rules (no hjkl / arrows / mouse) can be switched off. *Play it* enforces them and shows
+  checkpoint progress. See CONTRIBUTING.md.
 * **Replay check:** *Check the reference keys* replays your solution with a small approximate interpreter, and
   *Join in Neovim* gives your draft a room code and the command `:ArcadeJoin ARC1.…` to play it for real with your own
   keybinds and plugins. No upload, nothing is saved.

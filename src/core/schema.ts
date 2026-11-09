@@ -1,10 +1,10 @@
 // Mirrors lua/skill_arcade/schema.lua so authors get instant feedback.
 // The real gate is CI (schema + replay in Neovim).
 import { tokens } from './keys'
-import type { Challenge, DraftForm, Expect } from './types'
+import type { Challenge, Cursor, DraftForm, Expect, Forbid, Track } from './types'
 
 export const REPO = 'dev-vinicius-andrade/nvim-skill-arcade-challenges'
-export const AREAS = ['motions', 'textobjects', 'editing', 'search', 'macros', 'registers', 'marks', 'windows', 'quickfix', 'diagnostics', 'plugins']
+export const AREAS = ['motions', 'textobjects', 'editing', 'search', 'macros', 'registers', 'marks', 'windows', 'quickfix', 'diagnostics', 'track', 'plugins']
 export const FILETYPES = ['text', 'lua', 'python', 'javascript', 'markdown', 'json', 'html']
 export const GROUPS = ['jump', 'surround', 'textobjects', 'comment', 'picker', 'keyhints', 'files', 'bookmarks', 'trouble', 'replace', 'multicursor', 'move', 'treesitter']
 export const PRESETS = ['', 'diagnostics', 'splits', 'alt_buffer', 'quickfix_hits']
@@ -18,6 +18,7 @@ export const EMPTY_FORM: DraftForm = {
   etext: '', erow: '', ecol: '', windows: '', layout: '', extraTabs: '', qidx: '', qsize: '', qall: '', floatText: '',
   marks: '', altBuffer: false, preset: '', presetRows: '', solution: '', why: '', hint: '', author: '',
   hgroup: '', htip: '', pluginPar: '', needs: '',
+  goalRow: '', goalCol: '', checkpoints: '', forbidHjkl: false, forbidArrows: false, forbidMouse: false,
 }
 
 /** Inverse of buildChallenge: fills the form from a challenge (an example or a published one). */
@@ -59,6 +60,12 @@ export function challengeToForm(c: Partial<Challenge>): DraftForm {
     htip,
     pluginPar: num(c.plugin_par),
     needs: c.needs ?? '',
+    goalRow: num(c.track?.goal[0]),
+    goalCol: num(c.track?.goal[1]),
+    checkpoints: formatCheckpoints(c.track?.checkpoints),
+    forbidHjkl: !!c.track?.forbid?.includes('hjkl'),
+    forbidArrows: !!c.track?.forbid?.includes('arrows'),
+    forbidMouse: !!c.track?.forbid?.includes('mouse'),
   }
 }
 
@@ -147,6 +154,66 @@ function buildExpect(f: DraftForm, errors: string[]): Expect {
   return expect
 }
 
+export const MAX_CHECKPOINTS = 6
+
+/** "2:3, 4:5" -> [[2,3],[4,5]]; null when the text is not a list of row:col cells. */
+export function parseCheckpoints(s: string): Cursor[] | null {
+  const out: Cursor[] = []
+  for (const raw of s.split(',')) {
+    const part = raw.trim()
+    if (!part) continue
+    const m = part.match(/^(\d+)\s*:\s*(\d+)$/)
+    if (!m) return null
+    out.push([Number(m[1]), Number(m[2])])
+  }
+  return out
+}
+
+export const formatCheckpoints = (cps: Cursor[] = []): string => cps.map(([r, c]) => `${r}:${c}`).join(', ')
+
+/** Is (row, col) a cell of the map? Rows are 1-based, columns 0-based; maps are plain ASCII. */
+export function inMap(lines: string[], cell: Cursor): boolean {
+  const line = lines[cell[0] - 1]
+  return line !== undefined && Number.isInteger(cell[1]) && cell[1] >= 0 && cell[1] <= Math.max(0, line.length - 1)
+}
+
+/** Goal, checkpoints and key rules of a track, with the same checks as validate_track in the plugin. */
+function buildTrack(f: DraftForm, text: string, start: Cursor, errors: string[]): Track | null {
+  const lines = text.split('\n')
+  if ([...text].some((ch) => ch.charCodeAt(0) > 127)) errors.push('track maps must be plain ASCII (columns are bytes in Neovim)')
+  const gr = intOrNull(f.goalRow)
+  const gc = intOrNull(f.goalCol)
+  if (gr === null || gc === null) {
+    errors.push('set the goal cell (row and column)')
+    return null
+  }
+  const goal: Cursor = [gr, gc]
+  if (!inMap(lines, goal)) {
+    errors.push('track goal is outside the map')
+    return null
+  }
+  const t: Track = { goal }
+  const cps = parseCheckpoints(f.checkpoints)
+  if (cps === null) errors.push('checkpoints must look like 2:3, 4:5 (row:col)')
+  else if (cps.length) {
+    const seen = new Set([`${gr}:${gc}`])
+    if (cps.length > MAX_CHECKPOINTS) errors.push(`at most ${MAX_CHECKPOINTS} checkpoints`)
+    for (const cp of cps) {
+      if (!inMap(lines, cp)) errors.push(`checkpoint ${cp[0]}:${cp[1]} is outside the map`)
+      else if (seen.has(`${cp[0]}:${cp[1]}`)) errors.push('checkpoints must be different cells, none of them the goal')
+      seen.add(`${cp[0]}:${cp[1]}`)
+    }
+    t.checkpoints = cps
+  }
+  const forbid: Forbid[] = []
+  if (f.forbidHjkl) forbid.push('hjkl')
+  if (f.forbidArrows) forbid.push('arrows')
+  if (f.forbidMouse) forbid.push('mouse')
+  if (forbid.length) t.forbid = forbid
+  if (start[0] === gr && start[1] === gc && !t.checkpoints) errors.push('the start cell is already the goal')
+  return t
+}
+
 export interface BuildResult {
   data: Challenge
   errors: string[]
@@ -158,7 +225,8 @@ export function buildChallenge(f: DraftForm): BuildResult {
   const title = f.title.trim()
   const text = f.text.replace(/\r\n/g, '\n').replace(/\n+$/, '')
   const lineCount = text === '' ? 0 : text.split('\n').length
-  const expect = buildExpect(f, errors)
+  const isTrack = f.area === 'track'
+  let expect: Expect = isTrack ? {} : buildExpect(f, errors)
   const c: Challenge = {
     id: f.id.trim() || slug(title),
     title,
@@ -170,6 +238,15 @@ export function buildChallenge(f: DraftForm): BuildResult {
     expect,
     solution: f.solution,
     why: f.why.trim(),
+  }
+  if (isTrack) {
+    // like the plugin: the assertions of a track are derived (cursor on the goal, map untouched)
+    const t = buildTrack(f, text, c.cursor, errors)
+    if (t) {
+      c.track = t
+      expect = { text, cursor: [t.goal[0], t.goal[1]] }
+      c.expect = expect
+    }
   }
   if (f.ft !== 'text') c.ft = f.ft
   if (f.preset) c.preset = f.preset
