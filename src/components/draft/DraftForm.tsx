@@ -1,6 +1,7 @@
 import Accordion from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
+import Box from '@mui/material/Box'
 import Checkbox from '@mui/material/Checkbox'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Stack from '@mui/material/Stack'
@@ -146,10 +147,11 @@ function Solution() {
 export function DraftForm() {
   const isTrack = useDraftStore((s) => s.form.area === 'track')
   return (
-    <Stack spacing={2}>
+    // the cards sit side by side on a wide screen and stack on a narrow one; the map editor takes a full row
+    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 440px), 1fr))', gap: 2, alignItems: 'start' }}>
       <Describe />
-      {isTrack ? <TrackSection /> : <Expected />}
+      <Box sx={isTrack ? { gridColumn: '1 / -1', order: 3 } : undefined}>{isTrack ? <TrackSection /> : <Expected />}</Box>
       <Solution />
-    </Stack>
+    </Box>
   )
 }
