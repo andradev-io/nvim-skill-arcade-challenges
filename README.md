@@ -9,6 +9,11 @@ static website where anyone can design and submit one.
   keys against par, times you, and runs the same end-state check as the game (buffer text and cursor, normal mode).
   It is stock Vim emulation, not your Neovim: your keybinds and plugins are not active, and plugin-specific
   challenges and non-text assertions (windows, quickfix ...) are flagged as "only in Neovim".
+* **Terminal (your own keymaps):** the *Terminal* tab is a free, unscored sandbox. Give it a GitHub user, `user/repo`
+  or a link to a file and it reads your Neovim config straight from GitHub (public repos, no token, nothing
+  executed), keeps plain `vim.keymap.set` / `nvim_set_keymap` / `nmap` mappings and applies them to the browser
+  editor. Lua-function mappings, plugin mappings and `:Commands` the browser lacks are skipped and listed with the
+  reason. Mappings stay in your browser and never count in the Play tab.
 * **Tracks:** pick the skill area `track` to draw a text-grid map; a clickable editor places start, goal and ordered
   checkpoints, and key rules (no hjkl / arrows / mouse) can be switched off. *Play it* enforces them and shows
   checkpoint progress. See CONTRIBUTING.md.
