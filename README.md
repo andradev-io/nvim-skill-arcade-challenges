@@ -15,8 +15,12 @@ static website where anyone can design and submit one.
 * **Terminal (your own keymaps):** the *Terminal* page is a full-screen, unscored sandbox with a side menu. Give it a GitHub user, `user/repo`
   or a link to a file and it reads your Neovim config straight from GitHub (public repos, no token, nothing
   executed), keeps plain `vim.keymap.set` / `nvim_set_keymap` / `nmap` mappings and applies them to the browser
-  editor. Lua-function mappings, plugin mappings and `:Commands` the browser lacks are skipped and listed with the
-  reason. Mappings stay in your browser and never count in the Play tab.
+  editor. Key and `:command` mappings work, including tabs and buffers (`:tabnew`, `:tabn`, `:bn`, `:bd` drive real
+  tabs in the terminal), `:m` (move lines), `:echo`, and window commands (accepted, no windows here). A function
+  that only calls `vim.cmd("...")` counts as that command. Mappings that need a plugin or Lua (Telescope, file trees,
+  LSP, git) are *stubs*: the key is taken over, so it never falls through to a stock key, and pressing it shows what it
+  would have done. Only mappings in modes the sandbox lacks (terminal, command-line) are skipped. Mappings stay in your
+  browser and never count in the Play tab.
 * **Tracks:** pick the skill area `track` to draw a text-grid map; a clickable editor places start, goal and ordered
   checkpoints, and key rules (no hjkl / arrows / mouse) can be switched off. *Play it* enforces them and shows
   checkpoint progress. See CONTRIBUTING.md.
