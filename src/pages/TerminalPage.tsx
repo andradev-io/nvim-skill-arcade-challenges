@@ -1,3 +1,5 @@
+import AddIcon from '@mui/icons-material/Add'
+import CloseIcon from '@mui/icons-material/Close'
 import MenuIcon from '@mui/icons-material/Menu'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -16,6 +18,7 @@ import type { VimEditorHandle } from '../components/play/VimEditor'
 import { KeymapSource } from '../components/terminal/KeymapSource'
 import { Statusline } from '../components/terminal/Statusline'
 import type { Snap } from '../components/terminal/Statusline'
+import { setEditorSink } from '../components/play/exCommands'
 import { EXAMPLES } from '../examples'
 import { useCommunity } from '../hooks/useCommunity'
 import { useDraft } from '../hooks/useDraft'
@@ -49,9 +52,17 @@ function BufferItem({ b, active, onOpen }: { b: TerminalBuffer; active: boolean;
 export function TerminalPage() {
   const { data } = useDraft()
   const community = useCommunity()
-  const buffer = useTerminalStore((s) => s.buffer)
+  const tabs = useTerminalStore((s) => s.tabs)
+  const activeTab = useTerminalStore((s) => s.active)
+  const buffer = tabs[activeTab]
   const run = useTerminalStore((s) => s.run)
   const open = useTerminalStore((s) => s.open)
+  const reset = useTerminalStore((s) => s.reset)
+  const newTab = useTerminalStore((s) => s.newTab)
+  const closeTab = useTerminalStore((s) => s.closeTab)
+  const goTab = useTerminalStore((s) => s.goTab)
+  const [note, setNote] = useState('')
+  const noteTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const maps = useKeymapStore((s) => s.maps)
   const enabled = useKeymapStore((s) => s.enabled)
   const active = useMemo(() => (enabled ? maps : []), [enabled, maps])
@@ -68,14 +79,29 @@ export function TerminalPage() {
     return () => clearTimeout(t)
   }, [run])
 
-  // leaving the page keeps what was typed, so coming back does not lose it
-  useEffect(
-    () => () => {
-      const text = editor.current?.text()
-      if (text !== undefined) useTerminalStore.setState((s) => ({ buffer: { ...s.buffer, text } }))
-    },
-    [],
-  )
+  // commands the editor cannot do itself (tabs, buffers, messages) come back to this page
+  useEffect(() => {
+    const t = useTerminalStore.getState
+    setEditorSink({
+      note: (text) => {
+        clearTimeout(noteTimer.current)
+        setNote(text)
+        noteTimer.current = setTimeout(() => setNote(''), 5000)
+      },
+      tab: (action) => {
+        // keep the text of the tab we are leaving
+        const ed = editor.current
+        if (ed) t().save(ed.text(), ed.cursor())
+        if (action === 'new') t().newTab()
+        else if (action === 'close') t().closeTab()
+        else t().stepTab(action === 'next' ? 1 : -1)
+      },
+    })
+    return () => {
+      setEditorSink({})
+      clearTimeout(noteTimer.current)
+    }
+  }, [])
 
   const onSync = () => {
     const ed = editor.current
@@ -83,6 +109,8 @@ export function TerminalPage() {
     const c = ed.cursor()
     const mode = ed.mode()
     setSnap((p) => (p.mode === mode && p.row === c[0] && p.col === c[1] ? p : { mode, row: c[0], col: c[1] }))
+    // the store always holds the live text: leaving the page or switching tab never loses it
+    useTerminalStore.getState().save(ed.text(), c)
   }
   const onKey = (key: string) => {
     setKeys((k) => [...k.slice(-11), key === ' ' ? '␣' : key])
@@ -138,11 +166,48 @@ export function TerminalPage() {
           >
             <MenuIcon fontSize="small" />
           </IconButton>
-          <Box sx={{ px: 1.5, py: 0.75, fontSize: 13, bgcolor: BG, borderRight: '1px solid #232324', borderTop: '2px solid #b4b96b' }}>
-            {buffer.name}
-          </Box>
-          <Box sx={{ flex: 1 }} />
-          <Button size="small" color="inherit" onClick={() => open(buffer)} sx={{ opacity: 0.7, mr: 1 }}>
+          <Stack direction="row" sx={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
+            {tabs.map((t, i) => (
+              <Stack
+                key={t.id}
+                direction="row"
+                onClick={() => i !== activeTab && goTab(i)}
+                sx={{
+                  alignItems: 'center',
+                  gap: 0.5,
+                  pl: 1.5,
+                  pr: 0.5,
+                  py: 0.75,
+                  fontSize: 13,
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  bgcolor: i === activeTab ? BG : 'transparent',
+                  opacity: i === activeTab ? 1 : 0.6,
+                  borderRight: '1px solid #232324',
+                  borderTop: `2px solid ${i === activeTab ? '#b4b96b' : 'transparent'}`,
+                }}
+              >
+                {t.name}
+                {tabs.length > 1 && (
+                  <IconButton
+                    size="small"
+                    aria-label={`Close ${t.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      closeTab(i)
+                    }}
+                    sx={{ color: 'inherit', p: 0.25 }}
+                  >
+                    <CloseIcon sx={{ fontSize: 14 }} />
+                  </IconButton>
+                )}
+              </Stack>
+            ))}
+            <IconButton size="small" aria-label="New tab" onClick={() => newTab()} sx={{ color: '#bdbdbd', mx: 0.5 }}>
+              <AddIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Stack>
+          <Button size="small" color="inherit" onClick={() => reset()} sx={{ opacity: 0.7, mr: 1, whiteSpace: 'nowrap' }}>
             Reset buffer
           </Button>
         </Stack>
@@ -161,7 +226,7 @@ export function TerminalPage() {
           }}
         >
           <VimEditor
-            key={`${run}|${buffer.name}`}
+            key={`${run}|${buffer.id}`}
             ref={editor}
             initialText={buffer.text}
             initialCursor={buffer.cursor}
@@ -171,7 +236,7 @@ export function TerminalPage() {
             size="fill"
           />
         </Box>
-        <Statusline snap={snap} name={buffer.name} keys={keys} maps={active.length} />
+        <Statusline snap={snap} name={buffer.name} keys={keys} maps={active.filter((m) => !m.note).length} note={note} />
       </Box>
     </Box>
   )

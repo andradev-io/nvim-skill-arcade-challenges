@@ -44,7 +44,8 @@
 - `src/hooks/useRoute.ts` — tiny hash router (`#/create` ...), no dependency
 - `src/store/terminalStore.ts` — the buffer the terminal edits; other pages hand one over
 - `src/components/terminal/KeymapSource.tsx`, `Statusline.tsx` — GitHub keymap loader + report, lualine-style bar
-- `src/core/keymaps.ts` — scans Lua / Vimscript configs for keymaps (never executes), reports what it skipped and why
+- `src/core/keymaps.ts` — scans Lua / Vimscript configs for keymaps (never executes): working maps, stubs that say what needs a plugin, skipped modes
+- `src/components/play/exCommands.ts` — ex commands the editor lacks: tabs/buffers, :m, :echo, quit and window no-ops, stub messages
 - `src/core/github.ts` — source parsing (user, repo, file, URL), config file discovery and fetching from GitHub
 - `src/store/keymapStore.ts` — loaded keymaps, persisted in localStorage
 - `src/components/layout/Workspace.tsx` — one full-width workspace: sticky status + tab bar (Describe, Play, Check, Neovim, Submit), every panel stays mounted

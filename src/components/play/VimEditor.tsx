@@ -6,6 +6,9 @@ import { EditorView, lineNumbers } from '@codemirror/view'
 import { getCM, Vim, vim } from '@replit/codemirror-vim'
 import type { Keymap } from '../../core/keymaps'
 import type { Cursor } from '../../core/types'
+import { installExCommands, stubNotes } from './exCommands'
+
+installExCommands()
 
 const CTX = { n: 'normal', v: 'visual', x: 'visual', i: 'insert' } as const
 
@@ -33,9 +36,15 @@ function freeLeader(list: Keymap[]) {
 /** The editor keeps its mappings in one global table: set it to exactly these (none = stock Vim). */
 function applyMaps(maps: Keymap[] | undefined) {
   Vim.mapclear()
+  stubNotes.length = 0
   freeLeader(maps ?? [])
   for (const m of maps ?? []) {
     try {
+      if (m.note) {
+        // a key that needs a plugin: take the key over (it must not fall through to a stock key) and say so when pressed
+        if (m.mode !== 'i') Vim.noremap(m.lhs, `:arcnote ${stubNotes.push(m.note) - 1}<CR>`, CTX[m.mode])
+        continue
+      }
       const add = m.noremap ? Vim.noremap : Vim.map
       add(m.lhs, m.rhs, CTX[m.mode])
     } catch {

@@ -18,7 +18,8 @@ export function KeymapSource() {
   const loading = s.status === 'loading'
   const has = s.maps.length > 0 || s.skipped.length > 0
   const f = filter.trim().toLowerCase()
-  const shown = s.maps.filter((m) => !f || `${m.mode} ${m.lhs} ${m.rhs}`.toLowerCase().includes(f))
+  const stubs = s.maps.filter((m) => m.note).length
+  const shown = s.maps.filter((m) => !f || `${m.mode} ${m.lhs} ${m.rhs} ${m.note ?? ''}`.toLowerCase().includes(f))
   return (
     <Stack spacing={1.25}>
       <TextField
@@ -51,8 +52,9 @@ export function KeymapSource() {
       {has && (
         <>
           <Stack direction="row" sx={{ gap: 0.75, flexWrap: 'wrap' }}>
-            <Chip size="small" color="success" label={`${s.maps.length} loaded`} />
-            <Chip size="small" color={s.skipped.length ? 'warning' : 'default'} variant="outlined" label={`${s.skipped.length} skipped`} />
+            <Chip size="small" color="success" label={`${s.maps.length - stubs} working`} />
+            {stubs > 0 && <Chip size="small" color="info" variant="outlined" label={`${stubs} need a plugin`} />}
+            {s.skipped.length > 0 && <Chip size="small" color="warning" variant="outlined" label={`${s.skipped.length} skipped`} />}
             <Chip size="small" variant="outlined" label={`leader ${s.leader === ' ' ? 'Space' : s.leader}`} />
           </Stack>
           <FormControlLabel
@@ -62,9 +64,13 @@ export function KeymapSource() {
           <TextField size="small" fullWidth label="Filter the list" value={filter} onChange={(e) => setFilter(e.target.value)} />
           <Box sx={{ maxHeight: 260, overflowY: 'auto', fontSize: 12, lineHeight: 1.7 }}>
             {shown.map((m) => (
-              <Box key={`${m.mode}${m.lhs}`} sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={`${m.file}:${m.line}`}>
+              <Box
+                key={`${m.mode}${m.lhs}`}
+                sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', opacity: m.note ? 0.6 : 1 }}
+                title={m.note ?? `${m.file}:${m.line}`}
+              >
                 <Box component="span" sx={{ opacity: 0.55 }}>{m.mode} </Box>
-                {m.lhs} <Box component="span" sx={{ opacity: 0.55 }}>→</Box> {m.rhs}
+                {m.lhs} <Box component="span" sx={{ opacity: 0.55 }}>→</Box> {m.note ? m.note.replace(/^[^:]*: /, '').replace(/, not simulated.*$/, '') : m.rhs}
               </Box>
             ))}
             {shown.length === 0 && <Box sx={{ opacity: 0.6 }}>nothing matches</Box>}
@@ -88,8 +94,8 @@ export function KeymapSource() {
         </>
       )}
       <Typography variant="caption" sx={{ opacity: 0.65 }}>
-        Plain key-to-key and :command mappings load. Lua functions and plugin mappings are skipped. The file is read, never
-        run, and the result stays in this browser.
+        Key and :command mappings work, including tabs, buffers, :m and :echo. Mappings that need a plugin or Lua take
+        the key over and say what they would do. The file is read, never run, and the result stays in this browser.
       </Typography>
     </Stack>
   )
