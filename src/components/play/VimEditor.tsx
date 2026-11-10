@@ -2,7 +2,7 @@ import { useEffect, useImperativeHandle, useRef } from 'react'
 import type { Ref } from 'react'
 import Box from '@mui/material/Box'
 import { history } from '@codemirror/commands'
-import { EditorState } from '@codemirror/state'
+import { Compartment, EditorState } from '@codemirror/state'
 import { EditorView, lineNumbers } from '@codemirror/view'
 import { getCM, Vim, vim } from '@replit/codemirror-vim'
 import type { Keymap } from '../../core/keymaps'
@@ -10,6 +10,7 @@ import type { Cursor } from '../../core/types'
 import { applyShims, handleShimKey, setFiletype } from '../../plugins/vimGlue'
 import type { Cm } from '../../plugins/vimGlue'
 import { installExCommands, stubNotes } from './exCommands'
+import { highlighting, loadLanguage } from './languages'
 
 installExCommands()
 
@@ -95,6 +96,23 @@ const SIZES = {
   fill: { '--cm-size': '15px', '--cm-min': '0px', '--cm-max': '100%' },
 } as const
 
+/** Syntax colors: light by default, brighter ones under the dark theme (the Terminal is always dark). */
+const SYNTAX = {
+  '.dark &': {
+    '--syn-keyword': '#c792ea',
+    '--syn-string': '#a5d6a7',
+    '--syn-number': '#f2a65a',
+    '--syn-comment': '#7d8590',
+    '--syn-function': '#82aaff',
+    '--syn-type': '#7fdbca',
+    '--syn-property': '#e6c07b',
+    '--syn-operator': '#9aa4b2',
+    '--syn-tag': '#f07178',
+    '--syn-meta': '#9aa4b2',
+    '--syn-invalid': '#f07178',
+  },
+} as const
+
 const MODIFIERS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'AltGraph'])
 const P = 'var(--mui-palette-'
 
@@ -136,6 +154,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
   const lockMouse = useRef(noMouse)
   const mapsRef = useRef(maps)
   const filetypeRef = useRef(filetype)
+  const lang = useRef(new Compartment())
   const pluginsRef = useRef<ReadonlySet<string>>(plugins ?? NO_PLUGINS)
   useEffect(() => {
     hooks.current = { onKey, onSync }
@@ -157,6 +176,8 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
         doc: initialText,
         extensions: [
           history(),
+          highlighting,
+          lang.current.of([]),
           vim({ status: false }),
           lineNumbers(),
           cmTheme,
@@ -236,6 +257,17 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // syntax highlighting follows the filetype; the parser loads on demand
+  useEffect(() => {
+    let live = true
+    void loadLanguage(filetype).then((ext) => {
+      if (live && view.current) view.current.dispatch({ effects: lang.current.reconfigure(ext ?? []) })
+    })
+    return () => {
+      live = false
+    }
+  }, [filetype])
+
   useImperativeHandle(ref, () => ({
     mode: () => {
       const v = view.current && getCM(view.current)?.state.vim
@@ -252,7 +284,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
   return (
     <Box
       ref={host}
-      sx={{ border: 1, borderColor: 'primary.main', borderRadius: '15px', overflow: 'hidden', minHeight: 140, ...SIZES[size] }}
+      sx={{ border: 1, borderColor: 'primary.main', borderRadius: '15px', overflow: 'hidden', minHeight: 140, ...SYNTAX, ...SIZES[size] }}
     />
   )
 }
