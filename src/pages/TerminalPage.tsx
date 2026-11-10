@@ -8,6 +8,8 @@ import IconButton from '@mui/material/IconButton'
 import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
+import MenuItem from '@mui/material/MenuItem'
+import Select from '@mui/material/Select'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
@@ -16,13 +18,16 @@ import type { ReactNode } from 'react'
 import { VimEditor } from '../components/play/VimEditor'
 import type { VimEditorHandle } from '../components/play/VimEditor'
 import { KeymapSource } from '../components/terminal/KeymapSource'
+import { PluginList } from '../components/terminal/PluginList'
 import { Statusline } from '../components/terminal/Statusline'
 import type { Snap } from '../components/terminal/Statusline'
 import { setEditorSink } from '../components/play/exCommands'
 import { EXAMPLES } from '../examples'
 import { useCommunity } from '../hooks/useCommunity'
 import { useDraft } from '../hooks/useDraft'
+import { FILETYPE_CHOICES } from '../plugins/comment'
 import { useKeymapStore } from '../store/keymapStore'
+import { enabledShims, usePluginStore } from '../store/pluginStore'
 import { SAMPLE_BUFFER, useTerminalStore } from '../store/terminalStore'
 import type { TerminalBuffer } from '../store/terminalStore'
 
@@ -66,6 +71,10 @@ export function TerminalPage() {
   const maps = useKeymapStore((s) => s.maps)
   const enabled = useKeymapStore((s) => s.enabled)
   const active = useMemo(() => (enabled ? maps : []), [enabled, maps])
+  const detected = usePluginStore((s) => s.detected)
+  const overrides = usePluginStore((s) => s.overrides)
+  const setFt = useTerminalStore((s) => s.setFt)
+  const shims = useMemo(() => enabledShims({ detected, overrides }), [detected, overrides])
   const wide = useMediaQuery('(min-width:900px)')
   // phones start with the menu closed (one tap away); wide screens always show it
   const [menu, setMenu] = useState(false)
@@ -207,6 +216,22 @@ export function TerminalPage() {
               <AddIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Stack>
+          <Select
+            size="small"
+            variant="standard"
+            disableUnderline
+            value={buffer.ft}
+            onChange={(e) => setFt(e.target.value)}
+            aria-label="Filetype"
+            title="Filetype (comment characters)"
+            sx={{ fontSize: 12.5, color: '#bdbdbd', mr: 1 }}
+          >
+            {(FILETYPE_CHOICES.includes(buffer.ft) ? FILETYPE_CHOICES : [buffer.ft, ...FILETYPE_CHOICES]).map((f) => (
+              <MenuItem key={f} value={f} dense>
+                {f}
+              </MenuItem>
+            ))}
+          </Select>
           <Button size="small" color="inherit" onClick={() => reset()} sx={{ opacity: 0.7, mr: 1, whiteSpace: 'nowrap' }}>
             Reset buffer
           </Button>
@@ -233,6 +258,8 @@ export function TerminalPage() {
             onKey={onKey}
             onSync={onSync}
             maps={active}
+            plugins={shims}
+            filetype={buffer.ft}
             size="fill"
           />
         </Box>
@@ -258,6 +285,9 @@ function SideContent({
     <Box>
       <Group title="Keymaps">
         <KeymapSource />
+      </Group>
+      <Group title="Plugins">
+        <PluginList />
       </Group>
       <Group title="Buffers">
         <List dense disablePadding>
@@ -289,7 +319,7 @@ function SideContent({
       <Group title="Good to know">
         <Typography variant="body2" sx={{ fontSize: 12.5, lineHeight: 1.7, opacity: 0.8 }}>
           A free sandbox: nothing is scored or counted. This is a Vim emulation in the browser, not your Neovim, so plugins
-          are not here and a few commands behave a little differently. Esc stays with Vim. Typing <code>:</code> opens the
+          are imitated (see Plugins) rather than run, and a few commands behave a little differently. Esc stays with Vim. Typing <code>:</code> opens the
           command line.
         </Typography>
       </Group>

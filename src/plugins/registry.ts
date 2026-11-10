@@ -1,0 +1,69 @@
+/** Which Neovim plugins the browser Vim can imitate, and which it cannot (and why). */
+
+export type PluginStatus = 'supported' | 'partial' | 'unsupported'
+
+export interface PluginInfo {
+  /** Shim id; plugins sharing a shim share an id. Unsupported ones have no shim. */
+  id: string
+  name: string
+  /** GitHub repos (owner/name, lowercase) that provide it. Matched against the user's plugin specs. */
+  repos: string[]
+  status: PluginStatus
+  /** What works, or why it cannot. */
+  note: string
+  /** The keys it brings, for the list. */
+  keys?: string
+}
+
+export const PLUGINS: PluginInfo[] = [
+  {
+    id: 'comment',
+    name: 'Comment',
+    repos: ['numtostr/comment.nvim', 'echasnovski/mini.comment', 'tpope/vim-commentary', 'terrortylor/nvim-comment', 'preservim/nerdcommenter'],
+    status: 'supported',
+    note: 'Line comments by filetype: toggle with gcc, an operator or a visual selection, open a comment line with gco / gcO. No block comments. Neovim 0.10+ has gc built in, so this stays on.',
+    keys: 'gcc  gc{motion}  gc (visual)  gco  gcO',
+  },
+  {
+    id: 'surround',
+    name: 'Surround',
+    repos: ['kylechui/nvim-surround', 'tpope/vim-surround', 'echasnovski/mini.surround', 'machakann/vim-sandwich'],
+    status: 'supported',
+    note: 'Add, delete and change pairs of ( [ { < and quotes. Tags (t) and functions (f) are not simulated.',
+    keys: 'ys{motion}{char}  yss{char}  ds{char}  cs{old}{new}  S{char} (visual)',
+  },
+  {
+    id: 'autopairs',
+    name: 'Auto pairs',
+    repos: ['windwp/nvim-autopairs', 'echasnovski/mini.pairs', 'jiangmiao/auto-pairs', 'raimondi/delimitmate', 'altermo/ultimate-autopair.nvim'],
+    status: 'supported',
+    note: 'Typing ( [ { or a quote adds the closing one; typing the closer steps over it; Backspace removes an empty pair.',
+    keys: 'insert mode',
+  },
+  {
+    id: 'textobjects',
+    name: 'Text objects',
+    repos: ['echasnovski/mini.ai', 'wellle/targets.vim', 'nvim-treesitter/nvim-treesitter-textobjects', 'chrisgrieser/nvim-various-textobjs'],
+    status: 'partial',
+    note: 'Arguments (ia / aa), any quote (iq / aq) and calls (if / af), found by brackets, not by a syntax tree. Class and function-body objects are not simulated.',
+    keys: 'ia aa  iq aq  if af',
+  },
+  { id: 'telescope', name: 'Telescope / fzf', repos: ['nvim-telescope/telescope.nvim', 'ibhagwan/fzf-lua', 'junegunn/fzf.vim'], status: 'unsupported', note: 'Needs a file system and a project to search. Its keys are claimed and say so.' },
+  { id: 'tree', name: 'File explorers', repos: ['nvim-tree/nvim-tree.lua', 'nvim-neo-tree/neo-tree.nvim', 'stevearc/oil.nvim', 'echasnovski/mini.files'], status: 'unsupported', note: 'There are no files here, only buffers.' },
+  { id: 'lsp', name: 'LSP, completion and formatting', repos: ['neovim/nvim-lspconfig', 'hrsh7th/nvim-cmp', 'saghen/blink.cmp', 'stevearc/conform.nvim', 'williamboman/mason.nvim', 'mfussenegger/nvim-lint'], status: 'unsupported', note: 'Needs language servers running on a machine.' },
+  { id: 'git', name: 'Git', repos: ['kdheepak/lazygit.nvim', 'tpope/vim-fugitive', 'lewis6991/gitsigns.nvim', 'sindrets/diffview.nvim', 'nvim-telescope/telescope-advanced-git-search.nvim'], status: 'unsupported', note: 'There is no repository here.' },
+  { id: 'treesitter', name: 'Treesitter', repos: ['nvim-treesitter/nvim-treesitter'], status: 'unsupported', note: 'Syntax-tree motions and highlighting are not available; text objects fall back to brackets.' },
+  { id: 'motion', name: 'Jump motions', repos: ['folke/flash.nvim', 'smoka7/hop.nvim', 'ggandor/leap.nvim', 'easymotion/vim-easymotion'], status: 'unsupported', note: 'They draw labels over the screen; not simulated yet.' },
+  { id: 'ui', name: 'UI plugins', repos: ['folke/noice.nvim', 'folke/which-key.nvim', 'nvim-lualine/lualine.nvim', 'akinsho/bufferline.nvim', 'rcarriga/nvim-notify', 'folke/trouble.nvim', 'folke/todo-comments.nvim'], status: 'unsupported', note: 'Visual or helper layers; the terminal has its own statusline and tabs.' },
+  { id: 'session', name: 'Sessions and terminals', repos: ['rmagatti/auto-session', 'folke/persistence.nvim', 'akinsho/toggleterm.nvim'], status: 'unsupported', note: 'Needs a file system or a shell.' },
+]
+
+export const SHIMS = PLUGINS.filter((p) => p.status !== 'unsupported')
+
+/** The plugins (from the list) whose repo is named anywhere in the given config texts. */
+export function detectPlugins(texts: string[]): string[] {
+  const all = texts.join('\n').toLowerCase()
+  return PLUGINS.filter((p) => p.repos.some((r) => all.includes(r))).map((p) => p.id)
+}
+
+export const pluginById = (id: string) => PLUGINS.find((p) => p.id === id)

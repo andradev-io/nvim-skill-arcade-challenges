@@ -1,11 +1,14 @@
 import { useEffect, useImperativeHandle, useRef } from 'react'
 import type { Ref } from 'react'
 import Box from '@mui/material/Box'
+import { history } from '@codemirror/commands'
 import { EditorState } from '@codemirror/state'
 import { EditorView, lineNumbers } from '@codemirror/view'
 import { getCM, Vim, vim } from '@replit/codemirror-vim'
 import type { Keymap } from '../../core/keymaps'
 import type { Cursor } from '../../core/types'
+import { applyShims, handleShimKey, setFiletype } from '../../plugins/vimGlue'
+import type { Cm } from '../../plugins/vimGlue'
 import { installExCommands, stubNotes } from './exCommands'
 
 installExCommands()
@@ -34,10 +37,13 @@ function freeLeader(list: Keymap[]) {
 }
 
 /** The editor keeps its mappings in one global table: set it to exactly these (none = stock Vim). */
-function applyMaps(maps: Keymap[] | undefined) {
+const NO_PLUGINS: ReadonlySet<string> = new Set()
+
+function applyMaps(maps: Keymap[] | undefined, plugins: ReadonlySet<string> = NO_PLUGINS) {
   Vim.mapclear()
   stubNotes.length = 0
   freeLeader(maps ?? [])
+  applyShims(plugins)
   for (const m of maps ?? []) {
     try {
       if (m.note) {
@@ -75,6 +81,10 @@ interface Props {
   size?: keyof typeof SIZES
   /** The user's own keymaps (sandbox only). Left out, the editor is stock Vim. */
   maps?: Keymap[]
+  /** Plugin imitations to switch on (ids from the plugin registry). */
+  plugins?: ReadonlySet<string>
+  /** Filetype, for the comment plugin. */
+  filetype?: string
   ref: Ref<VimEditorHandle>
 }
 
@@ -119,18 +129,23 @@ const cmTheme = EditorView.theme({
 })
 
 /** Stock Vim emulation (CodeMirror 6 + @replit/codemirror-vim). Your own Neovim keybinds are not active here. */
-export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse = false, maps, size = 'play', ref }: Props) {
+export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse = false, maps, plugins, filetype = 'text', size = 'play', ref }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const hooks = useRef({ onKey, onSync })
   const lockMouse = useRef(noMouse)
   const mapsRef = useRef(maps)
+  const filetypeRef = useRef(filetype)
+  const pluginsRef = useRef<ReadonlySet<string>>(plugins ?? NO_PLUGINS)
   useEffect(() => {
     hooks.current = { onKey, onSync }
     lockMouse.current = noMouse
     mapsRef.current = maps
+    pluginsRef.current = plugins ?? NO_PLUGINS
+    filetypeRef.current = filetype
+    setFiletype(filetype)
     // mappings changed while this editor is the one in use: switch to them now
-    if (view.current?.hasFocus) applyMaps(maps)
+    if (view.current?.hasFocus) applyMaps(maps, pluginsRef.current)
   })
 
   useEffect(() => {
@@ -141,6 +156,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
       state: EditorState.create({
         doc: initialText,
         extensions: [
+          history(),
           vim({ status: false }),
           lineNumbers(),
           cmTheme,
@@ -169,6 +185,17 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
       if (MODIFIERS.has(e.key)) return
       const vimState = cm?.state.vim
       const mode = !vimState ? 'normal' : vimState.insertMode ? 'insert' : vimState.visualMode ? 'visual' : 'normal'
+      if (pluginsRef.current.size && cm && handleShimKey(e, cm as unknown as Cm, pluginsRef.current)) {
+        // a key a plugin imitation took (gcc, ys, ds, auto pairs ...)
+        e.preventDefault()
+        e.stopPropagation()
+        swallowed = true
+        setTimeout(() => {
+          swallowed = false
+          hooks.current.onSync()
+        }, 50)
+        return
+      }
       if (hooks.current.onKey(e.key, mode)) {
         // a key family this track forbids: Vim never sees it
         e.preventDefault()
@@ -189,7 +216,10 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
       v.focus()
     }
     // the table is global: whichever editor gets focus decides which mappings are live
-    const onFocus = () => applyMaps(mapsRef.current)
+    const onFocus = () => {
+      setFiletype(filetypeRef.current)
+      applyMaps(mapsRef.current, pluginsRef.current)
+    }
     v.contentDOM.addEventListener('focus', onFocus)
     v.contentDOM.addEventListener('keydown', onKeyDown, true)
     v.contentDOM.addEventListener('mousedown', onMouseDown, true)
