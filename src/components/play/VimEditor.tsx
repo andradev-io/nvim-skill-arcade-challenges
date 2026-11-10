@@ -73,6 +73,7 @@ const SIZES = {
   play: {},
   terminal: { '--cm-size': '14px', '--cm-min': '240px', '--cm-max': '420px' },
   large: { '--cm-size': '17px', '--cm-min': '60vh', '--cm-max': '100%' },
+  fill: { '--cm-size': '15px', '--cm-min': '0px', '--cm-max': '100%' },
 } as const
 
 const MODIFIERS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'AltGraph'])
