@@ -4,7 +4,7 @@ import type { StreamParser } from '@codemirror/language'
 import { tags as t } from '@lezer/highlight'
 
 /** Colors come from CSS variables so one style serves the light and the dark theme (set on the editor host). */
-const V = (name: string, fallback: string) => `var(--syn-${name}, ${fallback})`
+const V = (name: string, fallback: string) => `var(--t-syn-${name}, var(--syn-${name}, ${fallback}))`
 
 export const highlighting: Extension = syntaxHighlighting(
   HighlightStyle.define([
