@@ -1,11 +1,12 @@
 import { useSyncExternalStore } from 'react'
 
-export type Route = 'home' | 'create' | 'terminal' | 'challenges'
+export type Route = 'home' | 'create' | 'terminal' | 'support' | 'challenges'
 
 export const ROUTES: { id: Route; label: string; hash: string }[] = [
   { id: 'home', label: 'Home', hash: '#/' },
   { id: 'create', label: 'Create', hash: '#/create' },
   { id: 'terminal', label: 'Terminal', hash: '#/terminal' },
+  { id: 'support', label: 'Support', hash: '#/support' },
   { id: 'challenges', label: 'Challenges', hash: '#/challenges' },
 ]
 

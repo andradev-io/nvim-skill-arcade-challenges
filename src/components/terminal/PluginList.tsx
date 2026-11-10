@@ -3,6 +3,7 @@ import Chip from '@mui/material/Chip'
 import Stack from '@mui/material/Stack'
 import Switch from '@mui/material/Switch'
 import Typography from '@mui/material/Typography'
+import Link from '@mui/material/Link'
 import { PLUGINS } from '../../plugins/registry'
 import { isOn, usePluginStore } from '../../store/pluginStore'
 
@@ -44,6 +45,9 @@ export function PluginList() {
           <Typography sx={{ fontSize: 11.5, opacity: 0.7, lineHeight: 1.55 }}>{p.note}</Typography>
         </Box>
       ))}
+      <Link href="#/support" sx={{ fontSize: 12 }}>
+        Full list, your config and plugin requests
+      </Link>
     </Stack>
   )
 }

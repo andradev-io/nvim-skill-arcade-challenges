@@ -27,7 +27,9 @@ static website where anyone can design and submit one.
   objects (`ia`/`aa` argument, `iq`/`aq` quote, `if`/`af` call, bracket-based). Loading a config also reads its plugin
   specs (lazy.nvim `plugins/*.lua`) and switches on the imitations for the plugins it uses; each one has a switch. The
   list also says which plugins cannot work in a browser (Telescope, file trees, LSP, git, treesitter ...) and why.
-  The list lives in `src/plugins/registry.ts`.
+  The list lives in `src/plugins/registry.ts`. The *Support* page (`#/support`) shows it in full, what your loaded config
+  uses (known plugins, plugins not in the list yet, keys that only say what they would do), and prefilled GitHub issue
+  links to request support for a plugin or report a key that misbehaves.
 * **Tracks:** pick the skill area `track` to draw a text-grid map; a clickable editor places start, goal and ordered
   checkpoints, and key rules (no hjkl / arrows / mouse) can be switched off. *Play it* enforces them and shows
   checkpoint progress. See CONTRIBUTING.md.

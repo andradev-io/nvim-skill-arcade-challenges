@@ -1,6 +1,7 @@
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Link from '@mui/material/Link'
 import Chip from '@mui/material/Chip'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Stack from '@mui/material/Stack'
@@ -57,6 +58,9 @@ export function KeymapSource() {
             {s.skipped.length > 0 && <Chip size="small" color="warning" variant="outlined" label={`${s.skipped.length} skipped`} />}
             <Chip size="small" variant="outlined" label={`leader ${s.leader === ' ' ? 'Space' : s.leader}`} />
           </Stack>
+          <Link href="#/support" sx={{ fontSize: 12 }}>
+            What works and what does not
+          </Link>
           <FormControlLabel
             control={<Switch size="small" checked={s.enabled} onChange={(e) => s.setEnabled(e.target.checked)} />}
             label={<Typography variant="body2">Use my keymaps</Typography>}
