@@ -62,19 +62,27 @@ interface Props {
   onSync: () => void
   /** Track rule "no mouse": clicks never move the cursor. */
   noMouse?: boolean
+  /** Text size and height: the Play panel is compact, the Terminal can be roomier or full screen. */
+  size?: keyof typeof SIZES
   /** The user's own keymaps (sandbox only). Left out, the editor is stock Vim. */
   maps?: Keymap[]
   ref: Ref<VimEditorHandle>
 }
 
+const SIZES = {
+  play: {},
+  terminal: { '--cm-size': '14px', '--cm-min': '240px', '--cm-max': '420px' },
+  large: { '--cm-size': '17px', '--cm-min': '60vh', '--cm-max': '100%' },
+} as const
+
 const MODIFIERS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'AltGraph'])
 const P = 'var(--mui-palette-'
 
 const cmTheme = EditorView.theme({
-  '&': { color: `${P}text-primary)`, backgroundColor: `${P}background-paper)`, fontSize: '13px' },
+  '&': { color: `${P}text-primary)`, backgroundColor: `${P}background-paper)`, fontSize: 'var(--cm-size, 13px)' },
   '&.cm-focused': { outline: `2px solid ${P}primary-main)` },
-  '.cm-scroller': { fontFamily: 'inherit', lineHeight: '1.6', maxHeight: '320px' },
-  '.cm-content': { padding: '10px 4px', minHeight: '110px', caretColor: `${P}primary-main)` },
+  '.cm-scroller': { fontFamily: 'inherit', lineHeight: '1.6', maxHeight: 'var(--cm-max, 320px)' },
+  '.cm-content': { padding: '10px 4px', minHeight: 'var(--cm-min, 110px)', caretColor: `${P}primary-main)` },
   '.cm-gutters': { backgroundColor: 'transparent', color: `${P}primary-main)`, border: 'none', opacity: '.7' },
   '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'transparent' },
   '.cm-fat-cursor': { background: `${P}primary-main) !important`, color: `${P}primary-contrastText) !important` },
@@ -101,7 +109,7 @@ const cmTheme = EditorView.theme({
 })
 
 /** Stock Vim emulation (CodeMirror 6 + @replit/codemirror-vim). Your own Neovim keybinds are not active here. */
-export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse = false, maps, ref }: Props) {
+export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse = false, maps, size = 'play', ref }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const hooks = useRef({ onKey, onSync })
@@ -204,7 +212,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
   return (
     <Box
       ref={host}
-      sx={{ border: 1, borderColor: 'primary.main', borderRadius: '15px', overflow: 'hidden', minHeight: 140 }}
+      sx={{ border: 1, borderColor: 'primary.main', borderRadius: '15px', overflow: 'hidden', minHeight: 140, ...SIZES[size] }}
     />
   )
 }

@@ -2,7 +2,11 @@ import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
+import CloseIcon from '@mui/icons-material/Close'
+import OpenInFullIcon from '@mui/icons-material/OpenInFull'
 import Collapse from '@mui/material/Collapse'
+import Dialog from '@mui/material/Dialog'
+import IconButton from '@mui/material/IconButton'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Stack from '@mui/material/Stack'
 import Switch from '@mui/material/Switch'
@@ -141,6 +145,7 @@ export function TerminalPanel() {
   const editor = useRef<VimEditorHandle>(null)
   const [text, setText] = useState(SAMPLE)
   const [run, setRun] = useState(0)
+  const [big, setBig] = useState(false)
   const [snap, setSnap] = useState<Snap>({ mode: 'normal', row: 1, col: 0 })
   const [keys, setKeys] = useState<string[]>([])
   const active = useMemo(() => (enabled ? maps : []), [enabled, maps])
@@ -158,62 +163,117 @@ export function TerminalPanel() {
     return false
   }
 
+  /** Move between the small inline window and the full-screen one without losing what was typed. */
+  const toggleBig = (next: boolean) => {
+    setText(editor.current?.text() ?? text)
+    setBig(next)
+  }
+
+  const windowBox = (large: boolean) => (
+    <Box
+      sx={{
+        border: 1,
+        borderColor: 'divider',
+        borderRadius: large ? 0 : '15px',
+        overflow: 'hidden',
+        bgcolor: '#121212',
+        fontFamily: 'inherit',
+        ...(large && { flex: 1, display: 'flex', flexDirection: 'column', border: 0 }),
+      }}
+    >
+      <Stack direction="row" sx={{ gap: 0.75, px: 1.5, py: 1, alignItems: 'center', bgcolor: '#1b1b1b', borderBottom: '1px solid #2a2a2a' }}>
+        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#e0625a' }} />
+        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#e0b45a' }} />
+        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#7fb06a' }} />
+        <Typography sx={{ ml: 1, fontSize: 12, color: '#bdbdbd', flex: 1 }}>nvim · scratch</Typography>
+        <IconButton
+          size="small"
+          aria-label={large ? 'Close full screen' : 'Open full screen'}
+          onClick={() => toggleBig(!large)}
+          sx={{ color: '#bdbdbd' }}
+        >
+          {large ? <CloseIcon fontSize="small" /> : <OpenInFullIcon fontSize="small" />}
+        </IconButton>
+      </Stack>
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          '& > div': { border: 'none', borderRadius: 0, ...(large && { height: '100%' }) },
+          '& .cm-editor': { backgroundColor: '#121212', color: '#e6e6e6', ...(large && { height: '100%' }) },
+        }}
+      >
+        <VimEditor
+          key={`${run}|${text}|${large}`}
+          ref={editor}
+          initialText={text}
+          initialCursor={[1, 0]}
+          onKey={onKey}
+          onSync={onSync}
+          maps={active}
+          size={large ? 'large' : 'terminal'}
+        />
+      </Box>
+      <Statusline snap={snap} keys={keys} active={active.length} total={maps.length} />
+    </Box>
+  )
+
+  const buttons = (
+    <Stack direction="row" sx={{ gap: 1, flexWrap: 'wrap' }}>
+      <Button
+        size="small"
+        variant="outlined"
+        onClick={() => {
+          setText(SAMPLE)
+          setRun((r) => r + 1)
+        }}
+      >
+        Sample text
+      </Button>
+      <Button
+        size="small"
+        variant="outlined"
+        disabled={!data.text}
+        onClick={() => {
+          setText(data.text)
+          setRun((r) => r + 1)
+        }}
+      >
+        Use the challenge text
+      </Button>
+      <Button size="small" variant="outlined" onClick={() => setRun((r) => r + 1)}>
+        Reset
+      </Button>
+    </Stack>
+  )
+
+  const keymapSwitch = (
+    <FormControlLabel
+      control={<Switch checked={enabled} onChange={(e) => setEnabled(e.target.checked)} disabled={maps.length === 0} />}
+      label={maps.length ? 'Use my keymaps in the terminal' : 'Load keymaps to use them here'}
+    />
+  )
+
   return (
     <Stack spacing={1.5}>
       <Alert severity="info" variant="outlined">
-        A free sandbox, not scored and not counted. Try motions and your own mappings on any text.
+        A free sandbox, not scored and not counted. Try motions and your own mappings on any text. Use the corner button
+        for a full-screen terminal.
       </Alert>
       <KeymapLoader />
-      <FormControlLabel
-        control={<Switch checked={enabled} onChange={(e) => setEnabled(e.target.checked)} disabled={maps.length === 0} />}
-        label={maps.length ? 'Use my keymaps in the terminal' : 'Load keymaps to use them here'}
-      />
-      <Box sx={{ border: 1, borderColor: 'divider', borderRadius: '15px', overflow: 'hidden', bgcolor: '#121212', fontFamily: 'inherit' }}>
-        <Stack direction="row" sx={{ gap: 0.75, px: 1.5, py: 1, alignItems: 'center', bgcolor: '#1b1b1b', borderBottom: '1px solid #2a2a2a' }}>
-          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#e0625a' }} />
-          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#e0b45a' }} />
-          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#7fb06a' }} />
-          <Typography sx={{ ml: 1, fontSize: 12, color: '#bdbdbd' }}>nvim · scratch</Typography>
+      {keymapSwitch}
+      {!big && windowBox(false)}
+      {!big && buttons}
+      {/* Esc belongs to Vim here, so the dialog is closed with its button only */}
+      <Dialog fullScreen open={big} onClose={() => undefined} slotProps={{ paper: { sx: { bgcolor: '#121212' } } }}>
+        <Stack sx={{ height: '100%', p: { xs: 1, md: 2 }, gap: 1.5 }}>
+          <Stack direction="row" sx={{ gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            {keymapSwitch}
+            {buttons}
+          </Stack>
+          {big && windowBox(true)}
         </Stack>
-        <Box sx={{ '& > div': { border: 'none', borderRadius: 0 }, '& .cm-editor': { backgroundColor: '#121212', color: '#e6e6e6' } }}>
-          <VimEditor
-            key={`${run}|${text}`}
-            ref={editor}
-            initialText={text}
-            initialCursor={[1, 0]}
-            onKey={onKey}
-            onSync={onSync}
-            maps={active}
-          />
-        </Box>
-        <Statusline snap={snap} keys={keys} active={active.length} total={maps.length} />
-      </Box>
-      <Stack direction="row" sx={{ gap: 1, flexWrap: 'wrap' }}>
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={() => {
-            setText(SAMPLE)
-            setRun((r) => r + 1)
-          }}
-        >
-          Sample text
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          disabled={!data.text}
-          onClick={() => {
-            setText(data.text)
-            setRun((r) => r + 1)
-          }}
-        >
-          Use the challenge text
-        </Button>
-        <Button size="small" variant="outlined" onClick={() => setRun((r) => r + 1)}>
-          Reset
-        </Button>
-      </Stack>
+      </Dialog>
     </Stack>
   )
 }
