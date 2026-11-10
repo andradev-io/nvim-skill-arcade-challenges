@@ -31,4 +31,16 @@ npx wrangler secret put USER_CODE_SALT       # optional: makes derived codes ung
 npx wrangler deploy
 ```
 
+### Deploy from GitHub instead
+
+`.github/workflows/worker.yml` deploys on every push to `main` that touches `worker/`. Only these are secret, and
+they live in the repository's GitHub secrets (Settings, Secrets and variables, Actions):
+
+- `CLOUDFLARE_API_TOKEN`: a token with *Workers Scripts: Edit* and *D1: Edit* (the "Edit Cloudflare Workers" template works)
+- `CLOUDFLARE_ACCOUNT_ID`
+- `USER_CODE_SALT`: any long random string (pushed to the worker as a Cloudflare secret)
+
+The issuer, client ids, origins and the D1 `database_id` are not secret and stay in `wrangler.toml`. Create the
+database once (`npx wrangler d1 create skill-arcade`), commit its id there, and the workflow does the rest.
+
 Tests (`worker/src/worker.test.ts`) run with the site's `npm test`; `npx tsc -p worker` type-checks.

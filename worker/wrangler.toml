@@ -6,7 +6,7 @@ compatibility_date = "2025-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "skill-arcade"
-database_id = "REPLACE_WITH_THE_ID_FROM_wrangler_d1_create"
+database_id = "ad06d99f-0b14-4d59-b831-a3d26d4b1127"
 
 [vars]
 # The realm issuer, exactly as in its openid-configuration (no trailing slash).
