@@ -37,13 +37,16 @@
 - `src/components/play/PlayPanel.tsx` — Play tab: notes, flags, round remount on change / Reset
 - `src/components/join/JoinBox.tsx` — room code command and the file alternative
 - `src/components/sim/SimCheck.tsx` — start-state verdict and reference-keys replay
-- `src/components/published/PublishedList.tsx` — filterable cards of published challenges, "Use as template"
+- `src/components/published/PublishedList.tsx` — filterable cards of published challenges, "Open in terminal", "Use as template"
 - `src/examples.ts` — ready-made drafts (first visit loads the first one; the picker loads the others)
-- `src/components/layout/Hero.tsx` — headline, three steps, "Try the example" / "Start blank"
-- `src/components/terminal/TerminalPanel.tsx` — Terminal tab: scratch editor with statusline, GitHub keymap loader and report
+- `src/pages/HomePage.tsx` — landing page: pitch, round preview, stats, features, install, community
+- `src/pages/CreatePage.tsx`, `ChallengesPage.tsx`, `TerminalPage.tsx` — the other three pages (builder, published list, full-screen terminal with side menu)
+- `src/hooks/useRoute.ts` — tiny hash router (`#/create` ...), no dependency
+- `src/store/terminalStore.ts` — the buffer the terminal edits; other pages hand one over
+- `src/components/terminal/KeymapSource.tsx`, `Statusline.tsx` — GitHub keymap loader + report, lualine-style bar
 - `src/core/keymaps.ts` — scans Lua / Vimscript configs for keymaps (never executes), reports what it skipped and why
 - `src/core/github.ts` — source parsing (user, repo, file, URL), config file discovery and fetching from GitHub
 - `src/store/keymapStore.ts` — loaded keymaps, persisted in localStorage
-- `src/components/layout/Workspace.tsx` — one full-width workspace: sticky status + tab bar (Describe, Play, Terminal, Check, Neovim, Submit), every panel stays mounted
+- `src/components/layout/Workspace.tsx` — one full-width workspace: sticky status + tab bar (Describe, Play, Check, Neovim, Submit), every panel stays mounted
 - `src/store/uiStore.ts` — which workspace tab is open (hero buttons and tab bar share it)
 - `src/components/draft/ExamplePicker.tsx` — chips that load an example or a blank form

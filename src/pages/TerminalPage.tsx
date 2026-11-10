@@ -1,0 +1,233 @@
+import MenuIcon from '@mui/icons-material/Menu'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Collapse from '@mui/material/Collapse'
+import IconButton from '@mui/material/IconButton'
+import List from '@mui/material/List'
+import ListItemButton from '@mui/material/ListItemButton'
+import ListItemText from '@mui/material/ListItemText'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
+import { VimEditor } from '../components/play/VimEditor'
+import type { VimEditorHandle } from '../components/play/VimEditor'
+import { KeymapSource } from '../components/terminal/KeymapSource'
+import { Statusline } from '../components/terminal/Statusline'
+import type { Snap } from '../components/terminal/Statusline'
+import { EXAMPLES } from '../examples'
+import { useCommunity } from '../hooks/useCommunity'
+import { useDraft } from '../hooks/useDraft'
+import { useKeymapStore } from '../store/keymapStore'
+import { SAMPLE_BUFFER, useTerminalStore } from '../store/terminalStore'
+import type { TerminalBuffer } from '../store/terminalStore'
+
+const BG = '#0c0c0d'
+const SIDE_W = 330
+
+function Group({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #232324' }}>
+      <Typography sx={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'primary.main', mb: 1 }}>
+        {title}
+      </Typography>
+      {children}
+    </Box>
+  )
+}
+
+function BufferItem({ b, active, onOpen }: { b: TerminalBuffer; active: boolean; onOpen: (b: TerminalBuffer) => void }) {
+  return (
+    <ListItemButton dense selected={active} onClick={() => onOpen(b)} sx={{ borderRadius: '8px', py: 0.25 }}>
+      <ListItemText primary={b.name} slotProps={{ primary: { sx: { fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } } }} />
+    </ListItemButton>
+  )
+}
+
+/** The Terminal page: a full-screen Vim with a side menu for keymaps, buffers and help. */
+export function TerminalPage() {
+  const { data } = useDraft()
+  const community = useCommunity()
+  const buffer = useTerminalStore((s) => s.buffer)
+  const run = useTerminalStore((s) => s.run)
+  const open = useTerminalStore((s) => s.open)
+  const maps = useKeymapStore((s) => s.maps)
+  const enabled = useKeymapStore((s) => s.enabled)
+  const active = useMemo(() => (enabled ? maps : []), [enabled, maps])
+  const wide = useMediaQuery('(min-width:900px)')
+  // phones start with the menu closed (one tap away); wide screens always show it
+  const [menu, setMenu] = useState(false)
+  const editor = useRef<VimEditorHandle>(null)
+  const [snap, setSnap] = useState<Snap>({ mode: 'normal', row: 1, col: 0 })
+  const [keys, setKeys] = useState<string[]>([])
+  const showMenu = wide || menu
+
+  useEffect(() => {
+    const t = setTimeout(() => editor.current?.focus(), 60)
+    return () => clearTimeout(t)
+  }, [run])
+
+  // leaving the page keeps what was typed, so coming back does not lose it
+  useEffect(
+    () => () => {
+      const text = editor.current?.text()
+      if (text !== undefined) useTerminalStore.setState((s) => ({ buffer: { ...s.buffer, text } }))
+    },
+    [],
+  )
+
+  const onSync = () => {
+    const ed = editor.current
+    if (!ed) return
+    const c = ed.cursor()
+    const mode = ed.mode()
+    setSnap((p) => (p.mode === mode && p.row === c[0] && p.col === c[1] ? p : { mode, row: c[0], col: c[1] }))
+  }
+  const onKey = (key: string) => {
+    setKeys((k) => [...k.slice(-11), key === ' ' ? '␣' : key])
+    return false
+  }
+  const load = (b: TerminalBuffer) => {
+    open(b)
+    if (!wide) setMenu(false)
+  }
+
+  const published = community.status === 'ready' ? community.items : []
+
+  return (
+    <Box
+      className="dark"
+      sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', md: 'row' },
+        flex: 1,
+        minHeight: 0,
+        bgcolor: BG,
+        color: '#dcdcdc',
+        fontFamily: 'inherit',
+      }}
+    >
+      <Collapse in={showMenu} orientation="vertical" sx={{ display: { md: 'none' }, flexShrink: 0 }} unmountOnExit={false}>
+        <Box sx={{ maxHeight: '55dvh', overflowY: 'auto', bgcolor: '#111112', borderBottom: '1px solid #232324' }}>
+          <SideContent buffer={buffer} published={published} data={data} onOpen={load} />
+        </Box>
+      </Collapse>
+      <Box
+        component="aside"
+        aria-label="Terminal menu"
+        sx={{
+          display: { xs: 'none', md: 'block' },
+          width: SIDE_W,
+          flexShrink: 0,
+          overflowY: 'auto',
+          bgcolor: '#111112',
+          borderRight: '1px solid #232324',
+        }}
+      >
+        <SideContent buffer={buffer} published={published} data={data} onOpen={load} />
+      </Box>
+
+      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>
+        <Stack direction="row" sx={{ alignItems: 'center', bgcolor: '#161617', borderBottom: '1px solid #232324', minHeight: 34 }}>
+          <IconButton
+            size="small"
+            aria-label="Toggle the menu"
+            onClick={() => setMenu((m) => !m)}
+            sx={{ display: { md: 'none' }, color: '#bdbdbd', mx: 0.5 }}
+          >
+            <MenuIcon fontSize="small" />
+          </IconButton>
+          <Box sx={{ px: 1.5, py: 0.75, fontSize: 13, bgcolor: BG, borderRight: '1px solid #232324', borderTop: '2px solid #b4b96b' }}>
+            {buffer.name}
+          </Box>
+          <Box sx={{ flex: 1 }} />
+          <Button size="small" color="inherit" onClick={() => open(buffer)} sx={{ opacity: 0.7, mr: 1 }}>
+            Reset buffer
+          </Button>
+        </Stack>
+        <Box
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) editor.current?.focus()
+          }}
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            '& > div': { height: '100%', border: 'none', borderRadius: 0, bgcolor: BG },
+            '& .cm-editor': { height: '100%', backgroundColor: `${BG} !important`, color: '#e6e6e6' },
+            '& .cm-editor.cm-focused': { outline: 'none' },
+            '& .cm-scroller': { lineHeight: 1.65 },
+            '& .cm-content': { padding: '12px 4px' },
+          }}
+        >
+          <VimEditor
+            key={`${run}|${buffer.name}`}
+            ref={editor}
+            initialText={buffer.text}
+            initialCursor={buffer.cursor}
+            onKey={onKey}
+            onSync={onSync}
+            maps={active}
+            size="fill"
+          />
+        </Box>
+        <Statusline snap={snap} name={buffer.name} keys={keys} maps={active.length} />
+      </Box>
+    </Box>
+  )
+}
+
+function SideContent({
+  buffer,
+  published,
+  data,
+  onOpen,
+}: {
+  buffer: TerminalBuffer
+  published: { id: string; title: string; text: string; cursor: [number, number] }[]
+  data: { id: string; title: string; text: string; cursor: [number, number] }
+  onOpen: (b: TerminalBuffer) => void
+}) {
+  const draft: TerminalBuffer = { name: data.id || 'draft', text: data.text, cursor: data.cursor }
+  return (
+    <Box>
+      <Group title="Keymaps">
+        <KeymapSource />
+      </Group>
+      <Group title="Buffers">
+        <List dense disablePadding>
+          <BufferItem b={SAMPLE_BUFFER} active={buffer.name === SAMPLE_BUFFER.name} onOpen={onOpen} />
+          {data.text && <BufferItem b={draft} active={buffer.name === draft.name} onOpen={onOpen} />}
+        </List>
+        <Typography sx={{ fontSize: 11, opacity: 0.55, mt: 1.5, mb: 0.5 }}>Examples</Typography>
+        <List dense disablePadding>
+          {EXAMPLES.map((e) => (
+            <BufferItem
+              key={e.challenge.id}
+              b={{ name: e.challenge.id, text: e.challenge.text, cursor: e.challenge.cursor }}
+              active={buffer.name === e.challenge.id}
+              onOpen={onOpen}
+            />
+          ))}
+        </List>
+        {published.length > 0 && (
+          <>
+            <Typography sx={{ fontSize: 11, opacity: 0.55, mt: 1.5, mb: 0.5 }}>Community</Typography>
+            <List dense disablePadding>
+              {published.map((c) => (
+                <BufferItem key={c.id} b={{ name: c.id, text: c.text, cursor: c.cursor }} active={buffer.name === c.id} onOpen={onOpen} />
+              ))}
+            </List>
+          </>
+        )}
+      </Group>
+      <Group title="Good to know">
+        <Typography variant="body2" sx={{ fontSize: 12.5, lineHeight: 1.7, opacity: 0.8 }}>
+          A free sandbox: nothing is scored or counted. This is a Vim emulation in the browser, not your Neovim, so plugins
+          are not here and a few commands behave a little differently. Esc stays with Vim. Typing <code>:</code> opens the
+          command line.
+        </Typography>
+      </Group>
+    </Box>
+  )
+}

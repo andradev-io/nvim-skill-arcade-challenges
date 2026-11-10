@@ -9,7 +9,10 @@ static website where anyone can design and submit one.
   keys against par, times you, and runs the same end-state check as the game (buffer text and cursor, normal mode).
   It is stock Vim emulation, not your Neovim: your keybinds and plugins are not active, and plugin-specific
   challenges and non-text assertions (windows, quickfix ...) are flagged as "only in Neovim".
-* **Terminal (your own keymaps):** the *Terminal* tab is a free, unscored sandbox. Give it a GitHub user, `user/repo`
+* **Pages:** *Home* explains the project, *Create* is the challenge builder (Describe, Play, Check, Neovim, Submit),
+  *Terminal* is a full-screen sandbox and *Challenges* lists what is published (open one in the terminal or use it
+  as a template). Pages are hash routes (`#/create`), so the static host needs no rewrite rules.
+* **Terminal (your own keymaps):** the *Terminal* page is a full-screen, unscored sandbox with a side menu. Give it a GitHub user, `user/repo`
   or a link to a file and it reads your Neovim config straight from GitHub (public repos, no token, nothing
   executed), keeps plain `vim.keymap.set` / `nvim_set_keymap` / `nmap` mappings and applies them to the browser
   editor. Lua-function mappings, plugin mappings and `:Commands` the browser lacks are skipped and listed with the
