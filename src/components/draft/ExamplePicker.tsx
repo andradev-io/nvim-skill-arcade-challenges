@@ -31,7 +31,7 @@ export function ExamplePicker() {
         <Chip clickable variant="outlined" label="Blank" onClick={reset} />
       </Stack>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-        Loading an example replaces the form. Edit anything: the panels on the right follow as you type.
+        Loading an example replaces the form. Edit anything: Play, Check and the other tabs follow as you type.
       </Typography>
     </Paper>
   )

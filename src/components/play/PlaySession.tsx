@@ -73,6 +73,7 @@ export function PlaySession({ draft, onReset, onToggleExpected, expectedOpen }: 
         onKey={onKey}
         onSync={onSync}
         noMouse={!!track?.forbid?.includes('mouse')}
+        size="terminal"
       />
       <Typography variant="caption" color="text.secondary">
         {state.blocked && !done ? `This track forbids '${state.blocked}'. ` : ''}
