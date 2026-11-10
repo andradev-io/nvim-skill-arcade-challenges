@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { loadSource, parseSource, pickCandidates } from './github'
+import { moveLines, resolveAddress } from '../components/play/exCommands'
 import { findLeader, luaString, normaliseKeys, parseConfig, parseKeymaps } from './keymaps'
 
 describe('lua strings and notation', () => {
@@ -27,6 +28,7 @@ describe('parseKeymaps (Lua)', () => {
   const lua = `
     vim.g.mapleader = " "
     local map = vim.keymap.set
+    map("n", "<leader>q", function() local x = 1 print(x) end)
     vim.keymap.set("n", "<leader>w", "<cmd>w<CR>", { desc = "save" })
     vim.keymap.set({ "n", "v" }, "<C-d>", "<C-d>zz")
     map("i", "jk", "<Esc>", { silent = true })
@@ -58,10 +60,13 @@ describe('parseKeymaps (Lua)', () => {
     expect(r.maps.find((m) => m.lhs === 'H')?.noremap).toBe(false)
     expect(r.maps.find((m) => m.lhs === 'jk')?.noremap).toBe(true)
   })
-  it('skips what cannot run, with a reason, and ignores comments', () => {
-    expect(r.skipped.some((s) => /Telescope/.test(s.reason))).toBe(true)
-    expect(r.skipped.some((s) => /Lua function/.test(s.reason))).toBe(true)
-    expect(r.skipped.some((s) => /Plug/.test(s.reason))).toBe(true)
+  it('turns what needs a plugin or Lua into a stub that says why, and ignores comments', () => {
+    const note = (lhs: string) => r.maps.find((m) => m.lhs === lhs)?.note ?? ''
+    expect(note('<Space>ff')).toMatch(/Telescope.*needs a plugin or Neovim/)
+    expect(note('<Space>e')).toMatch(/Ex needs a plugin/)
+    expect(note('<Space>q')).toMatch(/runs Lua/)
+    expect(note('gx')).toMatch(/plugin mapping/)
+    expect(r.maps.find((m) => m.lhs === '<Space>w')?.note).toBeUndefined()
     expect(r.skipped.some((s) => /mode 't'/.test(s.reason))).toBe(true)
     expect(r.maps.some((m) => m.lhs === 'q')).toBe(false)
   })
@@ -77,13 +82,73 @@ describe('parseKeymaps (Vimscript)', () => {
       'init.vim',
       ',',
     )
-    expect(r.maps.map((m) => `${m.mode} ${m.lhs} ${m.rhs} ${m.noremap}`)).toEqual([
+    expect(r.maps.filter((m) => !m.note).map((m) => `${m.mode} ${m.lhs} ${m.rhs} ${m.noremap}`)).toEqual([
       'n ,w :w<CR> true',
       'i jk <Esc> true',
       'n Y y$ false',
       'v Y y$ false',
     ])
-    expect(r.skipped).toHaveLength(1)
+    // the <expr> mapping is kept as a stub that says so
+    expect(r.maps.find((m) => m.lhs === 'j')?.note).toMatch(/expression/)
+    expect(r.skipped).toHaveLength(0)
+  })
+})
+
+describe('mappings from a real config', () => {
+  const r = parseKeymaps(
+    [
+      'local map = vim.keymap.set',
+      'map("n", "<leader>x", "<cmd>close<CR>", { desc = "close window" })',
+      'map("n", "<leader>tn", "<cmd>tabnew<CR>")',
+      'map("n", "<leader>bn", "<cmd>bn<CR>")',
+      'map("n", "<A-j>", ":m .+1<CR>==")',
+      'map("v", "<A-j>", ":m \'>+1<CR>gv=gv")',
+      'map("n", "<leader>h", "<cmd>echo \\"hi\\"<CR>")',
+      'map("n", "<leader>e", "<cmd>NvimTreeToggle<CR>")',
+      'map("n", "<leader>ff", builtin.find_files, { desc = "find files" })',
+      'map("n", "<leader>z", function() vim.cmd("normal! zz") end)',
+      'map("n", "<leader>hh", function() vim.lsp.buf.hover() end)',
+      'map("n", "<leader>fb", function() require("telescope.builtin").buffers() end)',
+    ].join('\n'),
+    'lazy-remap.lua',
+    ' ',
+  )
+  const find = (lhs: string, mode = 'n') => r.maps.find((m) => m.lhs === lhs && m.mode === mode)
+  it('works for window, tab, buffer, move and echo commands', () => {
+    for (const lhs of ['<Space>x', '<Space>tn', '<Space>bn', '<A-j>', '<Space>h']) expect(find(lhs)?.note).toBeUndefined()
+    expect(find('<A-j>', 'v')?.note).toBeUndefined()
+    expect(find('<Space>tn')?.rhs).toBe(':tabnew<CR>')
+  })
+  it('reads a function that only runs vim.cmd as the command', () => {
+    expect(find('<Space>z')?.rhs).toBe(':normal! zz<CR>')
+    expect(find('<Space>z')?.note).toBeUndefined()
+  })
+  it('stubs plugin commands and functions, labelled by desc or the call', () => {
+    expect(find('<Space>e')?.note).toMatch(/NvimTreeToggle/)
+    expect(find('<Space>ff')?.note).toMatch(/find files/)
+    expect(find('<Space>hh')?.note).toMatch(/vim\.lsp\.buf\.hover/)
+    expect(find('<Space>fb')?.note).toMatch(/require/)
+    expect(r.skipped).toHaveLength(0)
+  })
+})
+
+describe(':move', () => {
+  const lines = ['a', 'b', 'c', 'd', 'e']
+  it('resolves addresses', () => {
+    expect(resolveAddress('.+1', 2, 5, {})).toBe(3)
+    expect(resolveAddress('-2', 4, 5, {})).toBe(2)
+    expect(resolveAddress('$', 2, 5, {})).toBe(5)
+    expect(resolveAddress('0', 2, 5, {})).toBe(0)
+    expect(resolveAddress("'>+1", 2, 5, { '>': 3 })).toBe(4)
+    expect(resolveAddress('.+99', 2, 5, {})).toBe(5)
+    expect(resolveAddress('foo', 2, 5, {})).toBeNull()
+  })
+  it('moves lines down, up, to the top and refuses to move into itself', () => {
+    expect(moveLines(lines, 2, 2, 3)?.lines.join('')).toBe('acbde')
+    expect(moveLines(lines, 3, 3, 1)?.lines.join('')).toBe('acbde')
+    expect(moveLines(lines, 2, 3, 5)?.lines.join('')).toBe('adebc')
+    expect(moveLines(lines, 4, 4, 0)?.lines.join('')).toBe('dabce')
+    expect(moveLines(lines, 2, 4, 3)).toBeNull()
   })
 })
 
