@@ -18,6 +18,8 @@ import type { ReactNode } from 'react'
 import { VimEditor } from '../components/play/VimEditor'
 import type { VimEditorHandle } from '../components/play/VimEditor'
 import { KeymapSource } from '../components/terminal/KeymapSource'
+import { InfoDialog } from '../components/terminal/InfoDialog'
+import type { InfoTab } from '../components/terminal/InfoDialog'
 import { PluginList } from '../components/terminal/PluginList'
 import { Statusline } from '../components/terminal/Statusline'
 import type { Snap } from '../components/terminal/Statusline'
@@ -66,6 +68,7 @@ export function TerminalPage() {
   const newTab = useTerminalStore((s) => s.newTab)
   const closeTab = useTerminalStore((s) => s.closeTab)
   const goTab = useTerminalStore((s) => s.goTab)
+  const [info, setInfo] = useState<InfoTab | null>(null)
   const [note, setNote] = useState('')
   const noteTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const maps = useKeymapStore((s) => s.maps)
@@ -147,7 +150,7 @@ export function TerminalPage() {
     >
       <Collapse in={showMenu} orientation="vertical" sx={{ display: { md: 'none' }, flexShrink: 0 }} unmountOnExit={false}>
         <Box sx={{ maxHeight: '55dvh', overflowY: 'auto', bgcolor: '#111112', borderBottom: '1px solid #232324' }}>
-          <SideContent buffer={buffer} published={published} data={data} onOpen={load} />
+          <SideContent buffer={buffer} published={published} data={data} onOpen={load} onInfo={setInfo} />
         </Box>
       </Collapse>
       <Box
@@ -162,7 +165,7 @@ export function TerminalPage() {
           borderRight: '1px solid #232324',
         }}
       >
-        <SideContent buffer={buffer} published={published} data={data} onOpen={load} />
+        <SideContent buffer={buffer} published={published} data={data} onOpen={load} onInfo={setInfo} />
       </Box>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>
@@ -265,6 +268,7 @@ export function TerminalPage() {
         </Box>
         <Statusline snap={snap} name={buffer.name} keys={keys} maps={active.filter((m) => !m.note).length} note={note} />
       </Box>
+      <InfoDialog tab={info} onTab={setInfo} onClose={() => setInfo(null)} />
     </Box>
   )
 }
@@ -274,20 +278,22 @@ function SideContent({
   published,
   data,
   onOpen,
+  onInfo,
 }: {
   buffer: TerminalBuffer
   published: { id: string; title: string; text: string; cursor: [number, number] }[]
   data: { id: string; title: string; text: string; cursor: [number, number] }
   onOpen: (b: TerminalBuffer) => void
+  onInfo: (t: InfoTab) => void
 }) {
   const draft: TerminalBuffer = { name: data.id || 'draft', text: data.text, cursor: data.cursor }
   return (
     <Box>
       <Group title="Keymaps">
-        <KeymapSource />
+        <KeymapSource onDetails={() => onInfo('keymaps')} />
       </Group>
       <Group title="Plugins">
-        <PluginList />
+        <PluginList compact onDetails={() => onInfo('plugins')} />
       </Group>
       <Group title="Buffers">
         <List dense disablePadding>
