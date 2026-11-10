@@ -1,6 +1,5 @@
 import CreateIcon from '@mui/icons-material/Create'
 import FactCheckIcon from '@mui/icons-material/FactCheck'
-import KeyboardIcon from '@mui/icons-material/Keyboard'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import SendIcon from '@mui/icons-material/Send'
 import TerminalIcon from '@mui/icons-material/Terminal'
@@ -26,7 +25,6 @@ import { SimCheck } from '../sim/SimCheck'
 
 // The Vim editor (CodeMirror) is the heaviest part: load it in its own chunk.
 const PlayPanel = lazy(() => import('../play/PlayPanel').then((m) => ({ default: m.PlayPanel })))
-const TerminalPanel = lazy(() => import('../terminal/TerminalPanel').then((m) => ({ default: m.TerminalPanel })))
 
 function Status() {
   const { data, ok, errors } = useDraft()
@@ -54,7 +52,7 @@ function Panel({ id, width, children }: { id: TabId; width?: number; children: R
   )
 }
 
-/** One full-width workspace: a tab bar (Describe, Play, Terminal, Check, Neovim, Submit) and a panel that uses the whole screen. */
+/** One full-width workspace: a tab bar (Describe, Play, Check, Neovim, Submit) and a panel that uses the whole screen. */
 export function Workspace() {
   const tab = useUiStore((s) => s.tab)
   const setTab = useUiStore((s) => s.setTab)
@@ -74,7 +72,6 @@ export function Workspace() {
           >
             <Tab value="describe" icon={<CreateIcon fontSize="small" />} iconPosition="start" label="Describe" />
             <Tab value="play" icon={<PlayArrowIcon fontSize="small" />} iconPosition="start" label="Play" />
-            <Tab value="terminal" icon={<KeyboardIcon fontSize="small" />} iconPosition="start" label="Terminal" />
             <Tab value="check" icon={<FactCheckIcon fontSize="small" />} iconPosition="start" label="Check" />
             <Tab value="neovim" icon={<TerminalIcon fontSize="small" />} iconPosition="start" label="Neovim" />
             <Tab
@@ -95,11 +92,6 @@ export function Workspace() {
         <Panel id="play" width={1100}>
           <Suspense fallback={null}>
             <PlayPanel />
-          </Suspense>
-        </Panel>
-        <Panel id="terminal">
-          <Suspense fallback={null}>
-            <TerminalPanel />
           </Suspense>
         </Panel>
         <Panel id="check" width={900}>

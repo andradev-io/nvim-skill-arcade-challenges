@@ -1,37 +1,89 @@
 import GitHubIcon from '@mui/icons-material/GitHub'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { useColorScheme } from '@mui/material/styles'
+import { ROUTES, navigate, useRoute } from '../../hooks/useRoute'
 
 const REPO_URL = 'https://github.com/dev-vinicius-andrade/nvim-skill-arcade'
 
-export function TopBar() {
+/** Site header: brand, page navigation, GitHub and theme. The nav drops under the brand on a phone. */
+export function TopBar({ fluid = false }: { fluid?: boolean }) {
   const { mode, systemMode, setMode } = useColorScheme()
   const dark = (mode === 'system' ? systemMode : mode) === 'dark'
+  const route = useRoute()
   return (
-    <Stack
+    <Box
       component="header"
-      direction="row"
-      sx={{ alignItems: 'center', justifyContent: 'space-between', py: 2, borderBottom: 1, borderColor: 'divider' }}
+      sx={{
+        borderBottom: 1,
+        borderColor: 'divider',
+        bgcolor: 'background.default',
+        position: 'sticky',
+        top: 0,
+        zIndex: 20,
+      }}
     >
-      <Typography sx={{ fontWeight: 800, letterSpacing: '-0.01em' }}>
-        arcade<Typography component="span" color="primary" sx={{ fontWeight: 800 }}>.nvim</Typography>
-        <Typography component="span" color="text.secondary" sx={{ ml: 1, fontSize: 13 }}>/ challenges</Typography>
-      </Typography>
-      <Stack direction="row" sx={{ gap: 1 }}>
-        <IconButton aria-label="nvim-skill-arcade on GitHub" href={REPO_URL} target="_blank" rel="noopener">
-          <GitHubIcon fontSize="small" />
-        </IconButton>
-        <IconButton
-          aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-          onClick={() => setMode(dark ? 'light' : 'dark')}
-        >
-          {dark ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
-        </IconButton>
+      <Stack
+        sx={{
+          maxWidth: fluid ? 'none' : 1760,
+          mx: 'auto',
+          px: { xs: 2, sm: 3 },
+          py: 1,
+          gap: { xs: 0.5, md: 3 },
+          flexDirection: { xs: 'column', md: 'row' },
+          alignItems: { xs: 'stretch', md: 'center' },
+        }}
+      >
+        <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <Typography
+            component="a"
+            href="#/"
+            sx={{ fontWeight: 800, letterSpacing: '-0.01em', color: 'text.primary', textDecoration: 'none' }}
+          >
+            arcade<Typography component="span" color="primary" sx={{ fontWeight: 800 }}>.nvim</Typography>
+          </Typography>
+          <Stack direction="row" sx={{ gap: 0.5, display: { xs: 'flex', md: 'none' } }}>
+            <IconButton size="small" aria-label="nvim-skill-arcade on GitHub" href={REPO_URL} target="_blank" rel="noopener">
+              <GitHubIcon fontSize="small" />
+            </IconButton>
+            <IconButton size="small" aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'} onClick={() => setMode(dark ? 'light' : 'dark')}>
+              {dark ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+            </IconButton>
+          </Stack>
+        </Stack>
+        <Stack component="nav" aria-label="Pages" direction="row" sx={{ gap: 0.5, flex: 1, overflowX: 'auto' }}>
+          {ROUTES.map((r) => (
+            <Button
+              key={r.id}
+              href={r.hash}
+              onClick={(e) => {
+                e.preventDefault()
+                navigate(r.id)
+              }}
+              color={route === r.id ? 'primary' : 'inherit'}
+              variant={route === r.id ? 'outlined' : 'text'}
+              size="small"
+              aria-current={route === r.id ? 'page' : undefined}
+              sx={{ whiteSpace: 'nowrap', opacity: route === r.id ? 1 : 0.8 }}
+            >
+              {r.label}
+            </Button>
+          ))}
+        </Stack>
+        <Stack direction="row" sx={{ gap: 0.5, display: { xs: 'none', md: 'flex' } }}>
+          <IconButton aria-label="nvim-skill-arcade on GitHub" href={REPO_URL} target="_blank" rel="noopener">
+            <GitHubIcon fontSize="small" />
+          </IconButton>
+          <IconButton aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'} onClick={() => setMode(dark ? 'light' : 'dark')}>
+            {dark ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+          </IconButton>
+        </Stack>
       </Stack>
-    </Stack>
+    </Box>
   )
 }
