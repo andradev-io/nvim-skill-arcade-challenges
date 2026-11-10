@@ -45,6 +45,7 @@
 - `src/store/terminalStore.ts` — the buffer the terminal edits; other pages hand one over
 - `src/components/terminal/KeymapSource.tsx`, `Statusline.tsx` — GitHub keymap loader + report, lualine-style bar
 - `src/core/keymaps.ts` — scans Lua / Vimscript configs for keymaps (never executes): working maps, stubs that say what needs a plugin, skipped modes
+- `src/components/terminal/themes.ts`, `src/store/themeStore.ts` — Terminal color themes (Catppuccin, Dracula, Tokyo Night, Gruvbox, Nord, One Dark, Rosé Pine) as CSS variables; choice remembered
 - `src/components/play/languages.ts` — syntax highlighting per filetype (CodeMirror legacy modes, loaded on demand) and the colors
 - `src/components/play/exCommands.ts` — ex commands the editor lacks: tabs/buffers, :m, :echo, quit and window no-ops, stub messages
 - `src/core/github.ts` — source parsing (user, repo, file, URL), config file discovery and fetching from GitHub
