@@ -47,6 +47,10 @@
 - `src/core/keymaps.ts` — scans Lua / Vimscript configs for keymaps (never executes): working maps, stubs that say what needs a plugin, skipped modes
 - `src/components/play/exCommands.ts` — ex commands the editor lacks: tabs/buffers, :m, :echo, quit and window no-ops, stub messages
 - `src/core/github.ts` — source parsing (user, repo, file, URL), config file discovery and fetching from GitHub
+- `src/plugins/registry.ts` — supported / unsupported plugin list + detection by repo name
+- `src/plugins/comment.ts`, `surround.ts`, `textobjects.ts`, `autopairs.ts` — pure logic of the plugin imitations (unit-tested)
+- `src/plugins/vimGlue.ts` — operators, motions and key handling that plug them into the editor
+- `src/store/pluginStore.ts`, `src/components/terminal/PluginList.tsx` — which imitations are on, and the sidebar list
 - `src/store/keymapStore.ts` — loaded keymaps, persisted in localStorage
 - `src/components/layout/Workspace.tsx` — one full-width workspace: sticky status + tab bar (Describe, Play, Check, Neovim, Submit), every panel stays mounted
 - `src/store/uiStore.ts` — which workspace tab is open (hero buttons and tab bar share it)

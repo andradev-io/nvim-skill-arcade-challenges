@@ -13,6 +13,7 @@ export interface Source {
 const CONFIG_EXT = /\.(lua|vim)$/i
 const COMMON_REPOS = ['dotfiles', 'nvim', '.dotfiles', 'neovim', 'nvim-config', 'config', '.config']
 const MAX_FILES = 8
+const MAX_SPECS = 30
 const MAX_BYTES = 300_000
 
 /** Understands: user, user/repo, user/repo/path/file.lua, github.com URLs (repo, blob, tree) and raw URLs. */
@@ -62,9 +63,22 @@ export function pickCandidates(paths: string[], under: string | null = null): st
     .map((x) => x.path)
 }
 
+/** Plugin spec files (lazy.nvim `plugins/*.lua` and friends): read only to see which plugins the config uses. */
+export function pickSpecs(paths: string[], under: string | null = null, skip: string[] = []): string[] {
+  const out = paths.filter((p) => {
+    if (!/\.lua$/i.test(p) || skip.includes(p)) return false
+    if (under && !p.startsWith(`${under}/`)) return false
+    if (/(^|\/)(node_modules|test|tests|spec|docs?|\.github)\//i.test(p)) return false
+    return /(^|\/)plugins?\//i.test(p) || /(^|\/)(plugins?|lazy|packages|packer)\.lua$/i.test(p)
+  })
+  return out.sort((a, b) => a.length - b.length).slice(0, MAX_SPECS)
+}
+
 export interface LoadedFile {
   path: string
   text: string
+  /** A plugin spec file: scanned for plugin names, not for keymaps. */
+  spec?: boolean
 }
 
 type Fetch = typeof fetch
@@ -122,7 +136,16 @@ export async function loadSource(src: Source, f: Fetch = fetch): Promise<LoadedF
         /* skip an unreadable file, keep the rest */
       }
     }
-    if (files.length) return files
+    if (files.length) {
+      for (const path of pickSpecs(paths, src.path, picks)) {
+        try {
+          files.push({ path, text: await getText(f, raw(src.owner, repo, path)), spec: true })
+        } catch {
+          /* skip */
+        }
+      }
+      return files
+    }
   }
   throw lastError ?? new Error(`Nothing found for ${src.owner}.`)
 }

@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { loadSource, parseSource } from '../core/github'
 import { parseConfig } from '../core/keymaps'
+import { detectPlugins } from '../plugins/registry'
+import { usePluginStore } from './pluginStore'
 import type { Keymap, Skipped } from '../core/keymaps'
 
 const KEY = 'arcade-keymaps'
@@ -70,12 +72,13 @@ export const useKeymapStore = create<KeymapStore>((set, get) => ({
     set({ status: 'loading', error: '' })
     try {
       const files = await loadSource(src)
-      const parsed = parseConfig(files)
+      const parsed = parseConfig(files.filter((f) => !f.spec))
+      usePluginStore.getState().setDetected(detectPlugins(files.map((f) => f.text)))
       set({
         status: 'idle',
         enabled: true,
         leader: parsed.leader,
-        files: files.map((f) => f.path),
+        files: files.filter((f) => !f.spec).map((f) => f.path),
         maps: parsed.maps,
         skipped: parsed.skipped,
       })
@@ -85,6 +88,7 @@ export const useKeymapStore = create<KeymapStore>((set, get) => ({
     }
   },
   clear: () => {
+    usePluginStore.getState().setDetected([])
     set({ ...EMPTY, source: get().source, status: 'idle', error: '' })
     write({ ...EMPTY, source: get().source })
   },
