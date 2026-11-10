@@ -3,6 +3,7 @@ import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { useDraftStore } from '../../store/draftStore'
+import { useUiStore } from '../../store/uiStore'
 
 const STEPS = [
   { n: '1', title: 'Describe', text: 'A start buffer, the expected end state and a reference solution. No code, only data.' },
@@ -14,6 +15,7 @@ const go = () => document.getElementById('workspace')?.scrollIntoView({ behavior
 
 export function Hero() {
   const reset = useDraftStore((s) => s.reset)
+  const setTab = useUiStore((s) => s.setTab)
   return (
     <Stack component="section" sx={{ gap: 3, py: { xs: 4, md: 7 } }}>
       <Box>
@@ -28,7 +30,14 @@ export function Hero() {
           ones have one clear goal and many routes. An example is already loaded below: press a few keys and see how it plays.
         </Typography>
         <Stack direction="row" sx={{ gap: 1.5, mt: 3, flexWrap: 'wrap' }}>
-          <Button variant="contained" size="large" onClick={go}>
+          <Button
+            variant="contained"
+            size="large"
+            onClick={() => {
+              setTab('play')
+              go()
+            }}
+          >
             Try the example
           </Button>
           <Button
@@ -36,6 +45,7 @@ export function Hero() {
             size="large"
             onClick={() => {
               reset()
+              setTab('describe')
               go()
             }}
           >

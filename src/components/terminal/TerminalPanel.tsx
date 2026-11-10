@@ -256,12 +256,14 @@ export function TerminalPanel() {
 
   return (
     <Stack spacing={1.5}>
-      <Alert severity="info" variant="outlined">
-        A free sandbox, not scored and not counted. Try motions and your own mappings on any text. Use the corner button
-        for a full-screen terminal.
-      </Alert>
-      <KeymapLoader />
-      {keymapSwitch}
+      <Stack spacing={1.5} sx={{ maxWidth: 820 }}>
+        <Alert severity="info" variant="outlined">
+          A free sandbox, not scored and not counted. Try motions and your own mappings on any text. Use the corner button
+          for a full-screen terminal.
+        </Alert>
+        <KeymapLoader />
+        {keymapSwitch}
+      </Stack>
       {!big && windowBox(false)}
       {!big && buttons}
       {/* Esc belongs to Vim here, so the dialog is closed with its button only */}
