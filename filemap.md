@@ -44,5 +44,6 @@
 - `src/core/keymaps.ts` — scans Lua / Vimscript configs for keymaps (never executes), reports what it skipped and why
 - `src/core/github.ts` — source parsing (user, repo, file, URL), config file discovery and fetching from GitHub
 - `src/store/keymapStore.ts` — loaded keymaps, persisted in localStorage
-- `src/components/layout/Workspace.tsx` — form on the left, sticky tabbed toolbox (Play, Check, Neovim, Terminal, Submit) on the right
+- `src/components/layout/Workspace.tsx` — one full-width workspace: sticky status + tab bar (Describe, Play, Terminal, Check, Neovim, Submit), every panel stays mounted
+- `src/store/uiStore.ts` — which workspace tab is open (hero buttons and tab bar share it)
 - `src/components/draft/ExamplePicker.tsx` — chips that load an example or a blank form

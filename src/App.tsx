@@ -7,7 +7,7 @@ import { PublishedList } from './components/published/PublishedList'
 
 export default function App() {
   return (
-    <Container maxWidth={false} sx={{ maxWidth: 1180, pb: 6 }}>
+    <Container maxWidth={false} sx={{ maxWidth: 1760, pb: 6 }}>
       <TopBar />
       <Hero />
       <Workspace />
