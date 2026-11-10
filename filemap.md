@@ -58,3 +58,4 @@
 - `src/components/layout/Workspace.tsx` — one full-width workspace: sticky status + tab bar (Describe, Play, Check, Neovim, Submit), every panel stays mounted
 - `src/store/uiStore.ts` — which workspace tab is open (hero buttons and tab bar share it)
 - `src/components/draft/ExamplePicker.tsx` — chips that load an example or a blank form
+- `worker/` — Cloudflare Worker + D1 score API (Keycloak JWT check, leaderboard); see worker/README.md
