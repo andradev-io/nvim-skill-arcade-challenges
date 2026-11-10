@@ -1,8 +1,11 @@
 /**
  * Reads keymaps out of a Neovim config (Lua or Vimscript) so the browser sandbox can use them.
  *
- * Nothing is executed: the text is only scanned. Mappings that need Lua functions, plugins or commands the
- * browser editor does not have are reported as skipped, with the reason.
+ * Nothing is executed: the text is only scanned. A mapping ends up as one of three things:
+ *  - working: plain keys, or an :command the browser editor has (or that the terminal page simulates);
+ *  - stub: needs a plugin, Lua or a Neovim feature. The key is still taken over, so it never falls through to the
+ *    stock key, and pressing it shows a one-line message saying what it would have done;
+ *  - skipped: cannot be represented at all (a mode that is not simulated, a mapping with an expression).
  */
 
 export type MapMode = 'n' | 'v' | 'x' | 'i'
@@ -13,6 +16,8 @@ export interface Keymap {
   lhs: string
   rhs: string
   noremap: boolean
+  /** Set when the mapping cannot really run here: the text shown when the key is pressed. */
+  note?: string
   /** Where it came from (file path), for the report. */
   file: string
   line: number
@@ -33,11 +38,21 @@ export interface ParsedKeymaps {
 const DEFAULT_LEADER = '\\'
 const SUPPORTED_MODES = new Set<string>(['n', 'v', 'x', 'i'])
 
-/** Ex commands the browser editor can run from a mapping like <cmd>noh<CR>. */
-const EX_OK = new Set([
+/**
+ * Ex commands that work in the browser editor: its own, plus the ones the terminal page adds
+ * (see components/play/exCommands.ts): tabs and buffers, :m, :echo, and no-ops for windows.
+ */
+export const EX_OK = new Set([
+  // the editor's own
   'noh', 'nohlsearch', 'normal', 'norm', 's', 'substitute', 'g', 'global', 'v', 'vglobal', 'sort', 'set', 'se',
-  'undo', 'u', 'redo', 'red', 'delm', 'delmarks', 'marks', 'reg', 'registers', 'd', 'delete', 'y', 'yank',
-  'w', 'write', 'q', 'quit', 'wq', 'x', 'xit', 'map', 'nmap', 'noremap', 'nnoremap',
+  'undo', 'u', 'redo', 'red', 'delm', 'delmarks', 'marks', 'reg', 'registers', 'd', 'delete', 'y', 'yank', 'pu', 'put',
+  'j', 'join', 'w', 'write', 'map', 'nmap', 'vmap', 'imap', 'noremap', 'nnoremap', 'vnoremap', 'inoremap',
+  // added by the terminal page
+  'q', 'quit', 'wq', 'x', 'xit', 'up', 'update', 'qa', 'qall', 'wa', 'wall', 'wqa', 'xa', 'echo', 'echom', 'echomsg',
+  'm', 'move', 'close', 'clo', 'only', 'on', 'split', 'sp', 'vsplit', 'vs', 'new', 'vnew', 'vne', 'resize', 'res',
+  'vertical', 'vert', 'wincmd', 'winc', 'enew', 'ene',
+  'tabnew', 'tabe', 'tabedit', 'tabclose', 'tabc', 'tabn', 'tabnext', 'tabp', 'tabprevious', 'tabprev', 'tabN',
+  'tabNext', 'bn', 'bnext', 'bp', 'bprevious', 'bprev', 'bN', 'bNext', 'bd', 'bdelete', 'bw', 'bwipeout',
 ])
 
 // ---------------------------------------------------------------- notation
@@ -69,13 +84,23 @@ function cmdToColon(rhs: string): string {
   return rhs.replace(/<cmd>/gi, ':')
 }
 
-/** Why this right-hand side cannot run in the browser, or null if it can. */
+/** Why this right-hand side cannot really run in the browser, or null if it can. */
 export function rhsProblem(rhs: string): string | null {
-  if (/<plug>/i.test(rhs)) return 'plugin mapping (<Plug>)'
+  if (/<plug>/i.test(rhs)) return 'plugin mapping'
   if (/<cmd>\s*lua\b|^:\s*lua\b/i.test(rhs)) return 'runs Lua'
   const m = /^(?:<cmd>|:)\s*[0-9,.%'<>$+-]*([A-Za-z!]+)/i.exec(rhs)
-  if (m && !EX_OK.has(m[1].replace(/!$/, '').toLowerCase())) return `needs :${m[1]} (not available in the browser)`
+  if (m && !EX_OK.has(m[1].replace(/!$/, ''))) return `:${m[1]} needs a plugin or Neovim`
   return null
+}
+
+/** ":Cmd args<CR>" -> "Cmd args", for messages. */
+const asCommand = (rhs: string) => rhs.replace(/^:/, "").replace(/<CR>$/i, "")
+
+const pretty = (lhs: string) => lhs.replace(/<Space>/g, '␣')
+
+/** The line shown when a stub key is pressed. */
+function stubNote(lhs: string, what: string, why: string): string {
+  return `${pretty(lhs)}: ${what} ${why}, not simulated in the browser`
 }
 
 // ---------------------------------------------------------------- Lua scanning
@@ -202,6 +227,25 @@ function modesOf(raw: string): string[] | null {
   return list
 }
 
+/** What a function mapping or an expression is about, for the message: its desc, else the first call it makes. */
+function describeRhs(rhsRaw: string, opts: string): string {
+  const desc = /\bdesc\s*=\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/.exec(opts)
+  const text = desc ? luaString(desc[1]) : null
+  if (text) return text
+  const body = rhsRaw.replace(/\s+/g, ' ').trim()
+  const call = /([A-Za-z_][\w.:]*)\s*\(/.exec(body.replace(/^function\s*\([^)]*\)/, ''))
+  if (call && !/^(function|if|for|while|return)$/.test(call[1])) return call[1]
+  const ref = /^[A-Za-z_][\w.]*$/.exec(body)
+  if (ref) return ref[0]
+  return body.length > 36 ? `${body.slice(0, 36)}...` : body
+}
+
+/** `function() vim.cmd("X") end` is just the command X. */
+function luaCmdBody(rhsRaw: string): string | null {
+  const m = /^\s*function\s*\([^)]*\)\s*vim\.cmd\s*\(?\s*(\[\[[\s\S]*?\]\]|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')\s*\)?\s*end\s*$/.exec(rhsRaw)
+  return m ? luaString(m[1]) : null
+}
+
 function parseLua(src: string, file: string, leader: string): ParsedKeymaps {
   const code = stripLuaComments(src)
   const maps: Keymap[] = []
@@ -216,32 +260,38 @@ function parseLua(src: string, file: string, leader: string): ParsedKeymaps {
       // wrapper bodies pass their own parameters through: not a mapping of its own
       if (/^[A-Za-z_][\w.]*$/.test(modeRaw.trim()) || /^[A-Za-z_][\w.]*$/.test(lhsRaw.trim())) continue
       const text = code.slice(m.index, m.index + 70).split('\n')[0].trim()
-      const lhs = luaString(lhsRaw)
+      const lhsLit = luaString(lhsRaw)
       const modes = modesOf(modeRaw)
-      if (lhs === null || !modes) {
+      if (lhsLit === null || !modes) {
         skipped.push({ file, line, text, reason: 'mode or key is not a plain string' })
         continue
       }
-      const rhs = luaString(rhsRaw)
-      if (rhs === null) {
-        skipped.push({ file, line, text, reason: /^\s*(function|require|vim\.)/.test(rhsRaw) ? 'runs a Lua function' : 'right side is not a plain string' })
-        continue
-      }
-      const opts = args[3] ?? ''
+      const lhs = normaliseKeys(lhsLit, leader)
+      const opts = args.slice(3).join(',')
       const noremap = !(/\bremap\s*=\s*true\b/.test(opts) || /\bnoremap\s*=\s*false\b/.test(opts))
-      const fin = (rhs2: string) => cmdToColon(normaliseKeys(rhs2, leader))
-      const finalRhs = fin(rhs)
-      const bad = rhsProblem(finalRhs)
-      if (bad) {
-        skipped.push({ file, line, text, reason: bad })
-        continue
+
+      // What the key does: a string, a vim.cmd function (same thing), or something we can only stub.
+      let rhs = luaString(rhsRaw)
+      if (rhs === null) {
+        const cmd = luaCmdBody(rhsRaw)
+        if (cmd !== null) rhs = `:${cmd.replace(/^:/, '')}<CR>`
+      }
+      let note: string | undefined
+      let finalRhs = ''
+      if (rhs === null) {
+        const plain = /^\s*function\b/.test(rhsRaw)
+        note = stubNote(lhs, describeRhs(rhsRaw, opts), plain ? 'runs Lua' : 'is not a plain string')
+      } else {
+        finalRhs = cmdToColon(normaliseKeys(rhs, leader))
+        const bad = rhsProblem(finalRhs)
+        if (bad) note = stubNote(lhs, describeRhs(asCommand(finalRhs), opts), bad)
       }
       for (const md of modes) {
         if (!SUPPORTED_MODES.has(md)) {
           skipped.push({ file, line, text, reason: `mode '${md}' is not simulated` })
           continue
         }
-        maps.push({ mode: md as MapMode, lhs: normaliseKeys(lhs, leader), rhs: finalRhs, noremap, file, line })
+        maps.push({ mode: md as MapMode, lhs, rhs: finalRhs, noremap, note, file, line })
       }
     }
   }
@@ -258,19 +308,17 @@ function parseVim(src: string, file: string, leader: string): ParsedKeymaps {
   src.split('\n').forEach((raw, idx) => {
     const m = VIM_MAP.exec(raw)
     if (!m) return
-    const [, modeChar, nore, bang, flags, lhs, rhs] = m
+    const [, modeChar, nore, bang, flags, lhsRaw, rhs] = m
     const line = idx + 1
     const text = raw.trim().slice(0, 70)
-    if (/<expr>/i.test(flags)) {
-      skipped.push({ file, line, text, reason: '<expr> mapping' })
-      return
-    }
+    const lhs = normaliseKeys(lhsRaw, leader)
     const md = bang ? 'i' : modeChar || 'n'
     const finalRhs = cmdToColon(normaliseKeys(rhs, leader))
-    const bad = rhsProblem(finalRhs)
-    if (bad) {
-      skipped.push({ file, line, text, reason: bad })
-      return
+    let note: string | undefined
+    if (/<expr>/i.test(flags)) note = stubNote(lhs, rhs.slice(0, 30), 'is an expression mapping')
+    else {
+      const bad = rhsProblem(finalRhs)
+      if (bad) note = stubNote(lhs, asCommand(finalRhs).slice(0, 30), bad)
     }
     // plain `map` / `noremap` cover normal, visual and operator-pending
     const modes = modeChar === '' && !bang ? ['n', 'v'] : [md]
@@ -279,7 +327,7 @@ function parseVim(src: string, file: string, leader: string): ParsedKeymaps {
         skipped.push({ file, line, text, reason: `mode '${mo}' is not simulated` })
         continue
       }
-      maps.push({ mode: mo as MapMode, lhs: normaliseKeys(lhs, leader), rhs: finalRhs, noremap: !!nore, file, line })
+      maps.push({ mode: mo as MapMode, lhs, rhs: note ? '' : finalRhs, noremap: !!nore, note, file, line })
     }
   })
   return { maps, skipped }
