@@ -40,5 +40,9 @@
 - `src/components/published/PublishedList.tsx` — filterable cards of published challenges, "Use as template"
 - `src/examples.ts` — ready-made drafts (first visit loads the first one; the picker loads the others)
 - `src/components/layout/Hero.tsx` — headline, three steps, "Try the example" / "Start blank"
-- `src/components/layout/Workspace.tsx` — form on the left, sticky tabbed toolbox (Play, Check, Neovim, Submit) on the right
+- `src/components/terminal/TerminalPanel.tsx` — Terminal tab: scratch editor with statusline, GitHub keymap loader and report
+- `src/core/keymaps.ts` — scans Lua / Vimscript configs for keymaps (never executes), reports what it skipped and why
+- `src/core/github.ts` — source parsing (user, repo, file, URL), config file discovery and fetching from GitHub
+- `src/store/keymapStore.ts` — loaded keymaps, persisted in localStorage
+- `src/components/layout/Workspace.tsx` — form on the left, sticky tabbed toolbox (Play, Check, Neovim, Terminal, Submit) on the right
 - `src/components/draft/ExamplePicker.tsx` — chips that load an example or a blank form
