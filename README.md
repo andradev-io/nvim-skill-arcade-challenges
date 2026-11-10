@@ -21,6 +21,13 @@ static website where anyone can design and submit one.
   LSP, git) are *stubs*: the key is taken over, so it never falls through to a stock key, and pressing it shows what it
   would have done. Only mappings in modes the sandbox lacks (terminal, command-line) are skipped. Mappings stay in your
   browser and never count in the Play tab.
+  **Plugin imitations** (Terminal sidebar, *Plugins*): the editor can imitate popular plugins instead of running them.
+  Supported: line comments (`gcc`, `gc{motion}`, visual `gc`, `gco`/`gcO`, by filetype; Comment.nvim, mini.comment,
+  vim-commentary and Neovim's built-in `gc`), surround (`ys`, `yss`, `ds`, `cs`, visual `S`), auto pairs, and extra text
+  objects (`ia`/`aa` argument, `iq`/`aq` quote, `if`/`af` call, bracket-based). Loading a config also reads its plugin
+  specs (lazy.nvim `plugins/*.lua`) and switches on the imitations for the plugins it uses; each one has a switch. The
+  list also says which plugins cannot work in a browser (Telescope, file trees, LSP, git, treesitter ...) and why.
+  The list lives in `src/plugins/registry.ts`.
 * **Tracks:** pick the skill area `track` to draw a text-grid map; a clickable editor places start, goal and ordered
   checkpoints, and key rules (no hjkl / arrows / mouse) can be switched off. *Play it* enforces them and shows
   checkpoint progress. See CONTRIBUTING.md.
