@@ -1,13 +1,13 @@
 import AddIcon from '@mui/icons-material/Add'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import CloseIcon from '@mui/icons-material/Close'
 import MenuIcon from '@mui/icons-material/Menu'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import ButtonBase from '@mui/material/ButtonBase'
 import Collapse from '@mui/material/Collapse'
 import IconButton from '@mui/material/IconButton'
-import List from '@mui/material/List'
-import ListItemButton from '@mui/material/ListItemButton'
-import ListItemText from '@mui/material/ListItemText'
+import ListSubheader from '@mui/material/ListSubheader'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import Stack from '@mui/material/Stack'
@@ -36,22 +36,27 @@ import type { TerminalBuffer } from '../store/terminalStore'
 const BG = '#0c0c0d'
 const SIDE_W = 330
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
+function Group({ title, summary, defaultOpen = true, children }: { title: string; summary?: string; defaultOpen?: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
-    <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #232324' }}>
-      <Typography sx={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'primary.main', mb: 1 }}>
-        {title}
-      </Typography>
-      {children}
+    <Box sx={{ borderBottom: '1px solid #232324' }}>
+      <ButtonBase
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        sx={{ width: '100%', px: 2, py: 1.25, justifyContent: 'flex-start', gap: 1, textAlign: 'left' }}
+      >
+        <ExpandMoreIcon sx={{ fontSize: 18, opacity: 0.6, transform: open ? 'none' : 'rotate(-90deg)', transition: 'transform .15s' }} />
+        <Typography sx={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'primary.main', fontFamily: 'inherit' }}>
+          {title}
+        </Typography>
+        {!open && summary && (
+          <Typography sx={{ fontSize: 11.5, opacity: 0.6, ml: 'auto', fontFamily: 'inherit' }}>{summary}</Typography>
+        )}
+      </ButtonBase>
+      <Collapse in={open}>
+        <Box sx={{ px: 2, pb: 1.5 }}>{children}</Box>
+      </Collapse>
     </Box>
-  )
-}
-
-function BufferItem({ b, active, onOpen }: { b: TerminalBuffer; active: boolean; onOpen: (b: TerminalBuffer) => void }) {
-  return (
-    <ListItemButton dense selected={active} onClick={() => onOpen(b)} sx={{ borderRadius: '8px', py: 0.25 }}>
-      <ListItemText primary={b.name} slotProps={{ primary: { sx: { fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } } }} />
-    </ListItemButton>
   )
 }
 
@@ -287,48 +292,55 @@ function SideContent({
   onInfo: (t: InfoTab) => void
 }) {
   const draft: TerminalBuffer = { name: data.id || 'draft', text: data.text, cursor: data.cursor }
+  const km = useKeymapStore((s) => s.maps.length)
+  const detected = usePluginStore((s) => s.detected)
+  const overrides = usePluginStore((s) => s.overrides)
+  const on = enabledShims({ detected, overrides }).size
+  const groups: { label: string; items: TerminalBuffer[] }[] = [
+    { label: 'Yours', items: [SAMPLE_BUFFER, ...(data.text ? [draft] : [])] },
+    { label: 'Examples', items: EXAMPLES.map((e) => ({ name: e.challenge.id, text: e.challenge.text, cursor: e.challenge.cursor })) },
+    { label: 'Community', items: published.map((c) => ({ name: c.id, text: c.text, cursor: c.cursor })) },
+  ].filter((g) => g.items.length > 0)
   return (
     <Box>
-      <Group title="Keymaps">
+      <Group title="Buffer">
+        <Select
+          size="small"
+          fullWidth
+          displayEmpty
+          value=""
+          renderValue={() => buffer.name}
+          onChange={(e) => {
+            const [g, n] = String(e.target.value).split('|')
+            const b = groups.find((x) => x.label === g)?.items.find((x) => x.name === n)
+            if (b) onOpen(b)
+          }}
+          inputProps={{ 'aria-label': 'Open a buffer' }}
+          sx={{ fontSize: 13 }}
+        >
+          {groups.flatMap((g) => [
+            <ListSubheader key={g.label} sx={{ bgcolor: 'background.paper', lineHeight: '28px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              {g.label}
+            </ListSubheader>,
+            ...g.items.map((b) => (
+              <MenuItem key={`${g.label}|${b.name}`} value={`${g.label}|${b.name}`} dense selected={b.name === buffer.name}>
+                {b.name}
+              </MenuItem>
+            )),
+          ])}
+        </Select>
+      </Group>
+      <Group title="Keymaps" summary={km ? `${km} loaded` : 'none'}>
         <KeymapSource onDetails={() => onInfo('keymaps')} />
       </Group>
-      <Group title="Plugins">
+      <Group title="Plugins" summary={`${on} on`} defaultOpen={false}>
         <PluginList compact onDetails={() => onInfo('plugins')} />
       </Group>
-      <Group title="Buffers">
-        <List dense disablePadding>
-          <BufferItem b={SAMPLE_BUFFER} active={buffer.name === SAMPLE_BUFFER.name} onOpen={onOpen} />
-          {data.text && <BufferItem b={draft} active={buffer.name === draft.name} onOpen={onOpen} />}
-        </List>
-        <Typography sx={{ fontSize: 11, opacity: 0.55, mt: 1.5, mb: 0.5 }}>Examples</Typography>
-        <List dense disablePadding>
-          {EXAMPLES.map((e) => (
-            <BufferItem
-              key={e.challenge.id}
-              b={{ name: e.challenge.id, text: e.challenge.text, cursor: e.challenge.cursor }}
-              active={buffer.name === e.challenge.id}
-              onOpen={onOpen}
-            />
-          ))}
-        </List>
-        {published.length > 0 && (
-          <>
-            <Typography sx={{ fontSize: 11, opacity: 0.55, mt: 1.5, mb: 0.5 }}>Community</Typography>
-            <List dense disablePadding>
-              {published.map((c) => (
-                <BufferItem key={c.id} b={{ name: c.id, text: c.text, cursor: c.cursor }} active={buffer.name === c.id} onOpen={onOpen} />
-              ))}
-            </List>
-          </>
-        )}
-      </Group>
-      <Group title="Good to know">
-        <Typography variant="body2" sx={{ fontSize: 12.5, lineHeight: 1.7, opacity: 0.8 }}>
-          A free sandbox: nothing is scored or counted. This is a Vim emulation in the browser, not your Neovim, so plugins
-          are imitated (see Plugins) rather than run, and a few commands behave a little differently. Esc stays with Vim. Typing <code>:</code> opens the
-          command line.
-        </Typography>
-      </Group>
+      <Box sx={{ px: 2, py: 1.5 }}>
+        <Button size="small" color="inherit" onClick={() => onInfo('about')} sx={{ opacity: 0.7 }}>
+          About this terminal
+        </Button>
+      </Box>
     </Box>
   )
 }
