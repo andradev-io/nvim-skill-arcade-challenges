@@ -3,8 +3,46 @@ import type { Ref } from 'react'
 import Box from '@mui/material/Box'
 import { EditorState } from '@codemirror/state'
 import { EditorView, lineNumbers } from '@codemirror/view'
-import { getCM, vim } from '@replit/codemirror-vim'
+import { getCM, Vim, vim } from '@replit/codemirror-vim'
+import type { Keymap } from '../../core/keymaps'
 import type { Cursor } from '../../core/types'
+
+const CTX = { n: 'normal', v: 'visual', x: 'visual', i: 'insert' } as const
+
+let spaceRemoved = false
+
+/**
+ * The editor answers as soon as a key matches a full command, where Vim would wait for the rest of a longer
+ * mapping. So a leader of Space (built-in: move right) or comma (built-in: repeat f/t backwards) would swallow
+ * every <leader> mapping. When the mappings use one of them as a prefix, the built-in is taken out of the table.
+ * Space is put back for stock Vim; comma cannot be rebuilt from outside, so it stays off until the page reloads.
+ */
+function freeLeader(list: Keymap[]) {
+  const claims = (tok: string) => list.some((m) => m.lhs.length > tok.length && m.lhs.startsWith(tok))
+  if (claims('<Space>')) {
+    if (!spaceRemoved) {
+      Vim.unmap('<Space>', undefined as unknown as string)
+      spaceRemoved = true
+    }
+  } else if (spaceRemoved) {
+    Vim.map('<Space>', 'l', undefined as unknown as string)
+  }
+  if (claims(',')) Vim.unmap(',', undefined as unknown as string)
+}
+
+/** The editor keeps its mappings in one global table: set it to exactly these (none = stock Vim). */
+function applyMaps(maps: Keymap[] | undefined) {
+  Vim.mapclear()
+  freeLeader(maps ?? [])
+  for (const m of maps ?? []) {
+    try {
+      const add = m.noremap ? Vim.noremap : Vim.map
+      add(m.lhs, m.rhs, CTX[m.mode])
+    } catch {
+      /* a mapping the editor rejects is simply not active */
+    }
+  }
+}
 
 export type VimMode = 'normal' | 'insert' | 'visual'
 
@@ -24,6 +62,8 @@ interface Props {
   onSync: () => void
   /** Track rule "no mouse": clicks never move the cursor. */
   noMouse?: boolean
+  /** The user's own keymaps (sandbox only). Left out, the editor is stock Vim. */
+  maps?: Keymap[]
   ref: Ref<VimEditorHandle>
 }
 
@@ -61,14 +101,18 @@ const cmTheme = EditorView.theme({
 })
 
 /** Stock Vim emulation (CodeMirror 6 + @replit/codemirror-vim). Your own Neovim keybinds are not active here. */
-export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse = false, ref }: Props) {
+export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse = false, maps, ref }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const hooks = useRef({ onKey, onSync })
   const lockMouse = useRef(noMouse)
+  const mapsRef = useRef(maps)
   useEffect(() => {
     hooks.current = { onKey, onSync }
     lockMouse.current = noMouse
+    mapsRef.current = maps
+    // mappings changed while this editor is the one in use: switch to them now
+    if (view.current?.hasFocus) applyMaps(maps)
   })
 
   useEffect(() => {
@@ -126,10 +170,14 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
       e.stopPropagation()
       v.focus()
     }
+    // the table is global: whichever editor gets focus decides which mappings are live
+    const onFocus = () => applyMaps(mapsRef.current)
+    v.contentDOM.addEventListener('focus', onFocus)
     v.contentDOM.addEventListener('keydown', onKeyDown, true)
     v.contentDOM.addEventListener('mousedown', onMouseDown, true)
     v.contentDOM.addEventListener('beforeinput', onBeforeInput, true)
     return () => {
+      v.contentDOM.removeEventListener('focus', onFocus)
       v.contentDOM.removeEventListener('beforeinput', onBeforeInput, true)
       v.contentDOM.removeEventListener('keydown', onKeyDown, true)
       v.contentDOM.removeEventListener('mousedown', onMouseDown, true)
