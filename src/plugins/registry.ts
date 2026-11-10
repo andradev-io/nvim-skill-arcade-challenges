@@ -67,3 +67,48 @@ export function detectPlugins(texts: string[]): string[] {
 }
 
 export const pluginById = (id: string) => PLUGINS.find((p) => p.id === id)
+
+const KNOWN = new Set(PLUGINS.flatMap((p) => p.repos))
+
+/**
+ * Plugin repos named in config texts ("owner/name" in quotes) that the list does not know, so the user can ask for them.
+ * Only names that look like Neovim plugins (nvim / vim / lua in the name, or a dot) are kept.
+ */
+export function findUnknownRepos(texts: string[]): string[] {
+  const found = new Set<string>()
+  for (const m of texts.join(' ').matchAll(/["']([\w.-]{2,}\/[\w.-]{2,})["']/g)) {
+    const r = m[1].toLowerCase()
+    if (KNOWN.has(r) || r.endsWith('lazy.nvim') || !/(nvim|vim|lua|\.)/.test(r.split('/')[1])) continue
+    if (/\.(lua|vim|json|md|txt)$/.test(r) && !/\.nvim$/.test(r)) continue
+    found.add(r)
+  }
+  return [...found].sort().slice(0, 80)
+}
+
+const ISSUES = 'https://github.com/dev-vinicius-andrade/nvim-skill-arcade-challenges/issues/new'
+
+/** A prefilled GitHub issue asking for support of a plugin (or reporting a key that does not behave). */
+export function requestUrl(plugin: string, kind: 'request' | 'bug' = 'request'): string {
+  const title = kind === 'request' ? `Plugin support: ${plugin}` : `Plugin imitation bug: ${plugin}`
+  const body =
+    kind === 'request'
+      ? `Plugin: https://github.com/${plugin.includes('/') ? plugin : '<owner>/<repo>'}
+
+Keys I use most (e.g. \`gcc\`, \`<leader>ff\`):
+
+- 
+
+What it does for me:
+
+`
+      : `Plugin: ${plugin}
+
+Keys pressed:
+
+Expected (in Neovim):
+
+Got (in the browser terminal):
+
+`
+  return `${ISSUES}?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`
+}

@@ -47,6 +47,7 @@
 - `src/core/keymaps.ts` — scans Lua / Vimscript configs for keymaps (never executes): working maps, stubs that say what needs a plugin, skipped modes
 - `src/components/play/exCommands.ts` — ex commands the editor lacks: tabs/buffers, :m, :echo, quit and window no-ops, stub messages
 - `src/core/github.ts` — source parsing (user, repo, file, URL), config file discovery and fetching from GitHub
+- `src/pages/SupportPage.tsx` — what works / not, the user's config report, plugin request links
 - `src/plugins/registry.ts` — supported / unsupported plugin list + detection by repo name
 - `src/plugins/comment.ts`, `surround.ts`, `textobjects.ts`, `autopairs.ts` — pure logic of the plugin imitations (unit-tested)
 - `src/plugins/vimGlue.ts` — operators, motions and key handling that plug them into the editor
