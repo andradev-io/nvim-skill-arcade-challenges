@@ -46,26 +46,30 @@ export function KeymapSource({ onDetails }: { onDetails?: () => void }) {
         </Alert>
       )}
       {has && (
-        <>
-          <Stack direction="row" sx={{ gap: 0.75, flexWrap: 'wrap' }}>
-            <Chip size="small" color="success" label={`${s.maps.length - stubs} working`} />
-            {stubs > 0 && <Chip size="small" color="info" variant="outlined" label={`${stubs} need a plugin`} />}
-            {s.skipped.length > 0 && <Chip size="small" color="warning" variant="outlined" label={`${s.skipped.length} skipped`} />}
-            <Chip size="small" variant="outlined" label={`leader ${s.leader === ' ' ? 'Space' : s.leader}`} />
-          </Stack>
+        <Typography variant="body2" sx={{ fontSize: 12.5, opacity: 0.8 }}>
+          {s.maps.length - stubs} working
+          {stubs > 0 ? ` · ${stubs} need a plugin` : ''}
+          {s.skipped.length > 0 ? ` · ${s.skipped.length} skipped` : ''} · leader {s.leader === ' ' ? 'Space' : s.leader}
+        </Typography>
+      )}
+      <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+        {has ? (
           <FormControlLabel
+            sx={{ m: 0 }}
             control={<Switch size="small" checked={s.enabled} onChange={(e) => s.setEnabled(e.target.checked)} />}
-            label={<Typography variant="body2">Use my keymaps</Typography>}
+            label={<Typography variant="body2">Use mine</Typography>}
           />
-        </>
-      )}
-      {onDetails && (
-        <Button size="small" variant="outlined" color="inherit" onClick={onDetails} sx={{ alignSelf: 'flex-start' }}>
-          {has ? 'See the list' : 'What works here'}
-        </Button>
-      )}
+        ) : (
+          <span />
+        )}
+        {onDetails && (
+          <Button size="small" color="inherit" onClick={onDetails} sx={{ opacity: 0.8 }}>
+            {has ? 'See the list' : 'What works'}
+          </Button>
+        )}
+      </Stack>
       <Typography variant="caption" sx={{ opacity: 0.65 }}>
-        Your file is read, never run, and stays in this browser.
+        Read, never run. Stays in this browser.
       </Typography>
     </Stack>
   )
