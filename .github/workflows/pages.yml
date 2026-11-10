@@ -31,6 +31,11 @@ jobs:
       - run: npm test
       - name: Build the site
         run: npm run build
+        env:
+          # Sign-in settings come from GitHub secrets, so they are not in the repository. They end up in the built
+          # JavaScript (a browser needs them to log in). Without them the site builds with the login hidden.
+          VITE_KEYCLOAK_ISSUER: ${{ secrets.KEYCLOAK_ISSUER }}
+          VITE_ARCADE_API: ${{ secrets.ARCADE_API_URL }}
       - uses: rhysd/action-setup-vim@v1
         with:
           neovim: true

@@ -2,9 +2,11 @@ import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
 import { lazy, Suspense, useEffect } from 'react'
+import { useAuthStore } from './auth/authStore'
 import { TopBar } from './components/layout/TopBar'
 import { useRoute } from './hooks/useRoute'
 import type { Route } from './hooks/useRoute'
+import { AccountPage } from './pages/AccountPage'
 import { ChallengesPage } from './pages/ChallengesPage'
 import { CreatePage } from './pages/CreatePage'
 import { HomePage } from './pages/HomePage'
@@ -19,10 +21,15 @@ const TITLES: Record<Route, string> = {
   terminal: 'Terminal | Skill Arcade',
   support: 'What works in the terminal | Skill Arcade',
   challenges: 'Published challenges | Skill Arcade',
+  account: 'Account | Skill Arcade',
 }
 
 export default function App() {
   const route = useRoute()
+  // finish a sign-in that just came back from Keycloak, or restore this tab's session (does nothing when sign-in is off)
+  useEffect(() => {
+    void useAuthStore.getState().init()
+  }, [])
   useEffect(() => {
     document.title = TITLES[route]
     if (route !== 'terminal') window.scrollTo({ top: 0 })
@@ -48,6 +55,7 @@ export default function App() {
         {route === 'create' && <CreatePage />}
         {route === 'support' && <SupportPage />}
         {route === 'challenges' && <ChallengesPage />}
+        {route === 'account' && <AccountPage />}
       </Container>
       <Typography variant="caption" component="footer" sx={{ display: 'block', px: 3, pb: 3, opacity: 0.7 }}>
         Challenges are data only and validated by the same schema the plugin uses. See CONTRIBUTING.md in the repository.

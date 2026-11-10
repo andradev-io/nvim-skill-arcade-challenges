@@ -3,4 +3,5 @@ dist/
 _old/
 .plugin/
 *.log
+*.local
 public/community.json

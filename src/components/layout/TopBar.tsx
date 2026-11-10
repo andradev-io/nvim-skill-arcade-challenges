@@ -8,6 +8,7 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { useColorScheme } from '@mui/material/styles'
 import { ROUTES, navigate, useRoute } from '../../hooks/useRoute'
+import { AccountButton } from './AccountButton'
 
 const REPO_URL = 'https://github.com/dev-vinicius-andrade/nvim-skill-arcade'
 
@@ -48,6 +49,7 @@ export function TopBar({ fluid = false }: { fluid?: boolean }) {
             arcade<Typography component="span" color="primary" sx={{ fontWeight: 800 }}>.nvim</Typography>
           </Typography>
           <Stack direction="row" sx={{ gap: 0.5, display: { xs: 'flex', md: 'none' } }}>
+            <AccountButton compact />
             <IconButton size="small" aria-label="nvim-skill-arcade on GitHub" href={REPO_URL} target="_blank" rel="noopener">
               <GitHubIcon fontSize="small" />
             </IconButton>
@@ -57,7 +59,7 @@ export function TopBar({ fluid = false }: { fluid?: boolean }) {
           </Stack>
         </Stack>
         <Stack component="nav" aria-label="Pages" direction="row" sx={{ gap: 0.5, flex: 1, overflowX: 'auto' }}>
-          {ROUTES.map((r) => (
+          {ROUTES.filter((r) => !r.hidden).map((r) => (
             <Button
               key={r.id}
               href={r.hash}
@@ -75,7 +77,8 @@ export function TopBar({ fluid = false }: { fluid?: boolean }) {
             </Button>
           ))}
         </Stack>
-        <Stack direction="row" sx={{ gap: 0.5, display: { xs: 'none', md: 'flex' } }}>
+        <Stack direction="row" sx={{ gap: 0.5, alignItems: 'center', display: { xs: 'none', md: 'flex' } }}>
+          <AccountButton />
           <IconButton aria-label="nvim-skill-arcade on GitHub" href={REPO_URL} target="_blank" rel="noopener">
             <GitHubIcon fontSize="small" />
           </IconButton>
