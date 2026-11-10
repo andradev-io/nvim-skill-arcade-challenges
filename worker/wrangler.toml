@@ -6,7 +6,7 @@ compatibility_date = "2025-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "skill-arcade"
-database_id = "ad06d99f-0b14-4d59-b831-a3d26d4b1127"
+database_id = "REPLACE_WITH_THE_ID_FROM_wrangler_d1_create"
 
 [vars]
 # The realm issuer, exactly as in its openid-configuration (no trailing slash). The deploy workflow fills it in
@@ -16,5 +16,6 @@ KEYCLOAK_ISSUER = "REPLACE_KEYCLOAK_ISSUER"
 ALLOWED_CLIENTS = "arcade-site,arcade-plugin"
 ALLOWED_ORIGINS = "https://arcade.nvim.andradev.io,http://localhost:5173,http://localhost:5197"
 
-# Optional: run the API on the site's own hostname, so the browser needs no CORS.
-# routes = [{ pattern = "arcade.nvim.andradev.io/api/*", zone_name = "andradev.io" }]
+# The API's own address. Cloudflare creates the DNS record and certificate for it on deploy (the andradev.io zone must
+# be in this account). One label under the zone, so the free certificate covers it.
+routes = [{ pattern = "arcade-api.andradev.io", custom_domain = true }]

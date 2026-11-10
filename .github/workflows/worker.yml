@@ -35,6 +35,8 @@ jobs:
             if [ -z "${!v}" ]; then echo "Add the $v secret (see worker/README.md)." >&2; exit 1; fi
           done
           sed -i "s|REPLACE_WITH_THE_ID_FROM_wrangler_d1_create|$D1_DATABASE_ID|; s|REPLACE_KEYCLOAK_ISSUER|$KEYCLOAK_ISSUER|" worker/wrangler.toml
+          # a placeholder left over means the file no longer matches what the secrets are written into
+          if grep -q "REPLACE_" worker/wrangler.toml; then echo "wrangler.toml still has a REPLACE_ placeholder." >&2; exit 1; fi
       - name: Deploy (schema is idempotent, applied first)
         uses: cloudflare/wrangler-action@v3
         with:
