@@ -54,6 +54,21 @@ src/  (React site: form, play, list)  challenges/*.json  (one file per challenge
 The engine that judges a challenge is the plugin itself (`skill_arcade.validate`), checked out by CI, so the
 website, CI and the game can never disagree about what a valid challenge is.
 
+## Sign in (player code)
+
+The header has **Sign in**: GitHub through the realm's Keycloak (authorization code + PKCE, scope `openid` only). The
+site and the score service never see a name, e-mail or GitHub account; the *Account* page (`#/account`) shows only the
+derived **player code** and your best results, read from the Worker (`GET /api/me`) with your access token. Sign-in is
+configured at build time, from GitHub secrets read by `pages.yml`:
+
+- `KEYCLOAK_ISSUER` (`VITE_KEYCLOAK_ISSUER`): the realm URL, the same secret the Worker uses
+- `ARCADE_API_URL` (`VITE_ARCADE_API`): where the Worker answers, without a trailing slash
+
+Both end up in the built JavaScript (a browser needs them to log in), but not in the repository. Without them the site
+builds with the login hidden. The client id defaults to `arcade-site` (`VITE_ARCADE_CLIENT_ID` to change it). To try it
+locally put the variables in `.env.local` (ignored by git); `http://localhost:5197/` must be a valid redirect URI of the
+Keycloak client.
+
 ## Safety model
 
 * A challenge is **data only**. The schema is a whitelist: unknown fields are dropped, and there is no field that can

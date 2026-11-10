@@ -42,6 +42,9 @@ they live in the repository's GitHub secrets (Settings, Secrets and variables, A
 - `KEYCLOAK_ISSUER`: the realm issuer URL (also kept out of the repository and written in at deploy time)
 - `USER_CODE_SALT`: any long random string (pushed to the worker as a Cloudflare secret)
 
+The site reads the same `KEYCLOAK_ISSUER` secret at build time (plus `ARCADE_API_URL`, the Worker's address) for its
+sign-in button; see the main README.
+
 The client ids and allowed origins stay in `wrangler.toml`. Create the database once
 (`npx wrangler d1 create skill-arcade`), put its id in the `D1_DATABASE_ID` secret, and the workflow does the rest;
 the repository only ever contains the placeholder.
