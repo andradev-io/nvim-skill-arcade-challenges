@@ -38,9 +38,11 @@ they live in the repository's GitHub secrets (Settings, Secrets and variables, A
 
 - `CLOUDFLARE_API_TOKEN`: a token with *Workers Scripts: Edit* and *D1: Edit* (the "Edit Cloudflare Workers" template works)
 - `CLOUDFLARE_ACCOUNT_ID`
+- `D1_DATABASE_ID`: the id printed by `wrangler d1 create` (kept out of the repository; the workflow writes it into `wrangler.toml` at deploy time)
 - `USER_CODE_SALT`: any long random string (pushed to the worker as a Cloudflare secret)
 
-The issuer, client ids, origins and the D1 `database_id` are not secret and stay in `wrangler.toml`. Create the
-database once (`npx wrangler d1 create skill-arcade`), commit its id there, and the workflow does the rest.
+The issuer, client ids and origins are public and stay in `wrangler.toml`. Create the database once
+(`npx wrangler d1 create skill-arcade`), put its id in the `D1_DATABASE_ID` secret, and the workflow does the rest;
+the repository only ever contains the placeholder.
 
 Tests (`worker/src/worker.test.ts`) run with the site's `npm test`; `npx tsc -p worker` type-checks.

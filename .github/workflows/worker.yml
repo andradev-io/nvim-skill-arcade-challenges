@@ -26,12 +26,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - name: Config must be filled in
+      - name: Put the database id (a GitHub secret) into the config
+        env:
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
         run: |
-          if grep -q REPLACE worker/wrangler.toml; then
-            echo "worker/wrangler.toml still has REPLACE placeholders (database_id)." >&2
+          if [ -z "$D1_DATABASE_ID" ]; then
+            echo "Add the D1_DATABASE_ID secret (the id printed by 'wrangler d1 create')." >&2
             exit 1
           fi
+          sed -i "s/REPLACE_WITH_THE_ID_FROM_wrangler_d1_create/$D1_DATABASE_ID/" worker/wrangler.toml
       - name: Deploy (schema is idempotent, applied first)
         uses: cloudflare/wrangler-action@v3
         with:
