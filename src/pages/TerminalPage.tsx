@@ -27,19 +27,22 @@ import { setEditorSink } from '../components/play/exCommands'
 import { EXAMPLES } from '../examples'
 import { useCommunity } from '../hooks/useCommunity'
 import { useDraft } from '../hooks/useDraft'
+import { THEMES, themeById, themeVars } from '../components/terminal/themes'
+import { useThemeStore } from '../store/themeStore'
 import { FILETYPE_CHOICES } from '../plugins/comment'
 import { useKeymapStore } from '../store/keymapStore'
 import { enabledShims, usePluginStore } from '../store/pluginStore'
 import { SAMPLE_BUFFER, useTerminalStore } from '../store/terminalStore'
 import type { TerminalBuffer } from '../store/terminalStore'
 
-const BG = '#0c0c0d'
+const BG = 'var(--t-bg)'
+const LINE = '1px solid var(--t-line)'
 const SIDE_W = 330
 
 function Group({ title, summary, defaultOpen = true, children }: { title: string; summary?: string; defaultOpen?: boolean; children: ReactNode }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <Box sx={{ borderBottom: '1px solid #232324' }}>
+    <Box sx={{ borderBottom: LINE }}>
       <ButtonBase
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
@@ -73,6 +76,9 @@ export function TerminalPage() {
   const newTab = useTerminalStore((s) => s.newTab)
   const closeTab = useTerminalStore((s) => s.closeTab)
   const goTab = useTerminalStore((s) => s.goTab)
+  const themeId = useThemeStore((s) => s.id)
+  const setTheme = useThemeStore((s) => s.setTheme)
+  const theme = themeById(themeId)
   const [info, setInfo] = useState<InfoTab | null>(null)
   const [note, setNote] = useState('')
   const noteTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -149,12 +155,13 @@ export function TerminalPage() {
         flex: 1,
         minHeight: 0,
         bgcolor: BG,
-        color: '#dcdcdc',
+        color: 'var(--t-fg)',
+        '&&': themeVars(theme),
         fontFamily: 'inherit',
       }}
     >
       <Collapse in={showMenu} orientation="vertical" sx={{ display: { md: 'none' }, flexShrink: 0 }} unmountOnExit={false}>
-        <Box sx={{ maxHeight: '55dvh', overflowY: 'auto', bgcolor: '#111112', borderBottom: '1px solid #232324' }}>
+        <Box sx={{ maxHeight: '55dvh', overflowY: 'auto', bgcolor: 'var(--t-side)', borderBottom: LINE }}>
           <SideContent buffer={buffer} published={published} data={data} onOpen={load} onInfo={setInfo} />
         </Box>
       </Collapse>
@@ -166,20 +173,20 @@ export function TerminalPage() {
           width: SIDE_W,
           flexShrink: 0,
           overflowY: 'auto',
-          bgcolor: '#111112',
-          borderRight: '1px solid #232324',
+          bgcolor: 'var(--t-side)',
+          borderRight: LINE,
         }}
       >
         <SideContent buffer={buffer} published={published} data={data} onOpen={load} onInfo={setInfo} />
       </Box>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>
-        <Stack direction="row" sx={{ alignItems: 'center', bgcolor: '#161617', borderBottom: '1px solid #232324', minHeight: 34 }}>
+        <Stack direction="row" sx={{ alignItems: 'center', bgcolor: 'var(--t-bar)', borderBottom: LINE, minHeight: 34 }}>
           <IconButton
             size="small"
             aria-label="Toggle the menu"
             onClick={() => setMenu((m) => !m)}
-            sx={{ display: { md: 'none' }, color: '#bdbdbd', mx: 0.5 }}
+            sx={{ display: { md: 'none' }, color: 'var(--t-fg)', mx: 0.5 }}
           >
             <MenuIcon fontSize="small" />
           </IconButton>
@@ -200,8 +207,8 @@ export function TerminalPage() {
                   cursor: 'pointer',
                   bgcolor: i === activeTab ? BG : 'transparent',
                   opacity: i === activeTab ? 1 : 0.6,
-                  borderRight: '1px solid #232324',
-                  borderTop: `2px solid ${i === activeTab ? '#b4b96b' : 'transparent'}`,
+                  borderRight: LINE,
+                  borderTop: `2px solid ${i === activeTab ? 'var(--t-accent)' : 'transparent'}`,
                 }}
               >
                 {t.name}
@@ -220,10 +227,26 @@ export function TerminalPage() {
                 )}
               </Stack>
             ))}
-            <IconButton size="small" aria-label="New tab" onClick={() => newTab()} sx={{ color: '#bdbdbd', mx: 0.5 }}>
+            <IconButton size="small" aria-label="New tab" onClick={() => newTab()} sx={{ color: 'var(--t-fg)', mx: 0.5 }}>
               <AddIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Stack>
+          <Select
+            size="small"
+            variant="standard"
+            disableUnderline
+            value={theme.id}
+            onChange={(e) => setTheme(e.target.value)}
+            aria-label="Color theme"
+            title="Color theme"
+            sx={{ fontSize: 12.5, color: 'var(--t-fg)', mr: 1.5 }}
+          >
+            {THEMES.map((t) => (
+              <MenuItem key={t.id} value={t.id} dense>
+                {t.name}
+              </MenuItem>
+            ))}
+          </Select>
           <Select
             size="small"
             variant="standard"
@@ -232,7 +255,7 @@ export function TerminalPage() {
             onChange={(e) => setFt(e.target.value)}
             aria-label="Filetype"
             title="Filetype (comment characters)"
-            sx={{ fontSize: 12.5, color: '#bdbdbd', mr: 1 }}
+            sx={{ fontSize: 12.5, color: 'var(--t-fg)', mr: 1 }}
           >
             {(FILETYPE_CHOICES.includes(buffer.ft) ? FILETYPE_CHOICES : [buffer.ft, ...FILETYPE_CHOICES]).map((f) => (
               <MenuItem key={f} value={f} dense>
@@ -252,9 +275,12 @@ export function TerminalPage() {
             flex: 1,
             minHeight: 0,
             '& > div': { height: '100%', border: 'none', borderRadius: 0, bgcolor: BG },
-            '& .cm-editor': { height: '100%', backgroundColor: `${BG} !important`, color: '#e6e6e6' },
+            '& .cm-editor': { height: '100%', backgroundColor: `${BG} !important`, color: 'var(--t-fg)' },
             '& .cm-editor.cm-focused': { outline: 'none' },
             '& .cm-scroller': { lineHeight: 1.65 },
+            '& .cm-fat-cursor': { background: 'var(--t-accent) !important', color: 'var(--t-on-accent) !important' },
+            '& .cm-gutters': { color: 'var(--t-accent)' },
+            '& .cm-selectionBackground': { background: 'var(--t-accent) !important' },
             '& .cm-content': { padding: '12px 4px' },
           }}
         >
