@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { loadSource, parseSource } from '../core/github'
 import { parseConfig } from '../core/keymaps'
-import { detectPlugins } from '../plugins/registry'
+import { detectPlugins, findUnknownRepos } from '../plugins/registry'
 import { usePluginStore } from './pluginStore'
 import type { Keymap, Skipped } from '../core/keymaps'
 
@@ -73,7 +73,7 @@ export const useKeymapStore = create<KeymapStore>((set, get) => ({
     try {
       const files = await loadSource(src)
       const parsed = parseConfig(files.filter((f) => !f.spec))
-      usePluginStore.getState().setDetected(detectPlugins(files.map((f) => f.text)))
+      usePluginStore.getState().setDetected(detectPlugins(files.map((f) => f.text)), findUnknownRepos(files.filter((f) => f.spec).map((f) => f.text)))
       set({
         status: 'idle',
         enabled: true,

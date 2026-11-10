@@ -90,3 +90,12 @@ describe('plugin detection', () => {
     expect(pickSpecs(paths, null, ['lua/config/keymaps.lua'])).toEqual(['lua/plugins/init.lua', 'lua/plugins/comment.lua'])
   })
 })
+
+describe('unknown repos and requests', () => {
+  it('lists plugin repos the registry does not know', async () => {
+    const { findUnknownRepos, requestUrl } = await import('./registry')
+    const found = findUnknownRepos([`{ "numToStr/Comment.nvim" }, { 'folke/lazy.nvim' }, { "someone/cool-thing.nvim" }, "lua/plugins/x.lua", "a/b"`])
+    expect(found).toEqual(['someone/cool-thing.nvim'])
+    expect(requestUrl('someone/cool-thing.nvim')).toContain('issues/new?title=Plugin%20support%3A%20someone%2Fcool-thing.nvim')
+  })
+})
