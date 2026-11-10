@@ -1,4 +1,5 @@
 import FactCheckIcon from '@mui/icons-material/FactCheck'
+import KeyboardIcon from '@mui/icons-material/Keyboard'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import SendIcon from '@mui/icons-material/Send'
 import TerminalIcon from '@mui/icons-material/Terminal'
@@ -22,6 +23,7 @@ import { SimCheck } from '../sim/SimCheck'
 
 // The Vim editor (CodeMirror) is the heaviest part: load it in its own chunk.
 const PlayPanel = lazy(() => import('../play/PlayPanel').then((m) => ({ default: m.PlayPanel })))
+const TerminalPanel = lazy(() => import('../terminal/TerminalPanel').then((m) => ({ default: m.TerminalPanel })))
 
 function Status() {
   const { data, ok, errors } = useDraft()
@@ -66,6 +68,7 @@ function Tools() {
         <Tab icon={<PlayArrowIcon fontSize="small" />} iconPosition="start" label="Play" />
         <Tab icon={<FactCheckIcon fontSize="small" />} iconPosition="start" label="Check" />
         <Tab icon={<TerminalIcon fontSize="small" />} iconPosition="start" label="Neovim" />
+        <Tab icon={<KeyboardIcon fontSize="small" />} iconPosition="start" label="Terminal" />
         <Tab
           iconPosition="start"
           icon={
@@ -89,6 +92,11 @@ function Tools() {
           <JoinBox />
         </Panel>
         <Panel show={tab === 3}>
+          <Suspense fallback={null}>
+            <TerminalPanel />
+          </Suspense>
+        </Panel>
+        <Panel show={tab === 4}>
           <ResultPanel />
         </Panel>
       </Box>
