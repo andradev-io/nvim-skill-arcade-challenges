@@ -26,15 +26,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - name: Put the database id (a GitHub secret) into the config
+      - name: Put the private config (GitHub secrets) into wrangler.toml
         env:
           D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+          KEYCLOAK_ISSUER: ${{ secrets.KEYCLOAK_ISSUER }}
         run: |
-          if [ -z "$D1_DATABASE_ID" ]; then
-            echo "Add the D1_DATABASE_ID secret (the id printed by 'wrangler d1 create')." >&2
-            exit 1
-          fi
-          sed -i "s/REPLACE_WITH_THE_ID_FROM_wrangler_d1_create/$D1_DATABASE_ID/" worker/wrangler.toml
+          for v in D1_DATABASE_ID KEYCLOAK_ISSUER; do
+            if [ -z "${!v}" ]; then echo "Add the $v secret (see worker/README.md)." >&2; exit 1; fi
+          done
+          sed -i "s|REPLACE_WITH_THE_ID_FROM_wrangler_d1_create|$D1_DATABASE_ID|; s|REPLACE_KEYCLOAK_ISSUER|$KEYCLOAK_ISSUER|" worker/wrangler.toml
       - name: Deploy (schema is idempotent, applied first)
         uses: cloudflare/wrangler-action@v3
         with:
