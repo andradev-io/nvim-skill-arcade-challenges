@@ -8,11 +8,12 @@ import IconButton from '@mui/material/IconButton'
 import Stack from '@mui/material/Stack'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
+import Typography from '@mui/material/Typography'
 import { requestUrl } from '../../plugins/registry'
 import { KeymapReport } from './KeymapSource'
 import { PluginList } from './PluginList'
 
-export type InfoTab = 'keymaps' | 'plugins'
+export type InfoTab = 'keymaps' | 'plugins' | 'about'
 
 /** What works and what does not, out of the side menu: your keymaps and the plugin list, with a way to ask for more. */
 export function InfoDialog({ tab, onTab, onClose }: { tab: InfoTab | null; onTab: (t: InfoTab) => void; onClose: () => void }) {
@@ -27,9 +28,20 @@ export function InfoDialog({ tab, onTab, onClose }: { tab: InfoTab | null; onTab
       <Tabs value={tab ?? 'keymaps'} onChange={(_, v: InfoTab) => onTab(v)} sx={{ px: 2 }}>
         <Tab value="keymaps" label="Keymaps" />
         <Tab value="plugins" label="Plugins" />
+        <Tab value="about" label="About" />
       </Tabs>
       <DialogContent dividers sx={{ minHeight: 320 }}>
-        {tab === 'plugins' ? <PluginList /> : <KeymapReport />}
+        {tab === 'plugins' ? (
+          <PluginList />
+        ) : tab === 'about' ? (
+          <Typography sx={{ lineHeight: 1.8, opacity: 0.9 }}>
+            A free sandbox: nothing is scored or counted. This is a Vim emulation in the browser, not your Neovim, so plugins
+            are imitated rather than run, and a few commands behave a little differently. Esc stays with Vim. Typing{' '}
+            <code>:</code> opens the command line. Your keymap files are read, never run, and stay in this browser.
+          </Typography>
+        ) : (
+          <KeymapReport />
+        )}
       </DialogContent>
       <Stack direction="row" sx={{ gap: 1.5, p: 2, flexWrap: 'wrap' }}>
         <Button variant="contained" href={requestUrl('')} target="_blank" rel="noopener noreferrer">
