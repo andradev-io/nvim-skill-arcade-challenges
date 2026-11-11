@@ -10,6 +10,7 @@
  */
 import { AuthError, verifyToken } from './jwt'
 import type { Claims, Jwk } from './jwt'
+import { clampDays, dayOf, fillDays, isAdmin, parseEvent, visitorId } from './analytics'
 import { isBetter, parseSubmission, userCodeFor } from './scores'
 
 interface Stmt {
@@ -27,6 +28,8 @@ export interface Env {
   /** Comma-separated origins allowed by CORS. */
   ALLOWED_ORIGINS: string
   USER_CODE_SALT?: string
+  /** Comma-separated user codes that may open the admin stats (a secret). */
+  ADMIN_USER_CODES?: string
 }
 
 interface Row {
@@ -72,6 +75,66 @@ async function who(req: Request, env: Env): Promise<{ claims: Claims; code: stri
   return { claims, code: await userCodeFor(claims.sub, claims.user_code, env.USER_CODE_SALT) }
 }
 
+/** An anonymous usage event from the site: a page view or a challenge started / finished. */
+async function recordEvent(req: Request, env: Env): Promise<Response> {
+  // only the site's own pages report; nothing is stored for browsers that ask not to be tracked
+  const allowed = env.ALLOWED_ORIGINS.split(',').map((s) => s.trim())
+  if (!allowed.includes(req.headers.get('Origin') ?? '')) return reply(req, env, { error: 'origin not allowed' }, 403)
+  if (req.headers.get('DNT') === '1' || req.headers.get('Sec-GPC') === '1') return new Response(null, { status: 204, headers: cors(req, env) })
+  if (Number(req.headers.get('Content-Length') ?? 0) > 1024) return reply(req, env, { error: 'too large' }, 413)
+
+  const event = parseEvent(await req.json().catch(() => null))
+  if (!event) return reply(req, env, { error: 'unknown event' }, 400)
+
+  const now = Date.now()
+  const day = dayOf(now)
+  if (event.type === 'view') {
+    const visitor = await visitorId(day, env.USER_CODE_SALT ?? '', req.headers.get('CF-Connecting-IP') ?? '', req.headers.get('User-Agent') ?? '')
+    await env.DB.prepare('INSERT INTO hits (day, path, views) VALUES (?, ?, 1) ON CONFLICT(day, path) DO UPDATE SET views = views + 1')
+      .bind(day, event.path)
+      .run()
+    await env.DB.prepare('INSERT OR IGNORE INTO visitors (day, visitor) VALUES (?, ?)').bind(day, visitor).run()
+    // housekeeping: now and then, drop visitor rows older than 90 days
+    if (Math.random() < 0.02) await env.DB.prepare('DELETE FROM visitors WHERE day < ?').bind(dayOf(now - 90 * 86_400_000)).run()
+  } else {
+    await env.DB.prepare(
+      'INSERT INTO plays (day, challenge, started, completed) VALUES (?, ?, ?, ?) ' +
+        'ON CONFLICT(day, challenge) DO UPDATE SET started = started + excluded.started, completed = completed + excluded.completed',
+    )
+      .bind(day, event.challenge, event.done ? 0 : 1, event.done ? 1 : 0)
+      .run()
+  }
+  return new Response(null, { status: 204, headers: cors(req, env) })
+}
+
+/** Everything the admin page draws. */
+async function stats(env: Env, days: number) {
+  const now = Date.now()
+  const from = dayOf(now - (days - 1) * 86_400_000)
+  const q = <T>(sql: string, ...binds: unknown[]) => env.DB.prepare(sql).bind(...binds).all<T>()
+  const [views, visitors, plays, pages, challenges, totals, boards] = await Promise.all([
+    q<{ day: string; views: number }>('SELECT day, SUM(views) AS views FROM hits WHERE day >= ? GROUP BY day', from),
+    q<{ day: string; visitors: number }>('SELECT day, COUNT(*) AS visitors FROM visitors WHERE day >= ? GROUP BY day', from),
+    q<{ day: string; started: number; completed: number }>('SELECT day, SUM(started) AS started, SUM(completed) AS completed FROM plays WHERE day >= ? GROUP BY day', from),
+    q<{ path: string; views: number }>('SELECT path, SUM(views) AS views FROM hits WHERE day >= ? GROUP BY path ORDER BY views DESC', from),
+    q<{ challenge: string; started: number; completed: number }>(
+      'SELECT challenge, SUM(started) AS started, SUM(completed) AS completed FROM plays WHERE day >= ? GROUP BY challenge ORDER BY started DESC LIMIT 20',
+      from,
+    ),
+    q<{ players: number; scores: number }>('SELECT COUNT(DISTINCT user_code) AS players, COUNT(*) AS scores FROM scores'),
+    q<{ challenge: string; players: number; best_keys: number }>(
+      'SELECT challenge, COUNT(*) AS players, MIN(keys) AS best_keys FROM scores GROUP BY challenge ORDER BY players DESC LIMIT 20',
+    ),
+  ])
+  return {
+    days,
+    daily: fillDays(days, now, views.results, visitors.results, plays.results),
+    pages: pages.results,
+    challenges: challenges.results,
+    scores: { players: totals.results[0]?.players ?? 0, total: totals.results[0]?.scores ?? 0, perChallenge: boards.results },
+  }
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(req, env) })
@@ -91,7 +154,15 @@ export default {
         const rows = await env.DB.prepare('SELECT challenge, keys, ms FROM scores WHERE user_code = ? ORDER BY challenge')
           .bind(code)
           .all<{ challenge: string; keys: number; ms: number }>()
-        return reply(req, env, { userCode: code, results: rows.results })
+        return reply(req, env, { userCode: code, admin: isAdmin(code, env.ADMIN_USER_CODES), results: rows.results })
+      }
+
+      if (req.method === 'POST' && url.pathname === '/api/event') return await recordEvent(req, env)
+
+      if (req.method === 'GET' && url.pathname === '/api/admin/stats') {
+        const { code } = await who(req, env)
+        if (!isAdmin(code, env.ADMIN_USER_CODES)) return reply(req, env, { error: 'not an admin' }, 403)
+        return reply(req, env, await stats(env, clampDays(url.searchParams.get('days'))))
       }
 
       if (req.method === 'POST' && url.pathname === '/api/score') {

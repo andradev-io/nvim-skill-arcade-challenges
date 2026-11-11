@@ -69,6 +69,14 @@ builds with the login hidden. The client id defaults to `arcade-site` (`VITE_ARC
 locally put the variables in `.env.local` (ignored by git); `http://localhost:5197/` must be a valid redirect URI of the
 Keycloak client.
 
+## Usage counts and the Admin page
+
+The site counts page views and challenge starts / finishes anonymously (no cookies, no addresses stored, off when the
+browser sends Do Not Track, never in local development) and sends them to the Worker. Signed in as an account listed in the
+Worker's `ADMIN_USER_CODES` secret, an **Admin** button appears in the header: `#/admin` draws visits and page views per
+day, challenges started and finished, the busiest pages and challenges, and the scoreboard (7, 30 or 90 days). What is
+kept and how: `worker/README.md`.
+
 ## Safety model
 
 * A challenge is **data only**. The schema is a whitelist: unknown fields are dropped, and there is no field that can

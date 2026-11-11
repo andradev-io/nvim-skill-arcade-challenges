@@ -8,7 +8,17 @@ export interface Result {
 
 export interface Me {
   userCode: string
+  /** True when this code is on the Worker's admin list: the Admin page is then offered. */
+  admin: boolean
   results: Result[]
+}
+
+export interface Stats {
+  days: number
+  daily: { day: string; views: number; visitors: number; started: number; completed: number }[]
+  pages: { path: string; views: number }[]
+  challenges: { challenge: string; started: number; completed: number }[]
+  scores: { players: number; total: number; perChallenge: { challenge: string; players: number; best_keys: number }[] }
 }
 
 async function get<T>(api: string, path: string, token: string): Promise<T> {
@@ -19,6 +29,7 @@ async function get<T>(api: string, path: string, token: string): Promise<T> {
     throw new Error('Could not reach the score service. Try again in a moment.')
   }
   if (res.status === 401) throw new Error('Your session was not accepted. Sign in again.')
+  if (res.status === 403) throw new Error('This account is not allowed to see that.')
   if (!res.ok) throw new Error(`The score service answered ${res.status}.`)
   return (await res.json()) as T
 }
@@ -27,5 +38,12 @@ async function get<T>(api: string, path: string, token: string): Promise<T> {
 export async function fetchMe(api: string, token: string): Promise<Me> {
   const body = await get<Partial<Me>>(api, '/api/me', token)
   if (typeof body.userCode !== 'string') throw new Error('The score service sent something unexpected.')
-  return { userCode: body.userCode, results: Array.isArray(body.results) ? body.results : [] }
+  return { userCode: body.userCode, admin: body.admin === true, results: Array.isArray(body.results) ? body.results : [] }
+}
+
+/** The admin numbers (needs an admin's token). */
+export async function fetchStats(api: string, token: string, days: number): Promise<Stats> {
+  const body = await get<Partial<Stats>>(api, `/api/admin/stats?days=${days}`, token)
+  if (!Array.isArray(body.daily) || !body.scores) throw new Error('The score service sent something unexpected.')
+  return { days: body.days ?? days, daily: body.daily, pages: body.pages ?? [], challenges: body.challenges ?? [], scores: body.scores }
 }

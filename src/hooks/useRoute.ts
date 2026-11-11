@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 
-export type Route = 'home' | 'create' | 'terminal' | 'support' | 'challenges' | 'account'
+export type Route = 'home' | 'create' | 'terminal' | 'support' | 'challenges' | 'account' | 'admin'
 
 /** `hidden` routes exist but have no button in the nav bar (the Account page has its own button). */
 export const ROUTES: { id: Route; label: string; hash: string; hidden?: boolean }[] = [
@@ -10,6 +10,8 @@ export const ROUTES: { id: Route; label: string; hash: string; hidden?: boolean 
   { id: 'support', label: 'Support', hash: '#/support' },
   { id: 'challenges', label: 'Challenges', hash: '#/challenges' },
   { id: 'account', label: 'Account', hash: '#/account', hidden: true },
+  // listed in the nav only for an admin (see TopBar)
+  { id: 'admin', label: 'Admin', hash: '#/admin', hidden: true },
 ]
 
 /** Hash routes work on any static host (GitHub Pages included): no server rewrite needed. */
