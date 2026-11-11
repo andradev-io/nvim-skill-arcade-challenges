@@ -94,7 +94,18 @@ jobs:
           git checkout -b "daily/$day"
           git add daily
           git commit -m "feat: daily challenges for $day"
-          git push origin "daily/$day"
-          gh pr create \
-            --title "feat: daily challenges for $day" \
-            --body-file "$RUNNER_TEMP/pr-body.md"
+          git push --force origin "daily/$day" # bot-owned branch: a rerun replaces it
+          # the self-hosted runner has no gh CLI, so call the REST API with node (set up above)
+          TITLE="feat: daily challenges for $day" HEAD="daily/$day" node -e '
+            const fs = require("fs")
+            const body = fs.readFileSync(process.env.RUNNER_TEMP + "/pr-body.md", "utf8")
+            fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/pulls`, {
+              method: "POST",
+              headers: { authorization: `Bearer ${process.env.GH_TOKEN}`, accept: "application/vnd.github+json", "content-type": "application/json" },
+              body: JSON.stringify({ title: process.env.TITLE, head: process.env.HEAD, base: "main", body }),
+            }).then(async (r) => {
+              const j = await r.json()
+              if (!r.ok && !JSON.stringify(j).includes("already exists")) { console.error(r.status, JSON.stringify(j).slice(0, 300)); process.exit(1) }
+              console.log(j.html_url ?? "pull request already open")
+            })
+          '
