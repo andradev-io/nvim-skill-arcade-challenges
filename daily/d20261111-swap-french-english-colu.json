@@ -3,7 +3,7 @@
   "title": "Swap French-English columns",
   "area": "refactor",
   "level": 3,
-  "brief": "A translation file has French and English in the wrong order. Swap the two tab-separated columns so French comes first.",
+  "brief": "A translation file lists French first, then English. Swap the two tab-separated columns on every line so English comes first.",
   "text": "bonjour\thello\nau revoir\tgoodbye\nmerci\tthank you",
   "solution": ":%s/\\(.*\\)\\t\\(.*\\)/\\2\\t\\1/<CR>",
   "expect": {
