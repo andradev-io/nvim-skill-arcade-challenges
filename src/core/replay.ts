@@ -32,6 +32,8 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
   let r = Math.max(0, Math.min(lines.length, cursor[0] || 1) - 1)
   let c = cursor[1] || 0
   let reg = { s: '', line: false }
+  /** the yank register ("0): set by y only, a delete leaves it alone */
+  let reg0 = { s: '', line: false }
   const toks = tokens(solution)
   let i = 0
   let fail: string | null = null
@@ -248,11 +250,13 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
   function deleteRange(a: number, b: number, yankOnly = false) {
     const f = flat()
     reg = { s: f.slice(a, b), line: false }
+    if (yankOnly) reg0 = reg
     if (!yankOnly) setFlat(f.slice(0, a) + f.slice(b))
     putCursor(a)
   }
   function deleteLines(a: number, b: number, yankOnly = false) {
     reg = { s: lines.slice(a, b + 1).join('\n'), line: true }
+    if (yankOnly) reg0 = reg
     if (!yankOnly) {
       lines.splice(a, b - a + 1)
       if (!lines.length) lines = ['']
@@ -272,7 +276,8 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       else if (t === '<BS>') buf = buf.slice(0, -1)
       else if (t === '<C-r>') {
         const rr = toks[i++]
-        if (rr === '"' || rr === '0') buf += reg.s
+        if (rr === '"') buf += reg.s
+        else if (rr === '0') buf += reg0.s
         else {
           unsupported('<C-r>' + rr)
           return
@@ -300,12 +305,98 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       i++
     }
     i++
-    const m = s.match(/^(%)?s\/([^/\\]*)\/([^/\\]*)\/([gi]*)$/)
-    if (m) {
-      const re = new RegExp(m[2], m[4].includes('g') ? 'g' : '')
-      const rep = m[3]
-      if (m[1]) lines = lines.map((l) => l.replace(re, rep))
-      else lines[r] = lines[r].replace(re, rep)
+    // `:cmd1|cmd2` chains (a bar inside a pattern is written \|)
+    const parts = s.split(/(?<!\\)\|/)
+    if (parts.length > 1) {
+      for (const p of parts) if (!fail) runEx(p.trim())
+      return
+    }
+    runEx(s)
+  }
+
+  /** Vim regex (magic or \v) to a JS one: word anchors, groups, +, |, ?. null when it is not understood. */
+  function vimRegex(p: string): string | null {
+    let very = false
+    if (p.startsWith('\\v')) {
+      very = true
+      p = p.slice(2)
+    }
+    let out = ''
+    for (let k = 0; k < p.length; k++) {
+      const ch = p[k]
+      if (ch === '\\') {
+        const n = p[++k]
+        if (n === undefined) return null
+        if (n === '<' || n === '>') out += '\\b'
+        else if (!very && '()+|{}'.includes(n)) out += n
+        else if (!very && n === '=') out += '?'
+        else if (n === '/') out += '/'
+        else if ('dDwWsS.*[]$^\\'.includes(n)) out += '\\' + n
+        else return null
+      } else if (very && (ch === '<' || ch === '>')) out += '\\b'
+      else if (very && ch === '=') out += '?'
+      else if (!very && '()+|{}?'.includes(ch)) out += '\\' + ch
+      else out += ch
+    }
+    return out
+  }
+
+  /** Vim replacement to a JS one: \1 -> $1, & -> the match. null for \= expressions and line breaks. */
+  function vimReplacement(p: string): string | null {
+    let out = ''
+    for (let k = 0; k < p.length; k++) {
+      const ch = p[k]
+      if (ch === '\\') {
+        const n = p[++k]
+        if (n && /[0-9]/.test(n)) out += '$' + n
+        else if (n === '&' || n === '/' || n === '\\' || n === '#') out += n === '\\' ? '\\' : n
+        else return null
+      } else if (ch === '&') out += '$&'
+      else if (ch === '$') out += '$$'
+      else out += ch
+    }
+    return out
+  }
+
+  function runEx(s: string) {
+    const sm = s.match(/^(%|\d+,\d+)?s([/#])((?:[^\\]|\\.)*?)\2((?:[^\\]|\\.)*?)\2([gi]*)$/)
+    if (sm) {
+      const pat = vimRegex(sm[3])
+      const rep = vimReplacement(sm[4])
+      if (pat === null || rep === null) return unsupported(':' + s)
+      let re: RegExp
+      try {
+        re = new RegExp(pat, (sm[5].includes('g') ? 'g' : '') + (sm[5].includes('i') ? 'i' : ''))
+      } catch {
+        return unsupported(':' + s)
+      }
+      let from = r
+      let to = r
+      if (sm[1] === '%') {
+        from = 0
+        to = lines.length - 1
+      } else if (sm[1]) {
+        const [a, b] = sm[1].split(',').map(Number)
+        from = Math.max(0, a - 1)
+        to = Math.min(lines.length - 1, b - 1)
+      }
+      for (let k = from; k <= to; k++) lines[k] = lines[k].replace(re, rep)
+      clamp()
+      return
+    }
+    // :{n}m{target} moves line n below line target (0 = top); n and target may be $ or .
+    const mv = s.match(/^(\d+|\$|\.)?m\s*(\d+|\$|\.)$/)
+    if (mv) {
+      const addr = (a: string | undefined): number => (a === undefined || a === '.' ? r + 1 : a === '$' ? lines.length : Number(a))
+      const src = addr(mv[1])
+      const dst = addr(mv[2])
+      if (src < 1 || src > lines.length || dst < 0 || dst > lines.length) return unsupported(':' + s)
+      if (dst === src || dst === src - 1) return
+      const [moved] = lines.splice(src - 1, 1)
+      const at = dst > src ? dst - 1 : dst
+      lines.splice(at, 0, moved)
+      r = at
+      c = 0
       clamp()
       return
     }
@@ -432,13 +523,27 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
         deleteRange(o, off(r, L.length))
         readInsert(off(r, lines[r].length))
         break
-      case 'J':
-        if (r + 1 < lines.length) {
-          lines[r] = L.replace(/\s+$/, '') + ' ' + lines[r + 1].replace(/^\s+/, '')
+      case 'J': {
+        // {n}J joins n lines (at least two)
+        let joins = Math.max(2, count || 2) - 1
+        while (joins-- > 0 && r + 1 < lines.length) {
+          const left = lines[r].replace(/\s+$/, '')
+          const next = lines[r + 1].replace(/^\s+/, '')
+          lines[r] = next.startsWith(')') || next === '' ? left + next : left + ' ' + next
           lines.splice(r + 1, 1)
-          c = L.replace(/\s+$/, '').length
-          clamp()
+          c = left.length
         }
+        clamp()
+        break
+      }
+      case '<':
+        // {n}<< : take one shiftwidth (8 columns, the Vim default) off the start of n lines
+        if (toks[i] === '<') {
+          i++
+          for (let k = r; k < Math.min(lines.length, r + cnt); k++) lines[k] = lines[k].replace(/^( {1,8}|\t)/, '')
+          c = firstNonBlank(r)
+          clamp()
+        } else unsupported('<')
         break
       case '~':
         lines[r] = L.slice(0, c) + (L[c] === L[c].toUpperCase() ? L[c].toLowerCase() : L[c].toUpperCase()) + L.slice(c + 1)

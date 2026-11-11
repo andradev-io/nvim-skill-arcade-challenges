@@ -73,3 +73,11 @@ To run the same replay CI does:
 ```sh
 ARCADE_PLUGIN=../nvim-skill-arcade nvim --headless -u NONE -l scripts/validate.lua challenges
 ```
+
+## Refactor sprints (`area: "refactor"`)
+
+A micro refactor, 10-40 seconds, judged by the end state: `expect.text` is the refactored code. Set `ft` to the
+language of the snippet (`lua`, `typescript`, `javascript`, `go`, `cs`, `python`) so it is highlighted. Keep the snippet
+to a few lines, state the goal in the brief ("Swap the two arguments", "Invert the condition"), and prefer a result that
+has one correct shape (use `loose` when only the indentation may differ). Refactors that need a language server (rename
+symbol, code actions) cannot be judged here: give them a plain-text route, with the LSP route in `helps`.
