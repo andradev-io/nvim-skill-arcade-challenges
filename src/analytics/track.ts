@@ -18,8 +18,8 @@ export async function loadPublished(): Promise<void> {
   try {
     const r = await fetch(`${import.meta.env.BASE_URL}community.json`)
     if (!r.ok) return
-    const d = (await r.json()) as { challenges?: { id?: unknown }[] }
-    setPublished((d.challenges ?? []).map((c) => c.id).filter((id): id is string => typeof id === 'string'))
+    const d = (await r.json()) as { challenges?: { id?: unknown }[]; ai?: { id?: unknown }[] }
+    setPublished([...(d.challenges ?? []), ...(d.ai ?? [])].map((c) => c.id).filter((id): id is string => typeof id === 'string'))
   } catch {
     /* counting is never worth an error */
   }

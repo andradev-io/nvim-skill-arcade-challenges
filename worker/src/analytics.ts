@@ -7,7 +7,7 @@
  */
 
 /** The pages of the site that may be reported. Anything else is ignored. */
-export const PAGES = ['home', 'create', 'terminal', 'support', 'challenges', 'account', 'admin'] as const
+export const PAGES = ['home', 'create', 'terminal', 'support', 'challenges', 'ai', 'account', 'admin'] as const
 
 export type Event = { type: 'view'; path: string } | { type: 'play'; challenge: string; done: boolean }
 

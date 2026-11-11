@@ -1,4 +1,4 @@
--- usage: ARCADE_PLUGIN=../nvim-skill-arcade nvim --headless -u NONE -l scripts/stats.lua [stats-file] [builtin-file]
+-- usage: ARCADE_PLUGIN=../nvim-skill-arcade nvim --headless -u NONE -l scripts/stats.lua [stats-file] [builtin-file] [community-bundle]
 -- Counts the plugin's built-in challenges so the home page shows real numbers instead of a typed-in one.
 local plugin = os.getenv("ARCADE_PLUGIN") or "../nvim-skill-arcade"
 vim.opt.rtp:prepend(plugin)
@@ -40,7 +40,18 @@ local out2 = (arg and arg[2]) or "dist/builtin.json"
 
 vim.fn.mkdir(vim.fn.fnamemodify(out, ":h"), "p")
 local f = assert(io.open(out, "w"))
-f:write(vim.json.encode({ builtin = #list, areas = areas, levels = levels }))
+-- the model-written challenges: counted from the bundle build.lua just wrote (the same validated entries the plugin reads)
+local ai_n = 0
+local bundle = (arg and arg[3]) or "dist/community.json"
+local bf = io.open(bundle, "r")
+if bf then
+  local ok, data = pcall(vim.json.decode, bf:read("*a"))
+  bf:close()
+  if ok and type(data) == "table" then
+    ai_n = #(data.ai or {})
+  end
+end
+f:write(vim.json.encode({ builtin = #list, ai = ai_n, areas = areas, levels = levels }))
 f:close()
 local f2 = assert(io.open(out2, "w"))
 f2:write(vim.json.encode({ challenges = items }))
