@@ -1,0 +1,24 @@
+{
+  "id": "d20261111-jump-to-the-error-line",
+  "title": "Jump to the error line",
+  "area": "marks",
+  "level": 4,
+  "brief": "A build log has an error. Set mark 'e' on the ERROR line, jump back to the top, then return to the mark and delete that line.",
+  "text": "Build started...\nCompiling module A\nCompiling module B\nERROR: missing semicolon in main.c\nBuild finished with errors.\nSee docs for details.",
+  "solution": "ma/ERROR<CR>me'a`edd",
+  "expect": {
+    "text": "Build started...\nCompiling module A\nCompiling module B\nBuild finished with errors.\nSee docs for details."
+  },
+  "why": "Marks let you bookmark positions without losing your place. Setting mark 'a' at the top and 'e' at the error lets you jump freely between them with backtick or single-quote motions.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.2:594bc0b90c8a",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 25,
+  "hint": "Use m{letter} to set a mark, '{letter} to jump to its line, and `{letter} to jump to its exact column."
+}
