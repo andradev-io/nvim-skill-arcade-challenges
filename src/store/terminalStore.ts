@@ -24,7 +24,7 @@ end
 /** A guess at the filetype from the buffer name and text (the user can change it). */
 export function guessFiletype(name: string, text: string): string {
   const ext = /\.([a-z]+)$/i.exec(name)?.[1]?.toLowerCase()
-  const byExt: Record<string, string> = { lua: 'lua', js: 'javascript', ts: 'typescript', py: 'python', sh: 'sh', md: 'markdown', html: 'html', css: 'css', json: 'json', yml: 'yaml', yaml: 'yaml', sql: 'sql', go: 'go', rs: 'rust', c: 'c', vim: 'vim' }
+  const byExt: Record<string, string> = { lua: 'lua', js: 'javascript', ts: 'typescript', py: 'python', sh: 'sh', md: 'markdown', html: 'html', css: 'css', json: 'json', yml: 'yaml', yaml: 'yaml', sql: 'sql', go: 'go', rs: 'rust', c: 'c', cs: 'cs', vim: 'vim' }
   if (ext && byExt[ext]) return byExt[ext]
   if (/^\s*(local\s+\w+\s*=|end\s*$)/m.test(text)) return 'lua'
   if (/\b(const|let)\s+\w+\s*=|=>/.test(text)) return 'javascript'
