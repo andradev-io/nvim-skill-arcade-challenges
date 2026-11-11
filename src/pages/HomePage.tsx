@@ -15,7 +15,7 @@ import { CountUp } from '../components/common/CountUp'
 import { useStats } from '../hooks/useStats'
 
 const INSTALL = `{
-  "dev-vinicius-andrade/nvim-skill-arcade",
+  "andradev-io/nvim-skill-arcade",
   cmd = { "ArcadeMenu", "ArcadeRun", "ArcadeSync", "ArcadeTry", "ArcadeJoin" },
   keys = {
     { "<leader>Gm", "<cmd>ArcadeMenu<cr>", desc = "Arcade: menu" },

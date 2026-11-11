@@ -102,12 +102,12 @@ and is never printed; a private gateway host is masked in the log.
 Set it up (the values are yours to set; they never go in the repository):
 
 ```sh
-gh secret set ANTHROPIC_API_KEY -R dev-vinicius-andrade/nvim-skill-arcade-challenges
-gh variable set ANTHROPIC_URL --body https://your-gateway.example.com -R dev-vinicius-andrade/nvim-skill-arcade-challenges   # optional
-gh variable set ANTHROPIC_MODEL --body claude-sonnet-5-5 -R dev-vinicius-andrade/nvim-skill-arcade-challenges               # optional
-gh variable set ANTHROPIC_MODEL_HARD --body <model-id> -R dev-vinicius-andrade/nvim-skill-arcade-challenges                 # optional, levels 4-5
-gh variable set ANTHROPIC_MODEL_FALLBACK --body <model-id> -R dev-vinicius-andrade/nvim-skill-arcade-challenges             # optional
-gh variable set DAILY_ENABLED --body true -R dev-vinicius-andrade/nvim-skill-arcade-challenges
+gh secret set ANTHROPIC_API_KEY -R andradev-io/nvim-skill-arcade-challenges
+gh variable set ANTHROPIC_URL --body https://your-gateway.example.com -R andradev-io/nvim-skill-arcade-challenges   # optional
+gh variable set ANTHROPIC_MODEL --body claude-sonnet-5-5 -R andradev-io/nvim-skill-arcade-challenges               # optional
+gh variable set ANTHROPIC_MODEL_HARD --body <model-id> -R andradev-io/nvim-skill-arcade-challenges                 # optional, levels 4-5
+gh variable set ANTHROPIC_MODEL_FALLBACK --body <model-id> -R andradev-io/nvim-skill-arcade-challenges             # optional
+gh variable set DAILY_ENABLED --body true -R andradev-io/nvim-skill-arcade-challenges
 ```
 
 - `ANTHROPIC_MODEL` is the generator (default `claude-sonnet-5-5`). Optional: `ANTHROPIC_MODEL_FALLBACK` (used on retries and when
@@ -135,7 +135,7 @@ unknown one fails the *validate challenges* check. For a light touch without edi
 `DAILY_PROMPT_EXTRA` (appended, 1000 characters at most) or the `prompt_extra` input of a manual run.
 
 ```sh
-gh variable set DAILY_PROMPT_EXTRA --body "Prefer small realistic code snippets." -R dev-vinicius-andrade/nvim-skill-arcade-challenges
+gh variable set DAILY_PROMPT_EXTRA --body "Prefer small realistic code snippets." -R andradev-io/nvim-skill-arcade-challenges
 ARCADE_PLUGIN=../nvim-skill-arcade node scripts/generate-daily.mjs --print-prompt   # the final prompt, no key needed
 ```
 

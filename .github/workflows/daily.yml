@@ -37,14 +37,14 @@ jobs:
   generate:
     # Kill switch: nothing runs unless the repository variable DAILY_ENABLED is exactly "true".
     if: ${{ vars.DAILY_ENABLED == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: andradev-io # self-hosted ARC runner (homelab): the Anthropic org allowlists its IP, not the GitHub-hosted ones
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       # the engine that judges challenges is the plugin itself
       - uses: actions/checkout@v4
         with:
-          repository: dev-vinicius-andrade/nvim-skill-arcade
+          repository: andradev-io/nvim-skill-arcade
           path: .plugin
       - uses: rhysd/action-setup-vim@v1
         with:

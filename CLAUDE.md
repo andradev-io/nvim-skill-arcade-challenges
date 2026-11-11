@@ -1,6 +1,6 @@
 # nvim-skill-arcade-challenges
 
-Community challenges for [nvim-skill-arcade](https://github.com/dev-vinicius-andrade/nvim-skill-arcade) plus the website
+Community challenges for [nvim-skill-arcade](https://github.com/andradev-io/nvim-skill-arcade) plus the website
 where anyone designs, plays and submits one.
 
 Stack: Vite 8 · React 19 · TypeScript 6 strict · MUI 9 + Emotion · zustand 5 · CodeMirror 6 + `@replit/codemirror-vim` ·

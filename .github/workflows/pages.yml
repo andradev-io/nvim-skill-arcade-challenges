@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
-          repository: dev-vinicius-andrade/nvim-skill-arcade
+          repository: andradev-io/nvim-skill-arcade
           path: .plugin
       - uses: actions/setup-node@v4
         with:

@@ -3,7 +3,7 @@
 import { tokens } from './keys'
 import type { Challenge, Cursor, DraftForm, Expect, Forbid, Track } from './types'
 
-export const REPO = 'dev-vinicius-andrade/nvim-skill-arcade-challenges'
+export const REPO = 'andradev-io/nvim-skill-arcade-challenges'
 export const AREAS = ['motions', 'textobjects', 'editing', 'search', 'macros', 'registers', 'marks', 'windows', 'quickfix', 'diagnostics', 'track', 'refactor', 'plugins']
 export const FILETYPES = ['text', 'lua', 'python', 'javascript', 'typescript', 'go', 'cs', 'markdown', 'json', 'html']
 export const GROUPS = ['jump', 'surround', 'textobjects', 'comment', 'picker', 'keyhints', 'files', 'bookmarks', 'trouble', 'replace', 'multicursor', 'move', 'treesitter']
