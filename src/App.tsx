@@ -1,9 +1,9 @@
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
-import Typography from '@mui/material/Typography'
 import { lazy, Suspense, useEffect } from 'react'
 import { loadPublished, trackView } from './analytics/track'
 import { useAuthStore } from './auth/authStore'
+import { Footer } from './components/layout/Footer'
 import { TopBar } from './components/layout/TopBar'
 import { useRoute } from './hooks/useRoute'
 import type { Route } from './hooks/useRoute'
@@ -68,11 +68,7 @@ export default function App() {
         {route === 'account' && <AccountPage />}
         {route === 'admin' && <AdminPage />}
       </Container>
-      <Typography variant="caption" component="footer" sx={{ display: 'block', px: 3, pb: 3, opacity: 0.7 }}>
-        Challenges are data only and validated by the same schema the plugin uses. See CONTRIBUTING.md in the repository.
-        {' '}
-        The site counts page views and challenge plays anonymously (no cookies, no addresses stored; off if your browser sends Do Not Track).
-      </Typography>
+      <Footer />
     </Box>
   )
 }
