@@ -1,0 +1,25 @@
+{
+  "id": "d20261111-remove-duplicate-log-ent",
+  "title": "Remove duplicate log entries",
+  "area": "editing",
+  "level": 2,
+  "brief": "The server log has repeated error lines. Keep only unique consecutive lines to reduce noise.",
+  "text": "ERROR: timeout\nERROR: timeout\nINFO: retry\nINFO: retry\nERROR: timeout",
+  "solution": ":g/^\\(.*\\)$\\n\\1/d\n",
+  "expect": {
+    "text": "ERROR: timeout\nINFO: retry\nERROR: timeout"
+  },
+  "why": "The global command with a backreference \\1 matches a line followed by an identical next line, deleting only the duplicate while preserving non-consecutive repeats.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:a9482a11d612",
+  "ft": "text",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 20,
+  "hint": "Use :g with a pattern that captures a line and matches it again on the next line."
+}
