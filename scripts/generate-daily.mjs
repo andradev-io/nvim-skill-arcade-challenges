@@ -24,7 +24,7 @@ import os from 'node:os'
 import path from 'node:path'
 import {
   buildPrompt, capExtra, duplicateOf, extractJson, focusFor, knownSet, parseValidateOutput, redact, remember, resolveBaseUrl,
-  resolveModels, modelChain, resolveBudgetMs, resolveTimeoutMs, sanitize,
+  resolveModels, modelChain, AREAS, codeLanguages, resolveBudgetMs, resolveTimeoutMs, sanitize,
 } from './daily-lib.mjs'
 
 const env = process.env
@@ -35,8 +35,8 @@ const printPrompt = process.argv.includes('--print-prompt')
 
 const date = env.DAILY_DATE || new Date().toISOString().slice(0, 10)
 if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('DAILY_DATE must be YYYY-MM-DD')
-const publish = Math.max(MIN_DAY, Number(env.DAILY_PUBLISH) || 3)
-const wanted = Math.max(publish, Number(env.DAILY_CANDIDATES) || 8)
+const publish = Math.min(20, Math.max(MIN_DAY, Number(env.DAILY_PUBLISH) || 3))
+const wanted = Math.max(publish, Number(env.DAILY_CANDIDATES) || (publish > 3 ? Math.ceil(publish * 1.5) : 8))
 const dry = flag(env.DAILY_DRY_RUN)
 const mock = env.DAILY_MOCK
 const plugin = env.ARCADE_PLUGIN || '../nvim-skill-arcade'
@@ -89,6 +89,14 @@ const idsAndTitles = [
 
 // Levels 4-5 go to the hard model when it differs from the main one: two batches, each with its own prompt.
 const focus = focusFor(date)
+// an admin's on-demand request can steer the run: DAILY_AREAS="search,marks", DAILY_LEVELS="3,4", DAILY_THEME="..."
+const pickAreas = String(env.DAILY_AREAS ?? '').split(',').map((a) => a.trim()).filter((a) => AREAS.includes(a))
+if (pickAreas.length) focus.areas = pickAreas
+const pickLevels = String(env.DAILY_LEVELS ?? '').split(',').map((l) => Number(l.trim())).filter((l) => Number.isInteger(l) && l >= 1 && l <= 5)
+if (pickLevels.length) focus.levels = [...new Set(pickLevels)].sort()
+const pickLangs = String(env.DAILY_LANGUAGES ?? '').split(',').map((l) => l.trim().toLowerCase()).filter((l) => codeLanguages().includes(l))
+const pickTheme = capExtra(env.DAILY_THEME).slice(0, 160).replace(/\s+/g, ' ')
+if (pickTheme) focus.theme = pickTheme
 const hardLevels = focus.levels.filter((l) => l >= 4)
 const split = models.hard !== models.main && hardLevels.length > 0 && hardLevels.length < focus.levels.length
 const batchSpecs = split
@@ -100,7 +108,7 @@ const batchSpecs = split
 const batches = batchSpecs.map((b) => ({
   ...b,
   accepted: 0,
-  prompt: buildPrompt({ systemFile, userFile, date, focus: { areas: focus.areas, levels: b.levels }, count: b.count, examples, existing: idsAndTitles, extra }),
+  prompt: buildPrompt({ systemFile, userFile, date, focus: { areas: focus.areas, levels: b.levels, theme: focus.theme }, languages: pickLangs, count: b.count, examples, existing: idsAndTitles, extra }),
 }))
 
 if (printPrompt) {

@@ -159,6 +159,9 @@ export function remember(c, known) {
   known.sigs.add(`${norm(c.text)}\u0000${norm(c.expect.text ?? '')}`)
 }
 
+/** Languages a refactor-style challenge may use (the admin can narrow them per request). */
+export const codeLanguages = () => FILETYPES.filter((f) => !['text', 'markdown', 'json', 'html'].includes(f))
+
 /** Creative premises: the text a challenge works on can be anything people really edit, not only code. */
 export const THEMES = [
   'a messy CSV export that needs reshaping', 'a game-master cheat sheet and loot tables', 'a recipe being scaled and converted',
@@ -276,7 +279,7 @@ const sha = (text) => createHash('sha256').update(text).digest('hex')
  * Renders the final prompt from the two files. Returns { system, user, version, hash, extraUsed }: `version` is
  * "<system version>.<user version>", `hash` the first 12 hex characters of the SHA-256 of everything sent.
  */
-export function buildPrompt({ systemFile, userFile, date, focus, count, examples, existing, extra }) {
+export function buildPrompt({ systemFile, userFile, date, focus, count, examples, existing, extra, languages }) {
   const vars = {
     schema: schemaText(),
     examples: JSON.stringify(examples),
@@ -284,7 +287,7 @@ export function buildPrompt({ systemFile, userFile, date, focus, count, examples
     area: focus.areas.join(', '),
     level: focus.levels.join(', '),
     theme: focus.theme ?? 'anything people really edit',
-    languages: FILETYPES.filter((f) => !['text', 'markdown', 'json', 'html'].includes(f)).join(', '),
+    languages: (languages?.length ? languages : codeLanguages()).join(', '),
     count,
     date,
   }
