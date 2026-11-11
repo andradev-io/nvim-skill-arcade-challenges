@@ -7,6 +7,7 @@ is stored: a user is only a derived **user code** like `K7QMD-3XPV9`.
 | Route | Auth | What |
 | --- | --- | --- |
 | `GET /api/leaderboard?challenge=<id>&limit=20` | none | top results: user code, keys, ms |
+| `GET /api/config` | none | `{ issuer, deviceClient }`: what the Neovim plugin needs to sign in (device flow) |
 | `GET /api/me` | Bearer | your user code, whether you are an admin, and best results |
 | `POST /api/score` | Bearer | `{ "challenge": "bracket-the-word", "keys": 7, "ms": 4200 }`, kept when better (fewer keys, then less time) |
 | `POST /api/event` | none (site origin only) | anonymous usage count: `{ "type": "view", "path": "home" }` or `{ "type": "play", "challenge": "<id>", "done": false }` |
@@ -29,7 +30,7 @@ separated): sign in once, copy your player code from the Account page, and put i
 
 1. Realm with the GitHub identity provider. In the provider's first-broker-login flow do not import what you do not need.
 2. Client `arcade-site`: public, Standard flow with PKCE, redirect URI and web origin `https://arcade.nvim.andradev.io/*`.
-3. Client `arcade-plugin`: public, **OAuth 2.0 Device Authorization Grant** enabled (the plugin signs in without a browser inside Neovim).
+3. Client `arcade-plugin`: public, **OAuth 2.0 Device Authorization Grant** enabled (`:ArcadeLogin` in the plugin shows a code and you approve it in any browser; it learns the issuer from `GET /api/config`).
 4. Optional: a mapper that emits a `user_code` claim. Without it the worker derives the code from `sub`.
 5. Tokens must be RS256 (the default).
 

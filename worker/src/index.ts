@@ -2,6 +2,7 @@
  * Skill Arcade score API (Cloudflare Worker + D1).
  *
  *   GET  /api/leaderboard?challenge=<id>&limit=20   public, top results (user codes only)
+ *   GET  /api/config                                public: issuer and device client for the plugin's sign-in
  *   GET  /api/me                                    Bearer token: your code and your best results
  *   POST /api/score                                 Bearer token: { challenge, keys, ms }, kept when better
  *   POST /api/admin/generate                        Bearer token, admin: start the AI challenge generator on GitHub
@@ -155,6 +156,11 @@ export default {
           .bind(challenge, limit)
           .all<{ user_code: string; keys: number; ms: number }>()
         return reply(req, env, { challenge, results: rows.results })
+      }
+
+      if (req.method === 'GET' && url.pathname === '/api/config') {
+        // public: what the Neovim plugin needs to sign in with the device flow (the issuer is already in the site's bundle)
+        return reply(req, env, { issuer: env.KEYCLOAK_ISSUER, deviceClient: 'arcade-plugin' })
       }
 
       if (req.method === 'GET' && url.pathname === '/api/me') {
