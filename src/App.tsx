@@ -18,13 +18,13 @@ import { SupportPage } from './pages/SupportPage'
 const TerminalPage = lazy(() => import('./pages/TerminalPage').then((m) => ({ default: m.TerminalPage })))
 
 const TITLES: Record<Route, string> = {
-  home: 'Skill Arcade: train your Neovim with your own keybinds',
-  create: 'Create a challenge | Skill Arcade',
-  terminal: 'Terminal | Skill Arcade',
-  support: 'What works in the terminal | Skill Arcade',
-  challenges: 'Published challenges | Skill Arcade',
-  account: 'Account | Skill Arcade',
-  admin: 'Admin | Skill Arcade',
+  home: 'arcade.nvim: train your Neovim with your own keybinds',
+  create: 'Create a challenge | arcade.nvim',
+  terminal: 'Terminal | arcade.nvim',
+  support: 'What works in the terminal | arcade.nvim',
+  challenges: 'Published challenges | arcade.nvim',
+  account: 'Account | arcade.nvim',
+  admin: 'Admin | arcade.nvim',
 }
 
 export default function App() {

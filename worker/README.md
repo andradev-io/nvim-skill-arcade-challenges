@@ -49,15 +49,17 @@ npx wrangler deploy
 `.github/workflows/worker.yml` deploys on every push to `main` that touches `worker/`. Only these are secret, and
 they live in the repository's GitHub secrets (Settings, Secrets and variables, Actions):
 
-- `CLOUDFLARE_API_TOKEN`: a token with *Workers Scripts: Edit* and *D1: Edit* (the "Edit Cloudflare Workers" template works)
+- `CLOUDFLARE_API_TOKEN`: a token with *Workers Scripts: Edit* and *D1: Edit* (the "Edit Cloudflare Workers" template works).
+  The custom domain below also needs *Workers Routes: Edit* on the `andradev.io` zone, and possibly *DNS: Edit*
 - `CLOUDFLARE_ACCOUNT_ID`
 - `D1_DATABASE_ID`: the id printed by `wrangler d1 create` (kept out of the repository; the workflow writes it into `wrangler.toml` at deploy time)
 - `KEYCLOAK_ISSUER`: the realm issuer URL (also kept out of the repository and written in at deploy time)
 - `USER_CODE_SALT`: any long random string (pushed to the worker as a Cloudflare secret)
 - `ADMIN_USER_CODES`: your player code from the site's Account page, comma separated for several (pushed to the worker as a Cloudflare secret; opens the Admin page)
 
-The site reads the same `KEYCLOAK_ISSUER` secret at build time (plus `ARCADE_API_URL`, the Worker's address) for its
-sign-in button; see the main README.
+The Worker answers on its own domain, `https://api.arcade.nvim.andradev.io` (the `routes` line in `wrangler.toml`), so that
+is the value of the site's `ARCADE_API_URL` secret. The site also reads the same `KEYCLOAK_ISSUER` secret at build time
+for its sign-in button; see the main README.
 
 The client ids and allowed origins stay in `wrangler.toml`. Create the database once
 (`npx wrangler d1 create skill-arcade`), put its id in the `D1_DATABASE_ID` secret, and the workflow does the rest;
