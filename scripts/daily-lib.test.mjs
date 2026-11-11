@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_MODEL, DEFAULT_URL, EXTRA_MAX, buildPrompt, capExtra, cleanModel, duplicateOf, extractJson, focusFor, knownSet, modelChain, resolveBudgetMs, resolveTimeoutMs, parseValidateOutput, parsePromptFile, redact, render, resolveModels, remember, resolveBaseUrl, sanitize, slugify, unsafeKeys } from './daily-lib.mjs'
+import { addUsage, readUsage, usageLines, DEFAULT_MODEL, DEFAULT_URL, EXTRA_MAX, buildPrompt, capExtra, cleanModel, duplicateOf, extractJson, focusFor, knownSet, modelChain, resolveBudgetMs, resolveTimeoutMs, parseValidateOutput, parsePromptFile, redact, render, resolveModels, remember, resolveBaseUrl, sanitize, slugify, unsafeKeys } from './daily-lib.mjs'
 
 const good = {
   title: 'Drop the first mineral',
@@ -195,5 +195,38 @@ describe('model chain and time budgets', () => {
     expect(resolveTimeoutMs({ DAILY_MODEL_TIMEOUT_SECONDS: '1' })).toBe(10_000)
     expect(resolveBudgetMs({})).toBe(300_000)
     expect(resolveBudgetMs({ DAILY_BATCH_BUDGET_SECONDS: '99999' })).toBe(900_000)
+  })
+})
+
+describe('token usage', () => {
+  it('reads Anthropic and OpenAI-style counts, cache included', () => {
+    expect(readUsage({ usage: { input_tokens: 100, output_tokens: 40 } })).toEqual({ input: 100, output: 40 })
+    expect(readUsage({ usage: { input_tokens: 10, cache_creation_input_tokens: 5, cache_read_input_tokens: 85, output_tokens: 1 } })).toEqual({ input: 100, output: 1 })
+    expect(readUsage({ usage: { prompt_tokens: 7, completion_tokens: 3 } })).toEqual({ input: 7, output: 3 })
+  })
+  it('returns null when nothing usable is reported, and ignores junk numbers', () => {
+    for (const b of [null, undefined, {}, { usage: null }, { usage: {} }, { usage: { input_tokens: 'many' } }, { usage: { input_tokens: -5, output_tokens: NaN } }]) {
+      expect(readUsage(b)).toBeNull()
+    }
+  })
+  it('totals per model and prints a table with a total row', () => {
+    const t = new Map()
+    addUsage(t, 'a', { input: 1000, output: 200 })
+    addUsage(t, 'a', { input: 500, output: 100 })
+    addUsage(t, 'b', { input: 2000, output: 900 })
+    expect(usageLines(t)).toEqual([
+      '| model | calls | input tokens | output tokens |',
+      '| --- | ---: | ---: | ---: |',
+      '| b | 1 | 2,000 | 900 |',
+      '| a | 2 | 1,500 | 300 |',
+      '| **total** | 3 | 3,500 | 1,200 |',
+    ])
+  })
+  it('says so when an answer reported no usage, and is empty with no calls', () => {
+    const t = new Map()
+    addUsage(t, 'a', null)
+    addUsage(t, 'a', { input: 10, output: 5 })
+    expect(usageLines(t).join(' ')).toContain('1 answer(s) did not report usage')
+    expect(usageLines(new Map())).toEqual([])
   })
 })
