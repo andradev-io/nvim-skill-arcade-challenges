@@ -9,7 +9,7 @@
   "expect": {
     "text": "const config = {\n  name: \"Arcade\",\n  address: \"123 Main St\",\n  port: 8080\n};"
   },
-  "why": "Searching jumps straight to the typo, and ce changes to the end of the word so you only type the missing letter.",
+  "why": "Searching jumps straight to the typo, and ce replaces the misspelled word from the cursor to its end, so you retype only that word and nothing else on the line.",
   "author": "claude (daily)",
   "date": "2026-11-11",
   "generated": true,

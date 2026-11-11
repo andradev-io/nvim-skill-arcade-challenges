@@ -2,7 +2,7 @@
   "id": "d20261111-remove-extra-blank-lines",
   "title": "Remove extra blank lines in chat",
   "area": "editing",
-  "level": 1,
+  "level": 3,
   "brief": "A chat transcript has too many empty lines between messages. Squeeze consecutive blank lines into just one.",
   "text": "Alice: hi\n\n\nBob: hey\n\n\nAlice: ready?",
   "solution": ":g/^$/.,/^./-j<CR>",
