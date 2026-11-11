@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { clampDays, dayOf, fillDays, isAdmin, parseEvent, visitorId } from './analytics'
+import { clampDays, dayOf, fillDays, hasRole, isAdmin, isAdminUser, parseEvent, visitorId } from './analytics'
 import worker from './index'
 import type { Env } from './index'
 import type { Jwk } from './jwt'
@@ -106,8 +106,8 @@ beforeAll(async () => {
 })
 afterAll(() => vi.unstubAllGlobals())
 
-async function tokenFor(sub: string): Promise<string> {
-  const body = `${enc({ alg: 'RS256', kid: 'k1' })}.${enc({ iss: ISS, sub, exp: Math.floor(Date.now() / 1000) + 300, azp: 'arcade-site' })}`
+async function tokenFor(sub: string, extra: Record<string, unknown> = {}): Promise<string> {
+  const body = `${enc({ alg: 'RS256', kid: 'k1' })}.${enc({ iss: ISS, sub, exp: Math.floor(Date.now() / 1000) + 300, azp: 'arcade-site', ...extra })}`
   const sig = new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', pair.privateKey, new TextEncoder().encode(body)))
   return `${body}.${Buffer.from(sig).toString('base64url')}`
 }
@@ -201,5 +201,38 @@ describe('GET /api/admin/stats', () => {
       ((await (await worker.fetch(new Request('https://api.example.com/api/me', { headers: { Authorization: `Bearer ${await tokenFor(sub)}`, Origin: ORIGIN } }), baseEnv(db, { ADMIN_USER_CODES: code }))).json()) as { admin: boolean }).admin
     expect(await me('admin-sub')).toBe(true)
     expect(await me('someone')).toBe(false)
+  })
+})
+
+describe('admin by Keycloak role', () => {
+  const env = { ALLOWED_CLIENTS: 'arcade-site,arcade-plugin' }
+  it('reads realm roles and the roles of an accepted client', () => {
+    expect(hasRole({ realm_access: { roles: ['arcade-admin'] } }, 'arcade-admin', ['arcade-site'])).toBe(true)
+    expect(hasRole({ resource_access: { 'arcade-site': { roles: ['arcade-admin'] } } }, 'arcade-admin', ['arcade-site'])).toBe(true)
+    expect(hasRole({ resource_access: { other: { roles: ['arcade-admin'] } } }, 'arcade-admin', ['arcade-site'])).toBe(false)
+  })
+  it('ignores malformed claims and an empty role', () => {
+    for (const c of [{}, { realm_access: 'arcade-admin' }, { realm_access: { roles: 'arcade-admin' } }, { resource_access: null }, { realm_access: null }]) {
+      expect(hasRole(c as Record<string, unknown>, 'arcade-admin', ['arcade-site'])).toBe(false)
+    }
+    expect(hasRole({ realm_access: { roles: [''] } }, '', [])).toBe(false)
+  })
+  it('uses arcade-admin by default, ADMIN_ROLE when set, and the code list as an extra', () => {
+    const claims = { realm_access: { roles: ['arcade-admin'] } }
+    expect(isAdminUser(claims, 'X', env)).toBe(true)
+    expect(isAdminUser(claims, 'X', { ...env, ADMIN_ROLE: 'boss' })).toBe(false)
+    expect(isAdminUser({ realm_access: { roles: ['boss'] } }, 'X', { ...env, ADMIN_ROLE: 'boss' })).toBe(true)
+    expect(isAdminUser({}, 'ABCDE-FGHJK', { ...env, ADMIN_USER_CODES: 'ABCDE-FGHJK' })).toBe(true)
+    expect(isAdminUser({}, 'X', env)).toBe(false)
+  })
+  it('opens /api/admin/stats and /api/me for a token that carries the role', async () => {
+    const { db } = fakeDb()
+    const tok = await tokenFor('role-sub', { realm_access: { roles: ['arcade-admin'] } })
+    const stats = await worker.fetch(new Request('https://api.example.com/api/admin/stats', { headers: { Origin: ORIGIN, Authorization: `Bearer ${tok}` } }), baseEnv(db))
+    expect(stats.status).toBe(200)
+    const me = await worker.fetch(new Request('https://api.example.com/api/me', { headers: { Origin: ORIGIN, Authorization: `Bearer ${tok}` } }), baseEnv(db))
+    expect(((await me.json()) as { admin: boolean }).admin).toBe(true)
+    const plain = await tokenFor('plain-sub')
+    expect((await worker.fetch(new Request('https://api.example.com/api/admin/stats', { headers: { Origin: ORIGIN, Authorization: `Bearer ${plain}` } }), baseEnv(db))).status).toBe(403)
   })
 })

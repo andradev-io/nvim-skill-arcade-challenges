@@ -23,8 +23,15 @@ be followed from one day to the next, and rows older than 90 days are deleted) a
 address itself, cookies and accounts are never stored. Requests that send `DNT: 1` or `Sec-GPC: 1`, or that do not come
 from an allowed site origin, are not counted.
 
-`#/admin` on the site draws the charts. It is for the user codes listed in the **`ADMIN_USER_CODES`** secret (comma
-separated): sign in once, copy your player code from the Account page, and put it in the secret. Anyone else gets 403.
+`#/admin` on the site draws the charts. It is for users who hold the Keycloak realm role **`arcade-admin`** (change the
+name with the `ADMIN_ROLE` variable in `wrangler.toml`). Grant it in the realm, no deploy: Keycloak admin, Realm roles,
+create `arcade-admin`, then Users, your user, Role mapping, assign it. Sign out and in again to get a token that carries
+it. The Worker reads `realm_access.roles` (or `resource_access.<client>.roles` of an accepted client) from the token it has
+already verified. Anyone else gets 403.
+
+The `roles` client scope must be in the access tokens of both clients (`arcade-site` and `arcade-plugin`); it is a
+default scope in Keycloak, so it is unless someone removed it. The `ADMIN_USER_CODES` secret still works as an optional
+extra (user codes, comma separated) but is no longer needed.
 
 ## Keycloak
 
@@ -56,7 +63,7 @@ they live in the repository's GitHub secrets (Settings, Secrets and variables, A
 - `D1_DATABASE_ID`: the id printed by `wrangler d1 create` (kept out of the repository; the workflow writes it into `wrangler.toml` at deploy time)
 - `KEYCLOAK_ISSUER`: the realm issuer URL (also kept out of the repository and written in at deploy time)
 - `USER_CODE_SALT`: any long random string (pushed to the worker as a Cloudflare secret)
-- `ADMIN_USER_CODES`: your player code from the site's Account page, comma separated for several (pushed to the worker as a Cloudflare secret; opens the Admin page)
+- `ADMIN_USER_CODES` (optional): player codes that are admins without the role, comma separated (pushed to the worker as a Cloudflare secret). Prefer the `arcade-admin` realm role
 
 The Worker answers on its own domain, `https://api.arcade.nvim.andradev.io` (the `routes` line in `wrangler.toml`), so that
 is the value of the site's `ARCADE_API_URL` secret. The site also reads the same `KEYCLOAK_ISSUER` secret at build time
