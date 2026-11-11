@@ -1,0 +1,21 @@
+{
+  "id": "d20261111-swap-french-english-colu",
+  "title": "Swap French-English columns",
+  "area": "refactor",
+  "level": 3,
+  "brief": "A translation file has French and English in the wrong order. Swap the two tab-separated columns so French comes first.",
+  "text": "bonjour\thello\nau revoir\tgoodbye\nmerci\tthank you",
+  "solution": ":%s/\\(.*\\)\\t\\(.*\\)/\\2\\t\\1/<CR>",
+  "expect": {
+    "text": "hello\tbonjour\ngoodbye\tau revoir\nthank you\tmerci"
+  },
+  "why": "Using capture groups in a global substitute swaps the columns on every line in one pass.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:bf1e8c995cdc",
+  "ft": "text",
+  "par_seconds": 15,
+  "hint": "Capture both sides of the tab and reverse their order in the replacement."
+}
