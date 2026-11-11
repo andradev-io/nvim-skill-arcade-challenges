@@ -56,7 +56,7 @@ jobs:
         env:
           USER_CODE_SALT: ${{ secrets.USER_CODE_SALT }}
           ADMIN_USER_CODES: ${{ secrets.ADMIN_USER_CODES }}
-      - name: Set the dispatch token (optional: skipped when the DISPATCH_TOKEN secret is not set)
+      - name: "Set the dispatch token (optional, skipped when the DISPATCH_TOKEN secret is not set)"
         working-directory: worker
         env:
           DISPATCH_TOKEN: ${{ secrets.DISPATCH_TOKEN }}
