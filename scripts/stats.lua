@@ -24,6 +24,16 @@ for _, ch in ipairs(list) do
       id = ch.id, title = ch.title, area = ch.area, level = ch.level, ft = ch.ft,
       text = table.concat(ch.lines, "\n"), cursor = ch.cursor, brief = ch.brief,
     }
+    -- judged in the browser when the end state is plain buffer text and/or the cursor. A custom check cannot be
+    -- exported, except for the refactor sprints, whose check only re-runs the Lua (the text already decides).
+    local e = ch.expect
+    if e and (e.lines or e.cursor) and (not ch.check or ch.area == "refactor") then
+      local it = items[#items]
+      it.expect = { text = e.lines and table.concat(e.lines, "\n") or nil, cursor = e.cursor }
+      it.loose = ch.loose or nil
+      it.par_keys, it.par_seconds, it.why = ch.par_keys, ch.par_seconds, ch.why
+      it.solution = type(ch.solution) == "string" and ch.solution or nil
+    end
   end
 end
 local out2 = (arg and arg[2]) or "dist/builtin.json"
@@ -35,6 +45,10 @@ f:close()
 local f2 = assert(io.open(out2, "w"))
 f2:write(vim.json.encode({ challenges = items }))
 f2:close()
-print(("wrote %s: %d built-in challenges, %s: %d for the Terminal"):format(out, #list, out2, #items))
+local judged = 0
+for _, it in ipairs(items) do
+  judged = judged + (it.expect and 1 or 0)
+end
+print(("wrote %s: %d built-in challenges, %s: %d for the Terminal (%d judged)"):format(out, #list, out2, #items, judged))
 vim.fn.delete(tmp, "rf")
 vim.cmd("qa!")

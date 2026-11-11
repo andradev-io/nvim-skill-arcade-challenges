@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef } from 'react'
+import { useCallback, useEffect, useReducer, useRef } from 'react'
 import type { RefObject } from 'react'
 import { trackPlay } from '../analytics/track'
 import { check, linesEqual } from '../core/compare'
@@ -34,11 +34,13 @@ type Action =
   | { type: 'key'; now: number }
   | { type: 'tick'; now: number }
   | { type: 'blocked'; key: string }
+  | { type: 'reset' }
   | SyncAction
 
 const INITIAL: PlayState = { keys: 0, t0: null, elapsed: 0, mode: 'normal', passed: null, miss: [], cp: 0, blocked: null }
 
 function reduce(s: PlayState, a: Action): PlayState {
+  if (a.type === 'reset') return INITIAL
   if (a.type === 'blocked') return s.passed ? s : { ...s, blocked: a.key }
   if (a.type === 'key') {
     if (s.passed) return s
@@ -129,5 +131,10 @@ export function usePlay(draft: Challenge, editor: RefObject<VimEditorHandle | nu
     })
   }
 
-  return { state, onKey, onSync }
+  const reset = useCallback(() => {
+    awaitingArg.current = false
+    dispatch({ type: 'reset' })
+  }, [])
+
+  return { state, onKey, onSync, reset }
 }
