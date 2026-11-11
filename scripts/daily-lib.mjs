@@ -159,12 +159,25 @@ export function remember(c, known) {
   known.sigs.add(`${norm(c.text)}\u0000${norm(c.expect.text ?? '')}`)
 }
 
+/** Creative premises: the text a challenge works on can be anything people really edit, not only code. */
+export const THEMES = [
+  'a messy CSV export that needs reshaping', 'a game-master cheat sheet and loot tables', 'a recipe being scaled and converted',
+  'a git log or changelog being tidied', 'a chat transcript with timestamps to strip or reformat', 'a cipher or decoding puzzle solved with edits',
+  'an ASCII-art picture or box diagram being repaired', 'a poem or song lyrics being rearranged', 'a spreadsheet pasted as plain text',
+  'a to-do list or kanban board in markdown', 'a shopping list to sort and deduplicate', 'a config file (ini, yaml, env) being migrated',
+  'a SQL dump or query being reformatted', 'a markdown table that must be realigned', 'a log file where only the errors matter',
+  'a sports scoreboard or tournament bracket', 'a language-learning vocabulary list', 'a tabletop-RPG character sheet',
+  'a dependency or version list being bumped', 'a bilingual translation file with swapped columns', 'a music setlist or tracklist',
+  'a form letter with placeholders to fill', 'a stack trace being trimmed to the useful frames', 'a puzzle where the edit itself is the riddle',
+]
+
 /** Rotating focus so a month of days covers every area and level. */
 export function focusFor(date) {
   const day = Math.floor(Date.UTC(+date.slice(0, 4), +date.slice(5, 7) - 1, +date.slice(8, 10)) / 86_400_000)
   const areas = [0, 1, 2].map((i) => AREAS[(day + i * 3) % AREAS.length])
   const levels = [1 + (day % 5), 1 + ((day + 2) % 5), 1 + ((day + 4) % 5)].sort()
-  return { areas, levels }
+  const theme = THEMES[(day * 5 + 3) % THEMES.length]
+  return { areas, levels, theme }
 }
 
 // ── models ──────────────────────────────────────────────────────────────────
@@ -248,6 +261,7 @@ export function buildPrompt({ systemFile, userFile, date, focus, count, examples
     existing_ids: JSON.stringify(existing),
     area: focus.areas.join(', '),
     level: focus.levels.join(', '),
+    theme: focus.theme ?? 'anything people really edit',
     languages: FILETYPES.filter((f) => !['text', 'markdown', 'json', 'html'].includes(f)).join(', '),
     count,
     date,
