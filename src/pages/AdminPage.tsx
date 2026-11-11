@@ -13,6 +13,7 @@ import type { Stats } from '../auth/api'
 import { accessToken, useAuthStore } from '../auth/authStore'
 import { authConfig } from '../auth/config'
 import { BarList, TimeChart } from '../components/admin/Charts'
+import { GeneratePanel } from '../components/admin/GeneratePanel'
 import { rate } from '../components/admin/chartMath'
 import { useCommunity } from '../hooks/useCommunity'
 
@@ -120,6 +121,9 @@ export function AdminPage() {
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', pt: { xs: 3, md: 5 } }}>
       {head}
+      <Box sx={{ mb: 2.5 }}>
+        <GeneratePanel />
+      </Box>
       {error && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {error}

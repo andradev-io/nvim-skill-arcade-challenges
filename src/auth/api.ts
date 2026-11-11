@@ -63,3 +63,30 @@ export async function submitScore(api: string, token: string, r: Result): Promis
   if (res.status === 401) throw new Error('Your session expired. Sign in again to save results.')
   if (!res.ok) throw new Error(`The score service answered ${res.status}.`)
 }
+
+export interface GenerateRequest {
+  count: number
+  areas: string[]
+  levels: number[]
+  languages: string[]
+  theme: string
+  dryRun: boolean
+}
+
+/** Asks the Worker to start the AI challenge generator on GitHub (admin only). Resolves to the Actions page to watch it. */
+export async function requestGenerate(api: string, token: string, r: GenerateRequest): Promise<{ actions: string; dryRun: boolean }> {
+  let res: Response
+  try {
+    res = await fetch(`${api}/api/admin/generate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(r),
+    })
+  } catch {
+    throw new Error('Could not reach the score service.')
+  }
+  if (res.status === 401) throw new Error('Your session was not accepted. Sign in again.')
+  const body = (await res.json().catch(() => ({}))) as { actions?: string; dryRun?: boolean; error?: string }
+  if (!res.ok) throw new Error(body.error ?? `The score service answered ${res.status}.`)
+  return { actions: body.actions ?? '', dryRun: body.dryRun !== false }
+}

@@ -14,6 +14,8 @@ database_id = "REPLACE_WITH_THE_ID_FROM_wrangler_d1_create"
 KEYCLOAK_ISSUER = "REPLACE_KEYCLOAK_ISSUER"
 # Client ids allowed to call the API: the site and the plugin (device flow).
 ALLOWED_CLIENTS = "arcade-site,arcade-plugin"
+# The repository whose "daily challenges" workflow the Admin page starts (the token is the GITHUB_DISPATCH_TOKEN secret).
+GITHUB_REPO = "andradev-io/nvim-skill-arcade-challenges"
 ALLOWED_ORIGINS = "https://arcade.nvim.andradev.io,http://localhost:5173,http://localhost:5197"
 
 # The API's own address. Cloudflare creates the DNS record and certificate for it on deploy (the andradev.io zone must
