@@ -26,6 +26,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - name: Check the admin secret is there
+        env:
+          ADMIN_USER_CODES: ${{ secrets.ADMIN_USER_CODES }}
+        run: |
+          if [ -z "$ADMIN_USER_CODES" ]; then echo "Add the ADMIN_USER_CODES secret: your player code (see worker/README.md)." >&2; exit 1; fi
       - name: Put the private config (GitHub secrets) into wrangler.toml
         env:
           D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
@@ -47,5 +52,7 @@ jobs:
           command: deploy
           secrets: |
             USER_CODE_SALT
+            ADMIN_USER_CODES
         env:
           USER_CODE_SALT: ${{ secrets.USER_CODE_SALT }}
+          ADMIN_USER_CODES: ${{ secrets.ADMIN_USER_CODES }}

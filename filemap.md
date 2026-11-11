@@ -44,6 +44,9 @@
 - `src/hooks/useRoute.ts` — tiny hash router (`#/create` ...), no dependency; `hidden` routes have no nav button
 - `src/auth/` — sign-in: `config.ts` (build-time issuer / API, null = login hidden), `authStore.ts` (oidc-client-ts, PKCE, session in sessionStorage), `callback.ts` (return from Keycloak), `api.ts` (`GET /api/me`), `auth.test.ts`
 - `src/pages/AccountPage.tsx`, `src/components/layout/AccountButton.tsx` — the player code page and the header button
+- `src/analytics/track.ts` — anonymous view / play counts sent to the Worker (off with DNT, in dev, or without an API); `analytics.test.ts`
+- `src/pages/AdminPage.tsx`, `src/components/admin/Charts.tsx`, `chartMath.ts` — the admin charts (plain SVG, no chart library)
+- `worker/src/analytics.ts` — event parsing, daily visitor hash, admin check, day filling; `analytics.test.ts` runs the endpoints against a fake D1
 - `src/store/terminalStore.ts` — the buffer the terminal edits; other pages hand one over
 - `src/components/terminal/KeymapSource.tsx`, `Statusline.tsx` — GitHub keymap loader + report, lualine-style bar
 - `src/core/keymaps.ts` — scans Lua / Vimscript configs for keymaps (never executes): working maps, stubs that say what needs a plugin, skipped modes

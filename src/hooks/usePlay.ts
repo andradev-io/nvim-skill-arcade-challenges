@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef } from 'react'
 import type { RefObject } from 'react'
+import { trackPlay } from '../analytics/track'
 import { check, linesEqual } from '../core/compare'
 import { judgeTrack, stepTrack } from '../core/track'
 import type { Challenge, Cursor } from '../core/types'
@@ -66,6 +67,16 @@ export function usePlay(draft: Challenge, editor: RefObject<VimEditorHandle | nu
   useEffect(() => {
     latest.current = draft
   })
+
+  // anonymous counts of started / finished plays (only published challenges are counted)
+  const started = state.t0 !== null
+  const finished = state.passed !== null
+  useEffect(() => {
+    if (started) trackPlay(latest.current.id, false)
+  }, [started])
+  useEffect(() => {
+    if (finished) trackPlay(latest.current.id, true)
+  }, [finished])
 
   const running = state.t0 !== null && !state.passed
   useEffect(() => {

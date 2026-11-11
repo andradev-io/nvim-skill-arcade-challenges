@@ -6,6 +6,7 @@ import IconButton from '@mui/material/IconButton'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { useColorScheme } from '@mui/material/styles'
+import { useAuthStore } from '../../auth/authStore'
 import { ROUTES, navigate, useRoute } from '../../hooks/useRoute'
 import { AccountButton } from './AccountButton'
 import { GitHubLink } from './GitHubLink'
@@ -15,6 +16,7 @@ export function TopBar({ fluid = false }: { fluid?: boolean }) {
   const { mode, systemMode, setMode } = useColorScheme()
   const dark = (mode === 'system' ? systemMode : mode) === 'dark'
   const route = useRoute()
+  const admin = useAuthStore((s) => s.admin)
   return (
     <Box
       component="header"
@@ -55,7 +57,7 @@ export function TopBar({ fluid = false }: { fluid?: boolean }) {
           </Stack>
         </Stack>
         <Stack component="nav" aria-label="Pages" direction="row" sx={{ gap: 0.5, flex: 1, overflowX: 'auto' }}>
-          {ROUTES.filter((r) => !r.hidden).map((r) => (
+          {ROUTES.filter((r) => !r.hidden || (r.id === 'admin' && admin)).map((r) => (
             <Button
               key={r.id}
               href={r.hash}
