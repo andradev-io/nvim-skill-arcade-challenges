@@ -119,16 +119,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           DAY: ${{ inputs.date }}
+          ON_DEMAND: ${{ inputs.count || inputs.areas || inputs.levels || inputs.languages || inputs.theme }}
         run: |
           day="${DAY:-$(date -u +%Y-%m-%d)}"
+          # an on-demand request gets its own branch and title, so it never replaces the day's open daily PR
+          branch="daily/$day"; title="feat: daily challenges for $day"
+          if [ -n "$ON_DEMAND" ]; then branch="ondemand/$day-$GITHUB_RUN_ID"; title="feat: on-demand challenges ($day)"; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b "daily/$day"
+          git checkout -b "$branch"
           git add daily
-          git commit -m "feat: daily challenges for $day"
-          git push --force origin "daily/$day" # bot-owned branch: a rerun replaces it
+          git commit -m "$title"
+          git push --force origin "$branch" # bot-owned branch: a rerun replaces it
           # the self-hosted runner has no gh CLI, so call the REST API with node (set up above)
-          TITLE="feat: daily challenges for $day" HEAD="daily/$day" node -e '
+          TITLE="$title" HEAD="$branch" node -e '
             const fs = require("fs")
             const body = fs.readFileSync(process.env.RUNNER_TEMP + "/pr-body.md", "utf8")
             fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/pulls`, {
