@@ -54,6 +54,15 @@ src/  (React site: form, play, list)  challenges/*.json  (one file per challenge
 The engine that judges a challenge is the plugin itself (`skill_arcade.validate`), checked out by CI, so the
 website, CI and the game can never disagree about what a valid challenge is.
 
+## Daily challenges
+
+A scheduled workflow has a model write new challenges every day and opens a pull request with the ones that pass the
+same gates as any contribution (schema, replay in real Neovim, no duplicates). Merged ones are published in
+`community.json` and the plugin's daily mode plays the day's own. Off until `DAILY_ENABLED` is `true`; the API key is a
+repository secret; the API URL and the models (`ANTHROPIC_MODEL`, `_FALLBACK`, `_HARD`) are repository variables, and the
+prompt is two files in `daily/prompt/`. Setup, the kill switch and a keyless local dry run:
+[CONTRIBUTING.md](CONTRIBUTING.md#daily-challenges-maintainer).
+
 ## Sign in (player code)
 
 The header has **Sign in**: GitHub through the realm's Keycloak (authorization code + PKCE, scope `openid` only). The
