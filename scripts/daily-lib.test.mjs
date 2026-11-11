@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_MODEL, DEFAULT_URL, EXTRA_MAX, buildPrompt, capExtra, cleanModel, duplicateOf, extractJson, focusFor, knownSet, parseValidateOutput, parsePromptFile, redact, render, resolveModels, remember, resolveBaseUrl, sanitize, slugify, unsafeKeys } from './daily-lib.mjs'
+import { DEFAULT_MODEL, DEFAULT_URL, EXTRA_MAX, buildPrompt, capExtra, cleanModel, duplicateOf, extractJson, focusFor, knownSet, modelChain, resolveBudgetMs, resolveTimeoutMs, parseValidateOutput, parsePromptFile, redact, render, resolveModels, remember, resolveBaseUrl, sanitize, slugify, unsafeKeys } from './daily-lib.mjs'
 
 const good = {
   title: 'Drop the first mineral',
@@ -123,12 +123,12 @@ describe('focus and parsing', () => {
 
 describe('models', () => {
   it('defaults and falls back to the main model', () => {
-    expect(resolveModels({})).toEqual({ main: DEFAULT_MODEL, fallback: DEFAULT_MODEL, hard: DEFAULT_MODEL })
-    expect(resolveModels({ ANTHROPIC_MODEL: 'm-a' })).toEqual({ main: 'm-a', fallback: 'm-a', hard: 'm-a' })
+    expect(resolveModels({})).toEqual({ main: DEFAULT_MODEL, fallback: DEFAULT_MODEL, hard: DEFAULT_MODEL, extra: [] })
+    expect(resolveModels({ ANTHROPIC_MODEL: 'm-a' })).toEqual({ main: 'm-a', fallback: 'm-a', hard: 'm-a', extra: [] })
   })
   it('reads fallback and hard, and a run override wins over everything', () => {
     const env = { ANTHROPIC_MODEL: 'm-a', ANTHROPIC_MODEL_FALLBACK: 'm-b', ANTHROPIC_MODEL_HARD: 'm-c' }
-    expect(resolveModels(env)).toEqual({ main: 'm-a', fallback: 'm-b', hard: 'm-c' })
+    expect(resolveModels(env)).toEqual({ main: 'm-a', fallback: 'm-b', hard: 'm-c', extra: [] })
     expect(resolveModels({ ...env, DAILY_MODEL: 'm-z' }).hard).toBe('m-z')
     expect(resolveModels({ ...env, DAILY_MODEL: 'm-z' }).main).toBe('m-z')
   })
@@ -181,5 +181,19 @@ describe('provenance', () => {
     const r = sanitize(good, { date: '2026-11-12', model: 'm-a', prompt: 'v1.1:abcdef123456' })
     expect(r.challenge.model).toBe('m-a')
     expect(r.challenge.prompt).toBe('v1.1:abcdef123456')
+  })
+})
+
+describe('model chain and time budgets', () => {
+  it('orders the wanted model, the fallback, then the extras, without repeats', () => {
+    const models = resolveModels({ ANTHROPIC_MODEL: 'a', ANTHROPIC_MODEL_FALLBACK: 'b', ANTHROPIC_MODELS_EXTRA: 'c, a ,d' })
+    expect(modelChain('a', models)).toEqual(['a', 'b', 'c', 'd'])
+    expect(modelChain('z', models)).toEqual(['z', 'b', 'c', 'a', 'd'])
+  })
+  it('clamps the budgets and falls back to the defaults', () => {
+    expect(resolveTimeoutMs({})).toBe(90_000)
+    expect(resolveTimeoutMs({ DAILY_MODEL_TIMEOUT_SECONDS: '1' })).toBe(10_000)
+    expect(resolveBudgetMs({})).toBe(300_000)
+    expect(resolveBudgetMs({ DAILY_BATCH_BUDGET_SECONDS: '99999' })).toBe(900_000)
   })
 })

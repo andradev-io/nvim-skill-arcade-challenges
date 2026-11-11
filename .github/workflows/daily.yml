@@ -38,7 +38,7 @@ jobs:
     # Kill switch: nothing runs unless the repository variable DAILY_ENABLED is exactly "true".
     if: ${{ vars.DAILY_ENABLED == 'true' }}
     runs-on: andradev-io # self-hosted ARC runner (homelab): the Anthropic org allowlists its IP, not the GitHub-hosted ones
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       # the engine that judges challenges is the plugin itself
@@ -63,6 +63,9 @@ jobs:
           ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
           ANTHROPIC_MODEL_FALLBACK: ${{ vars.ANTHROPIC_MODEL_FALLBACK }}
           ANTHROPIC_MODEL_HARD: ${{ vars.ANTHROPIC_MODEL_HARD }}
+          ANTHROPIC_MODELS_EXTRA: ${{ vars.ANTHROPIC_MODELS_EXTRA }}
+          DAILY_MODEL_TIMEOUT_SECONDS: ${{ vars.DAILY_MODEL_TIMEOUT_SECONDS }}
+          DAILY_BATCH_BUDGET_SECONDS: ${{ vars.DAILY_BATCH_BUDGET_SECONDS }}
           DAILY_MODEL: ${{ inputs.model }}
           DAILY_PROMPT_EXTRA: ${{ vars.DAILY_PROMPT_EXTRA }}
           DAILY_PROMPT_EXTRA_RUN: ${{ inputs.prompt_extra }}

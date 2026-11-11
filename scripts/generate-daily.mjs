@@ -24,7 +24,7 @@ import os from 'node:os'
 import path from 'node:path'
 import {
   buildPrompt, capExtra, duplicateOf, extractJson, focusFor, knownSet, parseValidateOutput, redact, remember, resolveBaseUrl,
-  resolveModels, sanitize,
+  resolveModels, modelChain, resolveBudgetMs, resolveTimeoutMs, sanitize,
 } from './daily-lib.mjs'
 
 const env = process.env
@@ -138,7 +138,7 @@ const MOCK_REPLY = [
 
 const OVERLOADED = new Set([429, 500, 502, 503, 520, 521, 522, 523, 524, 529]) // 52x: proxy (Cloudflare) timeouts
 
-async function callApi(model, system, messages) {
+async function callApi(model, system, messages, timeoutMs) {
   const key = env.ANTHROPIC_API_KEY
   const { url, label } = resolveBaseUrl(env.ANTHROPIC_URL)
   log(`asking ${model} at ${label}`)
@@ -148,7 +148,7 @@ async function callApi(model, system, messages) {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({ model, max_tokens: 4096, system, messages }),
-      signal: AbortSignal.timeout(Number(env.DAILY_API_TIMEOUT_MS) || 300_000),
+      signal: AbortSignal.timeout(timeoutMs),
     })
   } catch (e) {
     const err = new Error(`could not reach the model API: ${redact(e instanceof Error ? e.message : e, key)}`)
@@ -167,21 +167,30 @@ async function callApi(model, system, messages) {
 }
 
 /** Returns { text, model }: the model that actually answered (the fallback takes over when the first one is overloaded). */
-async function askModel(batch, messages, attempt) {
+async function askModel(batch, messages, attempt, deadline) {
   if (mock) {
     const file = mock === '1' ? null : mock
     return { text: JSON.stringify(file ? readJson(file) : MOCK_REPLY), model: `${batch.model} (mock)` }
   }
   if (!env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not set (use DAILY_MOCK=1 to try the gates without a key)')
-  // retries use the fallback model (which is the main one unless ANTHROPIC_MODEL_FALLBACK is set)
-  const first = attempt > 0 ? models.fallback : batch.model
-  try {
-    return { text: await callApi(first, batch.prompt.system, messages), model: first }
-  } catch (e) {
-    if (!(e instanceof Error) || !e.retryable || models.fallback === first) throw e
-    log(`${first} failed (${e.message}); trying ${models.fallback}`)
-    return { text: await callApi(models.fallback, batch.prompt.system, messages), model: models.fallback }
+  // Each model gets DAILY_MODEL_TIMEOUT_SECONDS (never more than what is left of the batch budget). No answer in time,
+  // an error or an unknown model moves on to the next one; an attempt whose answer was rejected starts one model later.
+  const chain = modelChain(batch.model, models)
+  const order = [...chain.slice(attempt % chain.length), ...chain.slice(0, attempt % chain.length)]
+  const per = resolveTimeoutMs(env)
+  let last = new Error('no time left in the batch budget')
+  for (const m of order) {
+    const left = deadline - Date.now()
+    if (left < 5_000) break
+    try {
+      return { text: await callApi(m, batch.prompt.system, messages, Math.min(per, left)), model: m }
+    } catch (e) {
+      last = e
+      const more = order.indexOf(m) < order.length - 1
+      log(`${m} failed (${(e instanceof Error ? e.message : String(e)).split(String.fromCharCode(10))[0].slice(0, 120)})${more ? '; trying the next model' : ''}`)
+    }
   }
+  throw last
 }
 
 // ── the gates ───────────────────────────────────────────────────────────────
@@ -196,14 +205,15 @@ function replay(dir) {
 const accepted = []
 for (const batch of batches) {
   let messages = [{ role: 'user', content: batch.prompt.user }]
-  for (let attempt = 0; attempt <= 2 && batch.accepted < batch.count; attempt += 1) {
+  const deadline = Date.now() + resolveBudgetMs(env)
+  // keep trying (rotating models) until the batch has what it needs or its time budget is gone
+  for (let attempt = 0; batch.accepted < batch.count && (attempt < 6 || mock) && Date.now() < deadline; attempt += 1) {
     let reply, model
     try {
-      ;({ text: reply, model } = await askModel(batch, messages, attempt))
+      ;({ text: reply, model } = await askModel(batch, messages, attempt, deadline))
     } catch (e) {
-      // a flaky call must not throw away what already passed the gates
-      if (!(e instanceof Error) || !e.retryable || accepted.length === 0 && attempt === 0) throw e
-      log(`attempt ${attempt + 1}: ${e.message}; keeping the ${accepted.length} that passed`)
+      // every model failed or time ran out: keep what already passed the gates
+      log(`attempt ${attempt + 1}: ${e instanceof Error ? e.message.split(String.fromCharCode(10))[0] : e}; keeping the ${accepted.length} that passed`)
       break
     }
     let list
@@ -245,7 +255,7 @@ for (const batch of batches) {
     fs.rmSync(dir, { recursive: true, force: true })
     log(`attempt ${attempt + 1}: ${result.ok.length} passed, ${problems.length} rejected`)
     for (const p of problems) log(`  rejected  ${p}`)
-    if (batch.accepted >= batch.count || attempt === 2 || mock) break
+    if (batch.accepted >= batch.count || mock) break
     messages = [
       ...messages,
       { role: 'assistant', content: reply.slice(0, 4000) },
