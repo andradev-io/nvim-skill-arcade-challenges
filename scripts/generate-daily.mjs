@@ -82,10 +82,23 @@ const examples = existing
   .map((e) => readJson(path.join('challenges', `${e.id}.json`)))
   .filter(Boolean)
   .map(({ title, area, level, brief, text, solution, expect, why, ft }) => ({ title, area, level, ft, brief, text, solution, expect, why }))
-const idsAndTitles = [
-  ...existing.filter((e) => e.id).map((e) => ({ id: e.id, title: e.title })),
-  ...builtinTitles.map((title) => ({ title })),
-].slice(0, 120)
+// Every title that exists (built-in, published, AI, daily), once each and all of them, so the model can steer away from
+// them instead of finding out at the gate. Capped by size, not by count: titles are short.
+const TITLES_MAX_CHARS = 14_000
+const idsAndTitles = (() => {
+  const seen = new Set()
+  const out = []
+  let size = 0
+  for (const t of [...existing.map((e) => e.title), ...builtinTitles]) {
+    const title = String(t ?? '').trim()
+    const key = title.toLowerCase()
+    if (!title || seen.has(key) || size + title.length + 4 > TITLES_MAX_CHARS) continue
+    seen.add(key)
+    out.push(title)
+    size += title.length + 4
+  }
+  return out
+})()
 
 // Levels 4-5 go to the hard model when it differs from the main one: two batches, each with its own prompt.
 const focus = focusFor(date)
@@ -269,7 +282,13 @@ for (const batch of batches) {
     messages = [
       ...messages,
       { role: 'assistant', content: reply.slice(0, 4000) },
-      { role: 'user', content: `${batch.accepted} passed so far. Rejected:\n${problems.join('\n')}\nWrite ${batch.count - batch.accepted} new, different challenges that avoid these problems. Reply with ONLY a JSON array.` },
+      {
+        role: 'user',
+        content:
+          `${batch.accepted} passed so far. Rejected:\n${problems.join('\n')}\n` +
+          (accepted.length ? `Already accepted in this run (do not repeat or reword): ${accepted.map((c) => c.title).join('; ')}\n` : '') +
+          `Write ${batch.count - batch.accepted} new, different challenges that avoid these problems. Reply with ONLY a JSON array.`,
+      },
     ]
   }
 }
