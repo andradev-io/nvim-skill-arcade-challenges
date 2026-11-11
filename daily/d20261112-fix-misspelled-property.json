@@ -1,0 +1,25 @@
+{
+  "id": "d20261112-fix-misspelled-property",
+  "title": "Fix misspelled property",
+  "area": "refactor",
+  "level": 2,
+  "brief": "The interface says 'heigth' but the code uses 'height'. Rename the property in both places.",
+  "text": "interface Box {\n  heigth: number;\n}\nconst b: Box = { heigth: 10 };",
+  "solution": "*ciwheight<Esc>n.",
+  "expect": {
+    "text": "interface Box {\n  height: number;\n}\nconst b: Box = { height: 10 };"
+  },
+  "why": "Star (*) searches for the word under cursor. ciw replaces it, then n. jumps to the next match and repeats the edit.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.2:9c329bcf9ff4",
+  "ft": "typescript",
+  "cursor": [
+    2,
+    2
+  ],
+  "par_seconds": 12,
+  "hint": "Use * to search for the word under the cursor, then change it and repeat with dot."
+}

@@ -1,0 +1,23 @@
+{
+  "id": "d20261112-sort-log-entries-by-time",
+  "title": "Sort log entries by timestamp",
+  "area": "textobjects",
+  "level": 2,
+  "brief": "Sort these log lines alphabetically by their timestamp prefix (first 19 chars).",
+  "text": "2026-11-12 09:15:23 ERROR disk full\n2026-11-12 08:30:01 INFO startup complete\n2026-11-12 10:45:12 WARN memory low\n2026-11-12 07:00:00 DEBUG init started",
+  "solution": ":sort<CR>",
+  "expect": {
+    "text": "2026-11-12 07:00:00 DEBUG init started\n2026-11-12 08:30:01 INFO startup complete\n2026-11-12 09:15:23 ERROR disk full\n2026-11-12 10:45:12 WARN memory low"
+  },
+  "why": "The :sort command sorts lines lexicographically, which works perfectly for ISO timestamps.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.2:9c329bcf9ff4",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 10
+}

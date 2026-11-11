@@ -1,0 +1,24 @@
+{
+  "id": "d20261112-wrap-the-inner-paragraph",
+  "title": "Wrap the inner paragraph",
+  "area": "textobjects",
+  "level": 2,
+  "brief": "A writer wants to quote a paragraph. Add an opening and closing quotation mark around the entire block of text.",
+  "text": "The sun set slowly.\nBirds flew home.\nThe wind died down.",
+  "solution": "vipI\"<Esc>`>a\"<Esc>",
+  "expect": {
+    "text": "\"The sun set slowly.\nBirds flew home.\nThe wind died down.\""
+  },
+  "why": "vip visually selects the inner paragraph. I inserts before the selection, `> jumps to the end of it, and a appends after.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.2:9c329bcf9ff4",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 15,
+  "hint": "Use vip to select the whole paragraph, then insert at both ends."
+}
