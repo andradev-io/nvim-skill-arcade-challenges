@@ -1,0 +1,25 @@
+{
+  "id": "d20261111-fix-typescript-typo-with",
+  "title": "Fix TypeScript typo with search",
+  "area": "search",
+  "level": 1,
+  "brief": "The variable 'usernmae' is misspelled. Find it and correct it to 'username' without retyping the rest of the line.",
+  "text": "const usernmae = \"Alice\";",
+  "solution": "/usernmae<CR>cwusername<Esc>",
+  "expect": {
+    "text": "const username = \"Alice\";"
+  },
+  "why": "Searching jumps directly to the error, and cw replaces the word efficiently.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:bf1e8c995cdc",
+  "ft": "typescript",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 8,
+  "hint": "Use / to find the typo, then cw to change the word."
+}

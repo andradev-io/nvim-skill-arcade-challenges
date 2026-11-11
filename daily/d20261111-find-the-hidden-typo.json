@@ -1,0 +1,25 @@
+{
+  "id": "d20261111-find-the-hidden-typo",
+  "title": "Find the hidden typo",
+  "area": "search",
+  "level": 3,
+  "brief": "A JavaScript config has a misspelled key 'adress'. Search for it and change it to 'address' without retyping the rest of the line.",
+  "text": "const config = {\n  name: \"Arcade\",\n  adress: \"123 Main St\",\n  port: 8080\n};",
+  "solution": "/adress<CR>ceaddress<Esc>",
+  "expect": {
+    "text": "const config = {\n  name: \"Arcade\",\n  address: \"123 Main St\",\n  port: 8080\n};"
+  },
+  "why": "Searching jumps straight to the typo, and ce changes to the end of the word so you only type the missing letter.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:bf1e8c995cdc",
+  "ft": "javascript",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 10,
+  "hint": "Combine / to jump and ce to fix the word ending."
+}

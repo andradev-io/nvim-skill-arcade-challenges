@@ -1,0 +1,21 @@
+{
+  "id": "d20261111-remove-extra-blank-lines",
+  "title": "Remove extra blank lines in chat",
+  "area": "editing",
+  "level": 1,
+  "brief": "A chat transcript has too many empty lines between messages. Squeeze consecutive blank lines into just one.",
+  "text": "Alice: hi\n\n\nBob: hey\n\n\nAlice: ready?",
+  "solution": ":g/^$/.,/^./-j<CR>",
+  "expect": {
+    "text": "Alice: hi\n\nBob: hey\n\nAlice: ready?"
+  },
+  "why": "The global command finds empty lines and joins them up to the next non-empty line, collapsing runs of blanks efficiently.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:bf1e8c995cdc",
+  "ft": "text",
+  "par_seconds": 15,
+  "hint": "Use :g to target empty lines and j to join."
+}
