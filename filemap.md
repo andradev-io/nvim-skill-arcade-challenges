@@ -41,6 +41,7 @@
 - `src/examples.ts` — ready-made drafts (first visit loads the first one; the picker loads the others)
 - `src/pages/HomePage.tsx` — landing page: pitch, round preview, stats, features, install, community
 - `src/pages/CreatePage.tsx`, `ChallengesPage.tsx`, `TerminalPage.tsx` — the other three pages (builder, published list, full-screen terminal with side menu)
+- `scripts/stats.lua`, `src/hooks/useStats.ts`, `src/hooks/useBuiltin.ts` — the deploy exports the plugin's built-in challenges (`stats.json` counts, `builtin.json` plain-text ones); the home page tiles and the Terminal "Built-in: area" buffer groups read them
 - `src/hooks/useRoute.ts` — tiny hash router (`#/create` ...), no dependency; `hidden` routes have no nav button
 - `src/auth/` — sign-in: `config.ts` (build-time issuer / API, null = login hidden), `authStore.ts` (oidc-client-ts, PKCE, session in sessionStorage), `callback.ts` (return from Keycloak), `api.ts` (`GET /api/me`), `auth.test.ts`
 - `src/pages/AccountPage.tsx`, `src/components/layout/AccountButton.tsx` — the player code page and the header button
