@@ -13,6 +13,7 @@ import { EXAMPLES } from '../examples'
 import { CodeBlock } from '../components/common/CodeBlock'
 import { CountUp } from '../components/common/CountUp'
 import { useStats } from '../hooks/useStats'
+import { authConfig } from '../auth/config'
 
 const INSTALL = `{
   "andradev-io/nvim-skill-arcade",
@@ -57,6 +58,22 @@ const FEATURES: { title: string; text: string; to?: Route; cta?: string }[] = [
     to: 'challenges',
     cta: 'Browse published',
   },
+]
+
+const WHY_SIGN_IN = [
+  'The only thing it unlocks is the leaderboard: your best result (fewest keys, then least time) on challenges you play in the browser terminal, under a short player code.',
+  'Nothing else needs it. Playing, the terminal, creating challenges, the AI section and the whole plugin work signed out.',
+  'The site and its score service never receive your name, e-mail or GitHub account. The code is derived from your login, is the same every time and cannot be traced back to you.',
+  'Scores are reported by the client, so the board is an honor system.',
+]
+
+const IN_NEOVIM = [
+  [':ArcadeMenu', 'start here: it lists only what you can do right now, and shows your own keys'],
+  [':ArcadeRun', 'a run of 6 challenges with 3 lives; your best results stay on your machine (:ArcadeStats)'],
+  [':ArcadeSync', 'download the community and AI challenges; it is manual, https-only and data only'],
+  [':ArcadeDaily', "today's set: the AI-written challenges of the day when synced, a built-in set otherwise"],
+  [':ArcadeAI', 'play the AI challenges (latest, or pick an area)'],
+  [':ArcadeJoin ROOM-XXXX', 'play a challenge you just built here, no sign-in and no pull request'],
 ]
 
 const STEPS = [
@@ -219,6 +236,51 @@ export function HomePage() {
               )}
             </Paper>
           ))}
+        </Box>
+      </Band>
+
+      <Band
+        id="sign-in"
+        title="Do you need to sign in?"
+        lead="No. You can play, build and install everything without an account. Signing in with GitHub is an optional extra."
+      >
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'repeat(2, minmax(0, 1fr))' }, gap: 3 }}>
+          <Paper sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <Typography sx={{ fontWeight: 700, fontSize: 18 }}>Why sign in with GitHub</Typography>
+            <Stack component="ul" sx={{ gap: 1, pl: 2.5, m: 0 }}>
+              {WHY_SIGN_IN.map((t) => (
+                <Typography key={t} component="li" color="text.secondary" sx={{ lineHeight: 1.8 }}>
+                  {t}
+                </Typography>
+              ))}
+            </Stack>
+            {authConfig && (
+              <Box>
+                <Button size="small" onClick={() => navigate('account')}>
+                  Get a player code
+                </Button>
+              </Box>
+            )}
+          </Paper>
+          <Paper sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <Typography sx={{ fontWeight: 700, fontSize: 18 }}>And in Neovim</Typography>
+            <Typography color="text.secondary" sx={{ lineHeight: 1.8 }}>
+              The plugin has no login and no account. It works offline and keeps your results locally; scores are not sent to
+              the leaderboard from Neovim. The commands:
+            </Typography>
+            <Stack spacing={1}>
+              {IN_NEOVIM.map(([cmd, what]) => (
+                <Stack key={cmd} direction="row" sx={{ gap: 1.5, alignItems: 'baseline' }}>
+                  <Box component="code" sx={{ color: 'primary.main', whiteSpace: 'nowrap' }}>
+                    {cmd}
+                  </Box>
+                  <Typography variant="body2" color="text.secondary">
+                    {what}
+                  </Typography>
+                </Stack>
+              ))}
+            </Stack>
+          </Paper>
         </Box>
       </Band>
 
