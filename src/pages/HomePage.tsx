@@ -11,6 +11,8 @@ import type { Route } from '../hooks/useRoute'
 import { useCommunity } from '../hooks/useCommunity'
 import { EXAMPLES } from '../examples'
 import { CodeBlock } from '../components/common/CodeBlock'
+import { CountUp } from '../components/common/CountUp'
+import { useStats } from '../hooks/useStats'
 
 const INSTALL = `{
   "dev-vinicius-andrade/nvim-skill-arcade",
@@ -110,11 +112,11 @@ function RoundPreview() {
   )
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+function Stat({ value, suffix, label }: { value: number | null; suffix?: string; label: string }) {
   return (
     <Paper sx={{ p: 2, flex: 1, minWidth: 140 }}>
       <Typography sx={{ fontSize: 28, fontWeight: 800, lineHeight: 1 }} color="primary">
-        {value}
+        <CountUp value={value} suffix={suffix} />
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
         {label}
@@ -125,6 +127,7 @@ function Stat({ value, label }: { value: string; label: string }) {
 
 export function HomePage() {
   const community = useCommunity()
+  const stats = useStats()
   const published = community.status === 'ready' ? community.items : []
   return (
     <Box>
@@ -170,10 +173,10 @@ export function HomePage() {
       </Box>
 
       <Stack direction="row" sx={{ gap: 2, flexWrap: 'wrap' }}>
-        <Stat value="55+" label="built-in challenges" />
-        <Stat value={String(AREAS.length)} label="skill areas" />
-        <Stat value={community.status === 'ready' ? String(published.length) : '-'} label="community challenges" />
-        <Stat value={String(EXAMPLES.length)} label="examples to start from" />
+        <Stat value={stats ? stats.builtin : null} label="built-in challenges" />
+        <Stat value={AREAS.length} label="skill areas" />
+        <Stat value={community.status === 'ready' ? published.length : null} label="community challenges" />
+        <Stat value={EXAMPLES.length} label="examples to start from" />
       </Stack>
 
       <Band title="How it plays" lead="Open :ArcadeMenu, start a run and play. The game only looks at the result, never at which keys you used.">
