@@ -1,4 +1,3 @@
-import GitHubIcon from '@mui/icons-material/GitHub'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import Box from '@mui/material/Box'
@@ -9,8 +8,7 @@ import Typography from '@mui/material/Typography'
 import { useColorScheme } from '@mui/material/styles'
 import { ROUTES, navigate, useRoute } from '../../hooks/useRoute'
 import { AccountButton } from './AccountButton'
-
-const REPO_URL = 'https://github.com/dev-vinicius-andrade/nvim-skill-arcade'
+import { GitHubLink } from './GitHubLink'
 
 /** Site header: brand, page navigation, GitHub and theme. The nav drops under the brand on a phone. */
 export function TopBar({ fluid = false }: { fluid?: boolean }) {
@@ -50,9 +48,7 @@ export function TopBar({ fluid = false }: { fluid?: boolean }) {
           </Typography>
           <Stack direction="row" sx={{ gap: 0.5, display: { xs: 'flex', md: 'none' } }}>
             <AccountButton compact />
-            <IconButton size="small" aria-label="nvim-skill-arcade on GitHub" href={REPO_URL} target="_blank" rel="noopener">
-              <GitHubIcon fontSize="small" />
-            </IconButton>
+            <GitHubLink small />
             <IconButton size="small" aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'} onClick={() => setMode(dark ? 'light' : 'dark')}>
               {dark ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
             </IconButton>
@@ -79,9 +75,7 @@ export function TopBar({ fluid = false }: { fluid?: boolean }) {
         </Stack>
         <Stack direction="row" sx={{ gap: 0.5, alignItems: 'center', display: { xs: 'none', md: 'flex' } }}>
           <AccountButton />
-          <IconButton aria-label="nvim-skill-arcade on GitHub" href={REPO_URL} target="_blank" rel="noopener">
-            <GitHubIcon fontSize="small" />
-          </IconButton>
+          <GitHubLink />
           <IconButton aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'} onClick={() => setMode(dark ? 'light' : 'dark')}>
             {dark ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
           </IconButton>
