@@ -1,0 +1,24 @@
+{
+  "id": "d20261111-change-inside-html-tag",
+  "title": "Change inside HTML tag",
+  "area": "textobjects",
+  "level": 2,
+  "brief": "Replace the content of the <h1> tag with 'Welcome'.",
+  "text": "<h1>Hello World</h1>",
+  "solution": "citWelcome<Esc>",
+  "expect": {
+    "text": "<h1>Welcome</h1>"
+  },
+  "why": "cit changes inside the tag block, automatically finding the matching closing tag.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:250c8015fb86",
+  "ft": "html",
+  "cursor": [
+    1,
+    4
+  ],
+  "par_seconds": 10
+}

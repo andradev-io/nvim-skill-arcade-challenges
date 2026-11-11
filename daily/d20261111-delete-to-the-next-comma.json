@@ -1,0 +1,24 @@
+{
+  "id": "d20261111-delete-to-the-next-comma",
+  "title": "Delete to the next comma",
+  "area": "motions",
+  "level": 1,
+  "brief": "Delete the first item in the CSV list, including its trailing comma.",
+  "text": "apple,banana,cherry",
+  "solution": "df,",
+  "expect": {
+    "text": "banana,cherry"
+  },
+  "why": "df{char} deletes through the next {char}, cleanly removing the item and its separator.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:250c8015fb86",
+  "ft": "text",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 8
+}
