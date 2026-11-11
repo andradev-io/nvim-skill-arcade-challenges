@@ -1,68 +1,45 @@
 import AddIcon from '@mui/icons-material/Add'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import CloseIcon from '@mui/icons-material/Close'
 import MenuIcon from '@mui/icons-material/Menu'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import ButtonBase from '@mui/material/ButtonBase'
 import Collapse from '@mui/material/Collapse'
 import IconButton from '@mui/material/IconButton'
-import ListSubheader from '@mui/material/ListSubheader'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import Stack from '@mui/material/Stack'
-import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
 import { VimEditor } from '../components/play/VimEditor'
 import type { VimEditorHandle } from '../components/play/VimEditor'
-import { KeymapSource } from '../components/terminal/KeymapSource'
 import { InfoDialog } from '../components/terminal/InfoDialog'
 import type { InfoTab } from '../components/terminal/InfoDialog'
-import { PluginList } from '../components/terminal/PluginList'
 import { Statusline } from '../components/terminal/Statusline'
 import type { Snap } from '../components/terminal/Statusline'
 import { setEditorSink } from '../components/play/exCommands'
-import { EXAMPLES } from '../examples'
 import { useCommunity } from '../hooks/useCommunity'
 import { useBuiltin } from '../hooks/useBuiltin'
-import type { BuiltinChallenge } from '../hooks/useBuiltin'
+import { toChallenge } from '../core/builtin'
+import type { Challenge } from '../core/types'
+import { usePlay } from '../hooks/usePlay'
+import { ChallengeBar } from '../components/terminal/ChallengeBar'
+import { SideContent, SideResizer } from '../components/terminal/TerminalSide'
 import { useDraft } from '../hooks/useDraft'
 import { THEMES, themeById, themeVars } from '../components/terminal/themes'
 import { useThemeStore } from '../store/themeStore'
 import { FILETYPE_CHOICES } from '../plugins/comment'
 import { useKeymapStore } from '../store/keymapStore'
 import { enabledShims, usePluginStore } from '../store/pluginStore'
-import { SAMPLE_BUFFER, useTerminalStore } from '../store/terminalStore'
+import { useTerminalStore } from '../store/terminalStore'
+import { useTerminalLayout } from '../store/terminalLayoutStore'
 import type { TerminalBuffer } from '../store/terminalStore'
 
 const BG = 'var(--t-bg)'
 const LINE = '1px solid var(--t-line)'
-const SIDE_W = 330
 
-function Group({ title, summary, defaultOpen = true, children }: { title: string; summary?: string; defaultOpen?: boolean; children: ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen)
-  return (
-    <Box sx={{ borderBottom: LINE }}>
-      <ButtonBase
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        sx={{ width: '100%', px: 2, py: 1.25, justifyContent: 'flex-start', gap: 1, textAlign: 'left' }}
-      >
-        <ExpandMoreIcon sx={{ fontSize: 18, opacity: 0.6, transform: open ? 'none' : 'rotate(-90deg)', transition: 'transform .15s' }} />
-        <Typography sx={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'primary.main', fontFamily: 'inherit' }}>
-          {title}
-        </Typography>
-        {!open && summary && (
-          <Typography sx={{ fontSize: 11.5, opacity: 0.6, ml: 'auto', fontFamily: 'inherit' }}>{summary}</Typography>
-        )}
-      </ButtonBase>
-      <Collapse in={open}>
-        <Box sx={{ px: 2, pb: 1.5 }}>{children}</Box>
-      </Collapse>
-    </Box>
-  )
+/** Stands in for the challenge when the open buffer is not a judged one; nothing reads it then. */
+const NO_CHALLENGE: Challenge = {
+  id: '', title: '', area: '', level: 1, brief: '', text: '', cursor: [1, 0], expect: { text: '__not_a_challenge__' }, solution: '', why: '',
 }
 
 /** The Terminal page: a full-screen Vim with a side menu for keymaps, buffers and help. */
@@ -98,7 +75,18 @@ export function TerminalPage() {
   const editor = useRef<VimEditorHandle>(null)
   const [snap, setSnap] = useState<Snap>({ mode: 'normal', row: 1, col: 0 })
   const [keys, setKeys] = useState<string[]>([])
-  const showMenu = wide || menu
+  const side = useTerminalLayout((s) => s.side)
+  const sideWidth = useTerminalLayout((s) => s.width)
+  const sideOpen = useTerminalLayout((s) => s.open)
+  const toggleSide = useTerminalLayout((s) => s.toggle)
+  const showMenu = !wide && menu
+  // a built-in challenge opened from the menu is judged like in the game: end state, normal mode, keys and time
+  const judged = useMemo(() => toChallenge(buffer.challenge), [buffer.challenge])
+  const play = usePlay(judged ?? NO_CHALLENGE, editor)
+  const resetPlay = play.reset
+  useEffect(() => {
+    resetPlay()
+  }, [run, buffer.id, resetPlay])
 
   useEffect(() => {
     const t = setTimeout(() => editor.current?.focus(), 60)
@@ -137,9 +125,11 @@ export function TerminalPage() {
     setSnap((p) => (p.mode === mode && p.row === c[0] && p.col === c[1] ? p : { mode, row: c[0], col: c[1] }))
     // the store always holds the live text: leaving the page or switching tab never loses it
     useTerminalStore.getState().save(ed.text(), c)
+    if (judged) play.onSync()
   }
   const onKey = (key: string) => {
     setKeys((k) => [...k.slice(-11), key === ' ' ? '␣' : key])
+    if (judged) play.onKey(key, editor.current?.mode() ?? 'normal')
     return false
   }
   const load = (b: TerminalBuffer) => {
@@ -154,7 +144,7 @@ export function TerminalPage() {
       className="dark"
       sx={{
         display: 'flex',
-        flexDirection: { xs: 'column', md: 'row' },
+        flexDirection: { xs: 'column', md: side === 'right' ? 'row-reverse' : 'row' },
         flex: 1,
         minHeight: 0,
         bgcolor: BG,
@@ -169,18 +159,18 @@ export function TerminalPage() {
         </Box>
       </Collapse>
       <Box
-        component="aside"
-        aria-label="Terminal menu"
         sx={{
-          display: { xs: 'none', md: 'block' },
-          width: SIDE_W,
+          display: { xs: 'none', md: sideOpen ? 'block' : 'none' },
+          position: 'relative',
+          width: sideWidth,
           flexShrink: 0,
-          overflowY: 'auto',
-          bgcolor: 'var(--t-side)',
-          borderRight: LINE,
+          [side === 'left' ? 'borderRight' : 'borderLeft']: LINE,
         }}
       >
-        <SideContent buffer={buffer} published={published} builtin={builtin} data={data} onOpen={load} onInfo={setInfo} />
+        <Box component="aside" aria-label="Terminal menu" sx={{ height: '100%', overflowY: 'auto', bgcolor: 'var(--t-side)' }}>
+          <SideContent buffer={buffer} published={published} builtin={builtin} data={data} onOpen={load} onInfo={setInfo} desktop />
+        </Box>
+        <SideResizer />
       </Box>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>
@@ -193,6 +183,17 @@ export function TerminalPage() {
           >
             <MenuIcon fontSize="small" />
           </IconButton>
+          {!sideOpen && side === 'left' && (
+            <IconButton
+              size="small"
+              aria-label="Show the menu"
+              title="Show the menu"
+              onClick={toggleSide}
+              sx={{ display: { xs: 'none', md: 'inline-flex' }, color: 'var(--t-fg)', mx: 0.5 }}
+            >
+              <MenuIcon fontSize="small" />
+            </IconButton>
+          )}
           <Stack direction="row" sx={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
             {tabs.map((t, i) => (
               <Stack
@@ -269,7 +270,19 @@ export function TerminalPage() {
           <Button size="small" color="inherit" onClick={() => reset()} sx={{ opacity: 0.7, mr: 1, whiteSpace: 'nowrap' }}>
             Reset buffer
           </Button>
+          {!sideOpen && side === 'right' && (
+            <IconButton
+              size="small"
+              aria-label="Show the menu"
+              title="Show the menu"
+              onClick={toggleSide}
+              sx={{ display: { xs: 'none', md: 'inline-flex' }, color: 'var(--t-fg)', mx: 0.5 }}
+            >
+              <MenuIcon fontSize="small" />
+            </IconButton>
+          )}
         </Stack>
+        {buffer.challenge && judged && <ChallengeBar challenge={buffer.challenge} state={play.state} onRetry={() => reset()} />}
         <Box
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) editor.current?.focus()
@@ -305,86 +318,4 @@ export function TerminalPage() {
       <InfoDialog tab={info} onTab={setInfo} onClose={() => setInfo(null)} />
     </Box>
   )
-}
-
-function SideContent({
-  buffer,
-  published,
-  builtin,
-  data,
-  onOpen,
-  onInfo,
-}: {
-  buffer: TerminalBuffer
-  published: { id: string; title: string; text: string; cursor: [number, number] }[]
-  builtin: BuiltinChallenge[]
-  data: { id: string; title: string; text: string; cursor: [number, number] }
-  onOpen: (b: TerminalBuffer) => void
-  onInfo: (t: InfoTab) => void
-}) {
-  const draft: TerminalBuffer = { name: data.id || 'draft', text: data.text, cursor: data.cursor }
-  const km = useKeymapStore((s) => s.maps.length)
-  const detected = usePluginStore((s) => s.detected)
-  const overrides = usePluginStore((s) => s.overrides)
-  const on = enabledShims({ detected, overrides }).size
-  const groups: { label: string; items: TerminalBuffer[] }[] = [
-    { label: 'Yours', items: [SAMPLE_BUFFER, ...(data.text ? [draft] : [])] },
-    { label: 'Examples', items: EXAMPLES.map((e) => ({ name: e.challenge.id, text: e.challenge.text, cursor: e.challenge.cursor })) },
-    { label: 'Community', items: published.map((c) => ({ name: c.id, text: c.text, cursor: c.cursor })) },
-    ...builtinGroups(builtin),
-  ].filter((g) => g.items.length > 0)
-  return (
-    <Box>
-      <Group title="Buffer">
-        <Select
-          size="small"
-          fullWidth
-          displayEmpty
-          value=""
-          renderValue={() => buffer.name}
-          onChange={(e) => {
-            const [g, n] = String(e.target.value).split('|')
-            const b = groups.find((x) => x.label === g)?.items.find((x) => x.name === n)
-            if (b) onOpen(b)
-          }}
-          inputProps={{ 'aria-label': 'Open a buffer' }}
-          sx={{ fontSize: 13 }}
-        >
-          {groups.flatMap((g) => [
-            <ListSubheader key={g.label} sx={{ bgcolor: 'background.paper', lineHeight: '28px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              {g.label}
-            </ListSubheader>,
-            ...g.items.map((b) => (
-              <MenuItem key={`${g.label}|${b.name}`} value={`${g.label}|${b.name}`} dense selected={b.name === buffer.name}>
-                {b.name}
-              </MenuItem>
-            )),
-          ])}
-        </Select>
-      </Group>
-      <Group title="Keymaps" summary={km ? `${km} loaded` : 'none'}>
-        <KeymapSource onDetails={() => onInfo('keymaps')} />
-      </Group>
-      <Group title="Plugins" summary={`${on} on`} defaultOpen={false}>
-        <PluginList compact onDetails={() => onInfo('plugins')} />
-      </Group>
-      <Box sx={{ px: 2, py: 1.5 }}>
-        <Button size="small" color="inherit" onClick={() => onInfo('about')} sx={{ opacity: 0.7 }}>
-          About this terminal
-        </Button>
-      </Box>
-    </Box>
-  )
-}
-
-/** One dropdown group per area, easiest first: "Built-in: refactor" and so on. */
-function builtinGroups(list: BuiltinChallenge[]): { label: string; items: TerminalBuffer[] }[] {
-  const byArea = new Map<string, BuiltinChallenge[]>()
-  for (const c of list) byArea.set(c.area, [...(byArea.get(c.area) ?? []), c])
-  return [...byArea.entries()].map(([area, items]) => ({
-    label: `Built-in: ${area}`,
-    items: [...items]
-      .sort((a, b) => a.level - b.level || a.id.localeCompare(b.id))
-      .map((c) => ({ name: c.id.slice(c.area.length + 1), text: c.text, cursor: c.cursor })),
-  }))
 }
