@@ -1,0 +1,25 @@
+{
+  "id": "d20261111-mark-and-restore",
+  "title": "Mark and restore",
+  "area": "marks",
+  "level": 1,
+  "brief": "Jump to line 5, make a change, then return to where you started.",
+  "text": "line one\nline two\nline three\nline four\nline five\nline six",
+  "solution": "ma5Gdd`a",
+  "expect": {
+    "text": "line one\nline two\nline three\nline four\nline six"
+  },
+  "why": "Set mark a with ma, jump away, then return with `a to continue editing.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:a9482a11d612",
+  "ft": "text",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 10,
+  "hint": "ma sets a mark; `a jumps back."
+}

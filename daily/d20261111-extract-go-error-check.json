@@ -1,0 +1,25 @@
+{
+  "id": "d20261111-extract-go-error-check",
+  "title": "Extract Go error check",
+  "area": "refactor",
+  "level": 3,
+  "brief": "Refactor the inline error handling into a separate guard clause at the top of the function body.",
+  "text": "func ReadFile(path string) ([]byte, error) {\n\tdata := os.ReadFile(path)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\treturn data, nil\n}",
+  "solution": "dd3jP",
+  "expect": {
+    "text": "func ReadFile(path string) ([]byte, error) {\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\tdata := os.ReadFile(path)\n\treturn data, nil\n}"
+  },
+  "why": "Deleting the assignment line and pasting it after the guard block reorders statements using only native motions, keeping indentation intact.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:a9482a11d612",
+  "ft": "go",
+  "cursor": [
+    2,
+    1
+  ],
+  "par_seconds": 18,
+  "hint": "Move the assignment below the existing if-block with cut and paste."
+}

@@ -1,0 +1,25 @@
+{
+  "id": "d20261111-dedent-go-switch-cases",
+  "title": "Dedent Go switch cases",
+  "area": "editing",
+  "level": 4,
+  "brief": "The cases inside this Go switch statement have one too many tabs. Dedent all of them at once using visual block mode.",
+  "text": "switch x {\n\tcase 1:\n\t\treturn \"one\"\n\tcase 2:\n\t\treturn \"two\"\n}",
+  "solution": "<C-v>3j<",
+  "expect": {
+    "text": "switch x {\ncase 1:\n\treturn \"one\"\ncase 2:\n\treturn \"two\"\n}"
+  },
+  "why": "Visual block mode (<C-v>) lets you select the exact leading tab on multiple lines. The < operator shifts them left together.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:e38ffe216a67",
+  "ft": "go",
+  "cursor": [
+    2,
+    0
+  ],
+  "par_seconds": 15,
+  "hint": "Enter blockwise visual mode, move down to cover all cases, then shift left."
+}

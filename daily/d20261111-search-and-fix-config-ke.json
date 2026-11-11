@@ -1,0 +1,25 @@
+{
+  "id": "d20261111-search-and-fix-config-ke",
+  "title": "Search and fix config key",
+  "area": "search",
+  "level": 2,
+  "brief": "Find the misspelled 'timeot' key in this config snippet and correct it to 'timeout'.",
+  "text": "{\n  \"host\": \"localhost\",\n  \"timeot\": 5000,\n  \"retries\": 3\n}",
+  "solution": "/timeot<CR>ciwtimeout<Esc>",
+  "expect": {
+    "text": "{\n  \"host\": \"localhost\",\n  \"timeout\": 5000,\n  \"retries\": 3\n}"
+  },
+  "why": "Searching lands precisely on the typo; ciw replaces the whole word regardless of cursor position within it.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:a9482a11d612",
+  "ft": "json",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 10,
+  "hint": "Search first to navigate, then use a text object to replace accurately."
+}
