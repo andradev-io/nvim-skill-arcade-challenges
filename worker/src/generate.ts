@@ -29,7 +29,8 @@ export function parseGenerate(body: unknown): Parsed {
   if (levels.some((l) => !Number.isInteger(l) || l < 1 || l > 5)) return { ok: false, error: 'levels must be whole numbers from 1 to 5' }
   const languages = list(b.languages).map(String)
   if (languages.some((l) => !(GEN_LANGUAGES as readonly string[]).includes(l))) return { ok: false, error: `languages must be among ${GEN_LANGUAGES.join(', ')}` }
-  const theme = String(b.theme ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim()
+  // control characters become spaces (a char-code test: a regex for them trips the no-control-regex lint)
+  const theme = [...String(b.theme ?? '')].map((c) => (c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127 ? ' ' : c)).join('').replace(/\s+/g, ' ').trim()
   if (theme.length > 160) return { ok: false, error: 'theme is at most 160 characters' }
   const budget = b.budgetSeconds === undefined ? 300 : Number(b.budgetSeconds)
   if (!Number.isInteger(budget) || budget < 30 || budget > 900) return { ok: false, error: 'budgetSeconds must be from 30 to 900' }
