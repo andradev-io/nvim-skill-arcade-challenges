@@ -148,7 +148,7 @@ async function callApi(model, system, messages) {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({ model, max_tokens: 4096, system, messages }),
-      signal: AbortSignal.timeout(120_000),
+      signal: AbortSignal.timeout(Number(env.DAILY_API_TIMEOUT_MS) || 300_000),
     })
   } catch (e) {
     const err = new Error(`could not reach the model API: ${redact(e instanceof Error ? e.message : e, key)}`)
@@ -197,7 +197,15 @@ const accepted = []
 for (const batch of batches) {
   let messages = [{ role: 'user', content: batch.prompt.user }]
   for (let attempt = 0; attempt <= 2 && batch.accepted < batch.count; attempt += 1) {
-    const { text: reply, model } = await askModel(batch, messages, attempt)
+    let reply, model
+    try {
+      ;({ text: reply, model } = await askModel(batch, messages, attempt))
+    } catch (e) {
+      // a flaky call must not throw away what already passed the gates
+      if (!(e instanceof Error) || !e.retryable || accepted.length === 0 && attempt === 0) throw e
+      log(`attempt ${attempt + 1}: ${e.message}; keeping the ${accepted.length} that passed`)
+      break
+    }
     let list
     try {
       list = extractJson(reply)
