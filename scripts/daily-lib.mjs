@@ -201,7 +201,29 @@ export function resolveModels(env) {
   const main = cleanModel(env.DAILY_MODEL, 'model input') || cleanModel(env.ANTHROPIC_MODEL, 'ANTHROPIC_MODEL') || DEFAULT_MODEL
   const fallback = cleanModel(env.ANTHROPIC_MODEL_FALLBACK, 'ANTHROPIC_MODEL_FALLBACK') || main
   const hard = cleanModel(env.DAILY_MODEL, 'model input') || cleanModel(env.ANTHROPIC_MODEL_HARD, 'ANTHROPIC_MODEL_HARD') || main
-  return { main, fallback, hard }
+  const extra = String(env.ANTHROPIC_MODELS_EXTRA ?? '')
+    .split(',')
+    .map((m) => cleanModel(m.trim(), 'ANTHROPIC_MODELS_EXTRA'))
+    .filter(Boolean)
+  return { main, fallback, hard, extra }
+}
+
+/** The models to try, in order, for one call: the wanted one, the fallback, then the extras (no repeats). */
+export function modelChain(first, models) {
+  return [...new Set([first, models.fallback, ...(models.extra ?? [])])]
+}
+
+/** Total time one batch may spend getting acceptable challenges, in ms (DAILY_BATCH_BUDGET_SECONDS, 30..900, default 300). */
+export function resolveBudgetMs(env) {
+  const n = Number(env.DAILY_BATCH_BUDGET_SECONDS)
+  return (Number.isFinite(n) && n > 0 ? Math.min(900, Math.max(30, n)) : 300) * 1000
+}
+
+/** How long one model gets to answer before the next one is tried: seconds, 10..600, default 90 (a proxy usually cuts at 100). */
+export function resolveTimeoutMs(env) {
+  const n = Number(env.DAILY_MODEL_TIMEOUT_SECONDS)
+  const seconds = Number.isFinite(n) && n > 0 ? Math.min(600, Math.max(10, n)) : 90
+  return seconds * 1000
 }
 
 // ── the prompt ──────────────────────────────────────────────────────────────
