@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>arcade.nvim</title>
+  <rect width="32" height="32" rx="7" fill="#121212"/>
+  <!-- an N (Neovim) drawn like a pixel-art glyph, with a block cursor under it -->
+  <g fill="#b4b96b">
+    <rect x="6" y="4" width="4" height="20"/>
+    <rect x="22" y="4" width="4" height="20"/>
+    <polygon points="10,4 16,4 22,24 16,24"/>
+    <rect x="6" y="27" width="12" height="3" opacity="0.6"/>
+  </g>
+</svg>
