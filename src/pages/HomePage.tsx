@@ -170,7 +170,7 @@ export function HomePage() {
       </Box>
 
       <Stack direction="row" sx={{ gap: 2, flexWrap: 'wrap' }}>
-        <Stat value="55+" label="built-in challenges" />
+        <Stat value="120+" label="built-in challenges" />
         <Stat value={String(AREAS.length)} label="skill areas" />
         <Stat value={community.status === 'ready' ? String(published.length) : '-'} label="community challenges" />
         <Stat value={String(EXAMPLES.length)} label="examples to start from" />
