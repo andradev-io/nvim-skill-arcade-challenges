@@ -14,6 +14,8 @@ database_id = "REPLACE_WITH_THE_ID_FROM_wrangler_d1_create"
 KEYCLOAK_ISSUER = "REPLACE_KEYCLOAK_ISSUER"
 # Client ids allowed to call the API: the site and the plugin (device flow).
 ALLOWED_CLIENTS = "arcade-site,arcade-plugin"
+# Users holding this Keycloak realm role are admins (Admin page, AI challenge generator). Grant it in the realm: no deploy.
+ADMIN_ROLE = "arcade-admin"
 # The repository whose "daily challenges" workflow the Admin page starts (the token is the GITHUB_DISPATCH_TOKEN secret).
 GITHUB_REPO = "andradev-io/nvim-skill-arcade-challenges"
 ALLOWED_ORIGINS = "https://arcade.nvim.andradev.io,http://localhost:5173,http://localhost:5197"
