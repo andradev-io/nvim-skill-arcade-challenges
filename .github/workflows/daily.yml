@@ -1,0 +1,100 @@
+name: daily challenges
+
+# Every day a model writes new challenges; only the ones that pass the same gates as a pull request (schema, replay of
+# the reference solution in real Neovim, de-duplication) are kept, and they arrive as a pull request for review.
+# Setup and the kill switch are described in CONTRIBUTING.md ("Daily challenges").
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run every gate and print the result, publish nothing"
+        type: boolean
+        default: true
+      model:
+        description: "Model id for this run only (overrides ANTHROPIC_MODEL, _HARD and _FALLBACK)"
+        required: false
+        type: string
+      prompt_extra:
+        description: "Extra guidance appended to the prompt for this run only (1000 characters at most)"
+        required: false
+        type: string
+      date:
+        description: "Day to write for, YYYY-MM-DD (default: today, UTC)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: daily-challenges
+
+jobs:
+  generate:
+    # Kill switch: nothing runs unless the repository variable DAILY_ENABLED is exactly "true".
+    if: ${{ vars.DAILY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      # the engine that judges challenges is the plugin itself
+      - uses: actions/checkout@v4
+        with:
+          repository: dev-vinicius-andrade/nvim-skill-arcade
+          path: .plugin
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Write, gate and keep the survivors
+        id: gen
+        # The only step that sees the API key. It reaches the generator as an environment variable and is never printed;
+        # the replay of the model's keys runs in a child process that is given no secrets.
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_URL: ${{ vars.ANTHROPIC_URL }}
+          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
+          ANTHROPIC_MODEL_FALLBACK: ${{ vars.ANTHROPIC_MODEL_FALLBACK }}
+          ANTHROPIC_MODEL_HARD: ${{ vars.ANTHROPIC_MODEL_HARD }}
+          DAILY_MODEL: ${{ inputs.model }}
+          DAILY_PROMPT_EXTRA: ${{ vars.DAILY_PROMPT_EXTRA }}
+          DAILY_PROMPT_EXTRA_RUN: ${{ inputs.prompt_extra }}
+          DAILY_PR_BODY: ${{ runner.temp }}/pr-body.md
+          DAILY_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+          DAILY_DATE: ${{ inputs.date }}
+          ARCADE_PLUGIN: .plugin
+        run: |
+          set -o pipefail
+          node scripts/generate-daily.mjs | tee "$RUNNER_TEMP/daily.log"
+      - name: Show the log in the run summary
+        if: always()
+        run: |
+          {
+            echo '### Daily challenges'
+            echo '```'
+            cat "$RUNNER_TEMP/daily.log" 2>/dev/null || echo 'no log'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Open a pull request with the new challenges
+        if: ${{ steps.gen.outputs.published != '' && steps.gen.outputs.published != '0' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DAY: ${{ inputs.date }}
+        run: |
+          day="${DAY:-$(date -u +%Y-%m-%d)}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "daily/$day"
+          git add daily
+          git commit -m "feat: daily challenges for $day"
+          git push origin "daily/$day"
+          gh pr create \
+            --title "feat: daily challenges for $day" \
+            --body-file "$RUNNER_TEMP/pr-body.md"

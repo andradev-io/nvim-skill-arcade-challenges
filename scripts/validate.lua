@@ -10,7 +10,11 @@ require("skill_arcade").setup({ data_dir = tmp, keymaps = false, community = { e
 local validate = require("skill_arcade.validate")
 
 local dir = (arg and arg[1]) or "challenges"
-local files = vim.fn.glob(dir .. "/*.json", false, true)
+-- several directories can be given, separated by commas (challenges,daily)
+local files = {}
+for _, d in ipairs(vim.split(dir, ",", { plain = true, trimempty = true })) do
+  vim.list_extend(files, vim.fn.glob(d .. "/*.json", false, true))
+end
 table.sort(files)
 
 local failed = 0
