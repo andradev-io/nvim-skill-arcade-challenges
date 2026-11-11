@@ -4,6 +4,7 @@
  *   GET  /api/leaderboard?challenge=<id>&limit=20   public, top results (user codes only)
  *   GET  /api/me                                    Bearer token: your code and your best results
  *   POST /api/score                                 Bearer token: { challenge, keys, ms }, kept when better
+ *   POST /api/admin/generate                        Bearer token, admin: start the AI challenge generator on GitHub
  *
  * Identity is a Keycloak access token, checked with the realm's public keys. Nothing about the account is stored:
  * only a derived user code. Scores are claims made by the client; treat the board as an honor system.
@@ -12,6 +13,7 @@ import { AuthError, verifyToken } from './jwt'
 import type { Claims, Jwk } from './jwt'
 import { clampDays, dayOf, fillDays, isAdmin, parseEvent, visitorId } from './analytics'
 import { isBetter, parseSubmission, userCodeFor } from './scores'
+import { dispatchWorkflow, parseGenerate } from './generate'
 
 interface Stmt {
   bind: (...v: unknown[]) => Stmt
@@ -30,6 +32,10 @@ export interface Env {
   USER_CODE_SALT?: string
   /** Comma-separated user codes that may open the admin stats (a secret). */
   ADMIN_USER_CODES?: string
+  /** Fine-grained token (Actions: read and write on one repository): lets an admin start the challenge generator. */
+  GITHUB_DISPATCH_TOKEN?: string
+  /** owner/name of the repository whose workflow is started */
+  GITHUB_REPO?: string
 }
 
 interface Row {
@@ -135,6 +141,8 @@ async function stats(env: Env, days: number) {
   }
 }
 
+let lastGenerate = 0
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(req, env) })
@@ -163,6 +171,18 @@ export default {
         const { code } = await who(req, env)
         if (!isAdmin(code, env.ADMIN_USER_CODES)) return reply(req, env, { error: 'not an admin' }, 403)
         return reply(req, env, await stats(env, clampDays(url.searchParams.get('days'))))
+      }
+
+      if (req.method === 'POST' && url.pathname === '/api/admin/generate') {
+        const { code } = await who(req, env)
+        if (!isAdmin(code, env.ADMIN_USER_CODES)) return reply(req, env, { error: 'not an admin' }, 403)
+        // best-effort brake per Worker instance: one request every 20 seconds
+        if (Date.now() - lastGenerate < 20_000) return reply(req, env, { error: 'Wait a few seconds between requests.' }, 429)
+        const parsed = parseGenerate(await req.json().catch(() => null))
+        if (!parsed.ok) return reply(req, env, { error: parsed.error }, 400)
+        lastGenerate = Date.now()
+        const r = await dispatchWorkflow(env, parsed.value)
+        return r.ok ? reply(req, env, { ok: true, actions: r.url, dryRun: parsed.value.dryRun }) : reply(req, env, { error: r.error }, r.status)
       }
 
       if (req.method === 'POST' && url.pathname === '/api/score') {
