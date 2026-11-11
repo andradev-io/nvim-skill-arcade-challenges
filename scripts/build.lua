@@ -18,11 +18,16 @@ for _, d in ipairs(vim.split(dir, ",", { plain = true, trimempty = true })) do
 end
 table.sort(files)
 
-local list, failed = {}, 0
+-- the model-written challenges (daily/, `generated`) go into their own collection, `ai`; the source files stay where they are
+local list, ai, failed = {}, {}, 0
 for _, path in ipairs(files) do
   local clean, err = validate.file(path)
   if clean then
-    list[#list + 1] = clean
+    if clean.generated then
+      ai[#ai + 1] = clean
+    else
+      list[#list + 1] = clean
+    end
   else
     failed = failed + 1
     print(("FAIL  %s  :: %s"):format(path, err))
@@ -34,8 +39,8 @@ end
 
 vim.fn.mkdir(vim.fn.fnamemodify(out, ":h"), "p")
 local f = assert(io.open(out, "w"))
-f:write(vim.json.encode({ version = 1, count = #list, challenges = list }))
+f:write(vim.json.encode({ version = 1, count = #list, ai_count = #ai, challenges = list, ai = ai }))
 f:close()
-print(("built %s with %d challenge(s)"):format(out, #list))
+print(("built %s with %d challenge(s) and %d AI challenge(s)"):format(out, #list, #ai))
 vim.fn.delete(tmp, "rf")
 vim.cmd("qa!")

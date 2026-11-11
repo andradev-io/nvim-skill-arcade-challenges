@@ -58,7 +58,9 @@ website, CI and the game can never disagree about what a valid challenge is.
 
 A scheduled workflow has a model write new challenges every day and opens a pull request with the ones that pass the
 same gates as any contribution (schema, replay in real Neovim, no duplicates). Merged ones are published in
-`community.json` and the plugin's daily mode plays the day's own. Off until `DAILY_ENABLED` is `true`; the API key is a
+`community.json` under its own `ai` collection (the `daily/` files stay the source): the plugin lists them with `:ArcadeAI`, the
+site shows them on the *AI challenges* page (filters, provenance, play in the browser) and counts them on the home page, and
+the plugin's daily mode plays the day's own. Off until `DAILY_ENABLED` is `true`; the API key is a
 repository secret; the API URL and the models (`ANTHROPIC_MODEL`, `_FALLBACK`, `_HARD`) are repository variables, and the
 prompt is two files in `daily/prompt/`. Setup, the kill switch and a keyless local dry run:
 [CONTRIBUTING.md](CONTRIBUTING.md#daily-challenges-maintainer).

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 
-export type Route = 'home' | 'create' | 'terminal' | 'support' | 'challenges' | 'account' | 'admin'
+export type Route = 'home' | 'create' | 'terminal' | 'support' | 'challenges' | 'ai' | 'account' | 'admin'
 
 /** `hidden` routes exist but have no button in the nav bar (the Account page has its own button). */
 export const ROUTES: { id: Route; label: string; hash: string; hidden?: boolean }[] = [
@@ -9,6 +9,7 @@ export const ROUTES: { id: Route; label: string; hash: string; hidden?: boolean 
   { id: 'terminal', label: 'Terminal', hash: '#/terminal' },
   { id: 'support', label: 'Support', hash: '#/support' },
   { id: 'challenges', label: 'Challenges', hash: '#/challenges' },
+  { id: 'ai', label: 'AI challenges', hash: '#/ai' },
   { id: 'account', label: 'Account', hash: '#/account', hidden: true },
   // listed in the nav only for an admin (see TopBar)
   { id: 'admin', label: 'Admin', hash: '#/admin', hidden: true },

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-export type PluginStats = { builtin: number; areas: Record<string, number>; levels: Record<string, number> }
+export type PluginStats = { builtin: number; ai?: number; areas: Record<string, number>; levels: Record<string, number> }
 
 /** Counts of the plugin's built-in challenges, written at deploy time. null while loading or when unavailable. */
 export function useStats(): PluginStats | null {
