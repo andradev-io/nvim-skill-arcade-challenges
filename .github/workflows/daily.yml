@@ -53,6 +53,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write # lets the run start the validation workflow on the branch it pushes
 
 concurrency:
   group: daily-challenges
@@ -114,7 +115,15 @@ jobs:
             cat "$RUNNER_TEMP/daily.log" 2>/dev/null || echo 'no log'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Validate the whole set again before anything is proposed
+        # the generator gates each challenge on its own; this is the same validator the pull-request check runs, over
+        # every challenge in the repository, so nothing reaches a pull request that the check would reject
+        if: ${{ steps.gen.outputs.published != '' && steps.gen.outputs.published != '0' }}
+        env:
+          ARCADE_PLUGIN: .plugin
+        run: nvim --headless -u NONE -l scripts/validate.lua challenges,daily
       - name: Open a pull request with the new challenges
+        id: pr
         if: ${{ steps.gen.outputs.published != '' && steps.gen.outputs.published != '0' }}
         env:
           GH_TOKEN: ${{ github.token }}
@@ -143,5 +152,27 @@ jobs:
               const j = await r.json()
               if (!r.ok && !JSON.stringify(j).includes("already exists")) { console.error(r.status, JSON.stringify(j).slice(0, 300)); process.exit(1) }
               console.log(j.html_url ?? "pull request already open")
+            })
+          '
+      - name: Run the validation checks on the new branch
+        # a pull request opened with the job's own token does not start the "validate challenges" workflow, so start it
+        # here: its check runs attach to the branch's commit and show up on the pull request
+        if: ${{ steps.pr.conclusion == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DAY: ${{ inputs.date }}
+          ON_DEMAND: ${{ inputs.count || inputs.areas || inputs.levels || inputs.languages || inputs.theme }}
+        run: |
+          day="${DAY:-$(date -u +%Y-%m-%d)}"
+          branch="daily/$day"
+          if [ -n "$ON_DEMAND" ]; then branch="ondemand/$day-$GITHUB_RUN_ID"; fi
+          REF="$branch" node -e '
+            fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/actions/workflows/validate.yml/dispatches`, {
+              method: "POST",
+              headers: { authorization: `Bearer ${process.env.GH_TOKEN}`, accept: "application/vnd.github+json", "content-type": "application/json" },
+              body: JSON.stringify({ ref: process.env.REF }),
+            }).then((r) => {
+              if (r.status !== 204) { console.error("could not start the checks:", r.status); process.exit(1) }
+              console.log("validation started on", process.env.REF)
             })
           '
