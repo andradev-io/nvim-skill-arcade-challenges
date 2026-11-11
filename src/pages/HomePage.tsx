@@ -67,13 +67,17 @@ const STEPS = [
 
 function Band({ title, lead, children, id }: { title: string; lead?: string; children: ReactNode; id?: string }) {
   return (
-    <Stack component="section" id={id} sx={{ gap: 2.5, py: { xs: 3, md: 5 }, scrollMarginTop: 80 }}>
+    <Stack
+      component="section"
+      id={id}
+      sx={{ gap: { xs: 3, md: 4 }, py: { xs: 5, md: 9 }, scrollMarginTop: 80, borderTop: 1, borderColor: 'divider' }}
+    >
       <Box>
-        <Typography variant="h5" component="h2">
+        <Typography variant="h4" component="h2" sx={{ fontSize: { xs: 24, md: 30 } }}>
           {title}
         </Typography>
         {lead && (
-          <Typography color="text.secondary" sx={{ mt: 0.5, maxWidth: '70ch' }}>
+          <Typography color="text.secondary" sx={{ mt: 1.5, maxWidth: '60ch', lineHeight: 1.8 }}>
             {lead}
           </Typography>
         )}
@@ -180,15 +184,15 @@ export function HomePage() {
       </Stack>
 
       <Band title="How it plays" lead="Open :ArcadeMenu, start a run and play. The game only looks at the result, never at which keys you used.">
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 2 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
           {STEPS.map((s) => (
-            <Paper key={s.n} sx={{ p: 2.5, display: 'flex', gap: 2 }}>
-              <Typography color="primary" sx={{ fontWeight: 800, fontSize: 32, lineHeight: 1 }}>
+            <Paper key={s.n} sx={{ p: 3.5, display: 'flex', gap: 2.5 }}>
+              <Typography color="primary" sx={{ fontWeight: 800, fontSize: 40, lineHeight: 1 }}>
                 {s.n}
               </Typography>
               <Box>
-                <Typography sx={{ fontWeight: 700 }}>{s.title}</Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography sx={{ fontWeight: 700, fontSize: 18, mb: 1 }}>{s.title}</Typography>
+                <Typography color="text.secondary" sx={{ lineHeight: 1.8 }}>
                   {s.text}
                 </Typography>
               </Box>
@@ -198,11 +202,11 @@ export function HomePage() {
       </Band>
 
       <Band title="What is in it">
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
           {FEATURES.map((f) => (
-            <Paper key={f.title} sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Typography sx={{ fontWeight: 700 }}>{f.title}</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
+            <Paper key={f.title} sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 18 }}>{f.title}</Typography>
+              <Typography color="text.secondary" sx={{ flexGrow: 1, lineHeight: 1.8 }}>
                 {f.text}
               </Typography>
               {f.to && (
@@ -218,9 +222,9 @@ export function HomePage() {
       </Band>
 
       <Band title="Skill areas" lead="Restrict a run to the ones you want to improve.">
-        <Stack direction="row" sx={{ gap: 1, flexWrap: 'wrap' }}>
+        <Stack direction="row" sx={{ gap: 1.5, flexWrap: 'wrap' }}>
           {AREAS.map((a) => (
-            <Chip key={a} variant="outlined" label={a} />
+            <Chip key={a} variant="outlined" label={a} sx={{ height: 36, px: 0.5, fontSize: 14 }} />
           ))}
         </Stack>
       </Band>

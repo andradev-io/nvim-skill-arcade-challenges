@@ -38,8 +38,14 @@ export function CountUp({ value, suffix = '', ms = 1100 }: { value: number | nul
     return () => window.clearTimeout(timer)
   }, [value, seen, instant, ms])
 
+  // Default text color while it counts, then the surrounding (accent) color once it lands on the final number.
+  const done = value !== null && (instant || shown === value)
   return (
-    <span ref={ref} aria-label={value === null ? undefined : `${value}${suffix}`}>
+    <span
+      ref={ref}
+      aria-label={value === null ? undefined : `${value}${suffix}`}
+      style={{ color: done ? undefined : 'var(--mui-palette-text-primary)', transition: 'color 0.5s ease' }}
+    >
       {value === null ? '-' : `${instant ? value : shown}${suffix}`}
     </span>
   )
