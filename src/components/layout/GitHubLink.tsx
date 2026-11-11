@@ -4,7 +4,7 @@ import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
 import { formatStars, useStars } from '../../hooks/useStars'
 
-const REPO = 'dev-vinicius-andrade/nvim-skill-arcade'
+const REPO = 'andradev-io/nvim-skill-arcade'
 const HREF = `https://github.com/${REPO}`
 const OPEN = { target: '_blank', rel: 'noopener noreferrer' } as const
 

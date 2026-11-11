@@ -1,6 +1,6 @@
 # nvim-skill-arcade-challenges
 
-Community challenges for [nvim-skill-arcade](https://github.com/dev-vinicius-andrade/nvim-skill-arcade), plus the
+Community challenges for [nvim-skill-arcade](https://github.com/andradev-io/nvim-skill-arcade), plus the
 static website where anyone can design and submit one.
 
 * **Submit:** open the site (GitHub Pages of this repo), fill the form, press *Submit as pull request*.
@@ -111,7 +111,7 @@ npm run lint && npm run typecheck && npm test && npm run build
 Challenges (needs Neovim and the plugin checked out next to this repo):
 
 ```sh
-git clone https://github.com/dev-vinicius-andrade/nvim-skill-arcade ../nvim-skill-arcade
+git clone https://github.com/andradev-io/nvim-skill-arcade ../nvim-skill-arcade
 ARCADE_PLUGIN=../nvim-skill-arcade nvim --headless -u NONE -l scripts/validate.lua challenges
 ARCADE_PLUGIN=../nvim-skill-arcade nvim --headless -u NONE -l scripts/build.lua challenges public/community.json
 ```
@@ -122,7 +122,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how to write a good challenge.
 
 ## One-time setup (maintainer)
 
-1. Create the GitHub repo `dev-vinicius-andrade/nvim-skill-arcade-challenges` and push this folder.
+1. Create the GitHub repo `andradev-io/nvim-skill-arcade-challenges` and push this folder.
 2. Repo *Settings -> Pages -> Source: GitHub Actions*.
 3. Push `nvim-skill-arcade` (the workflows check it out) and keep its default branch public.
 4. Optional: protect `main` so merges need the *validate challenges* check.
