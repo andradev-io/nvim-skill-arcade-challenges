@@ -17,5 +17,7 @@ ALLOWED_CLIENTS = "arcade-site,arcade-plugin"
 ALLOWED_ORIGINS = "https://arcade.nvim.andradev.io,http://localhost:5173,http://localhost:5197"
 
 # The API's own address. Cloudflare creates the DNS record and certificate for it on deploy (the andradev.io zone must
-# be in this account). One label under the zone, so the free certificate covers it.
-routes = [{ pattern = "arcade-api.andradev.io", custom_domain = true }]
+# be in this account). The name is three labels deep, so the free Universal certificate does not cover it: it needs
+# an Advanced certificate for *.arcade.nvim.andradev.io (the CA must be allowed by the CAA records the CNAME of
+# arcade.nvim.andradev.io inherits from GitHub Pages, e.g. Let's Encrypt).
+routes = [{ pattern = "api.arcade.nvim.andradev.io", custom_domain = true }]

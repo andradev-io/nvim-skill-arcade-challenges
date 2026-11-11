@@ -43,7 +43,7 @@ they live in the repository's GitHub secrets (Settings, Secrets and variables, A
 - `KEYCLOAK_ISSUER`: the realm issuer URL (also kept out of the repository and written in at deploy time)
 - `USER_CODE_SALT`: any long random string (pushed to the worker as a Cloudflare secret)
 
-The Worker answers on its own domain, `https://arcade-api.andradev.io` (the `routes` line in `wrangler.toml`), so that
+The Worker answers on its own domain, `https://api.arcade.nvim.andradev.io` (the `routes` line in `wrangler.toml`), so that
 is the value of the site's `ARCADE_API_URL` secret. The site also reads the same `KEYCLOAK_ISSUER` secret at build time
 for its sign-in button; see the main README.
 
