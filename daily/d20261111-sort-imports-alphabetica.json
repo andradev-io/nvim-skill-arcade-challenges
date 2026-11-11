@@ -1,0 +1,25 @@
+{
+  "id": "d20261111-sort-imports-alphabetica",
+  "title": "Sort imports alphabetically",
+  "area": "refactor",
+  "level": 4,
+  "brief": "These TypeScript imports are out of order. Sort them alphabetically so the linter stops complaining.",
+  "text": "import { zebra } from './z';\nimport { apple } from './a';\nimport { mango } from './m';\nimport { banana } from './b';",
+  "solution": ":sort<CR>",
+  "expect": {
+    "text": "import { apple } from './a';\nimport { banana } from './b';\nimport { mango } from './m';\nimport { zebra } from './z';"
+  },
+  "why": ":sort orders lines lexicographically. When imports share the same prefix, it naturally arranges them by module name.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:e38ffe216a67",
+  "ft": "typescript",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 10,
+  "hint": "Vim has a built-in command that sorts lines without needing an external tool."
+}
