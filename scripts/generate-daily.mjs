@@ -126,7 +126,9 @@ function output(n) {
   if (env.GITHUB_OUTPUT) fs.appendFileSync(env.GITHUB_OUTPUT, `published=${n}\n`)
 }
 
-if (fs.existsSync(dailyDir) && fs.readdirSync(dailyDir).some((n) => n.startsWith(`d${date.replace(/-/g, '')}-`))) {
+// an admin's on-demand request (any steering input) is allowed even when today's set exists
+const onDemand = ['DAILY_PUBLISH', 'DAILY_AREAS', 'DAILY_LEVELS', 'DAILY_LANGUAGES', 'DAILY_THEME'].some((k) => String(env[k] ?? '').trim())
+if (!onDemand && fs.existsSync(dailyDir) && fs.readdirSync(dailyDir).some((n) => n.startsWith(`d${date.replace(/-/g, '')}-`))) {
   log(`daily/ already has challenges for ${date}: nothing to do`)
   output(0)
   process.exit(0)
