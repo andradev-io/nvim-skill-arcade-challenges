@@ -2,11 +2,13 @@ import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
 import { lazy, Suspense, useEffect } from 'react'
+import { loadPublished, trackView } from './analytics/track'
 import { useAuthStore } from './auth/authStore'
 import { TopBar } from './components/layout/TopBar'
 import { useRoute } from './hooks/useRoute'
 import type { Route } from './hooks/useRoute'
 import { AccountPage } from './pages/AccountPage'
+import { AdminPage } from './pages/AdminPage'
 import { ChallengesPage } from './pages/ChallengesPage'
 import { CreatePage } from './pages/CreatePage'
 import { HomePage } from './pages/HomePage'
@@ -22,6 +24,7 @@ const TITLES: Record<Route, string> = {
   support: 'What works in the terminal | Skill Arcade',
   challenges: 'Published challenges | Skill Arcade',
   account: 'Account | Skill Arcade',
+  admin: 'Admin | Skill Arcade',
 }
 
 export default function App() {
@@ -30,6 +33,13 @@ export default function App() {
   useEffect(() => {
     void useAuthStore.getState().init()
   }, [])
+  // anonymous counts (see analytics/track.ts); the admin's own visits are not counted
+  useEffect(() => {
+    void loadPublished()
+  }, [])
+  useEffect(() => {
+    if (route !== 'admin') trackView(route)
+  }, [route])
   useEffect(() => {
     document.title = TITLES[route]
     if (route !== 'terminal') window.scrollTo({ top: 0 })
@@ -56,9 +66,12 @@ export default function App() {
         {route === 'support' && <SupportPage />}
         {route === 'challenges' && <ChallengesPage />}
         {route === 'account' && <AccountPage />}
+        {route === 'admin' && <AdminPage />}
       </Container>
       <Typography variant="caption" component="footer" sx={{ display: 'block', px: 3, pb: 3, opacity: 0.7 }}>
         Challenges are data only and validated by the same schema the plugin uses. See CONTRIBUTING.md in the repository.
+        {' '}
+        The site counts page views and challenge plays anonymously (no cookies, no addresses stored; off if your browser sends Do Not Track).
       </Typography>
     </Box>
   )

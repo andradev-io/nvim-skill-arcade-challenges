@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchMe } from './api'
+import { fetchMe, fetchStats } from './api'
 import { afterLoginUrl, callbackError, isAuthCallback } from './callback'
 import { readAuthConfig } from './config'
 
@@ -57,7 +57,30 @@ describe('fetchMe', () => {
     vi.stubGlobal('fetch', f)
     const me = await fetchMe('https://api.example.com', 'tok')
     expect(f).toHaveBeenCalledWith('https://api.example.com/api/me', { headers: { Authorization: 'Bearer tok' } })
-    expect(me).toEqual({ userCode: 'ABCDE-FGHJK', results: [{ challenge: 'dw', keys: 3, ms: 900 }] })
+    expect(me).toEqual({ userCode: 'ABCDE-FGHJK', admin: false, results: [{ challenge: 'dw', keys: 3, ms: 900 }] })
+  })
+
+  it('passes on whether the user is an admin', async () => {
+    vi.stubGlobal('fetch', reply(200, { userCode: 'ABCDE-FGHJK', admin: true, results: [] }))
+    expect((await fetchMe('https://a', 't')).admin).toBe(true)
+  })
+
+  it('explains a refusal', async () => {
+    vi.stubGlobal('fetch', reply(403, { error: 'not an admin' }))
+    await expect(fetchStats('https://a', 't', 7)).rejects.toThrow('not allowed')
+  })
+
+  it('asks for the stats of a number of days', async () => {
+    const f = reply(200, { days: 7, daily: [], pages: [], challenges: [], scores: { players: 0, total: 0, perChallenge: [] } })
+    vi.stubGlobal('fetch', f)
+    const s = await fetchStats('https://api.example.com', 'tok', 7)
+    expect(f).toHaveBeenCalledWith('https://api.example.com/api/admin/stats?days=7', { headers: { Authorization: 'Bearer tok' } })
+    expect(s.scores.players).toBe(0)
+  })
+
+  it('rejects stats that are not in the expected shape', async () => {
+    vi.stubGlobal('fetch', reply(200, { hello: 1 }))
+    await expect(fetchStats('https://a', 't', 7)).rejects.toThrow('unexpected')
   })
 
   it('treats missing results as an empty list', async () => {

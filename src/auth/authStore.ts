@@ -11,6 +11,7 @@ export type AuthStatus = 'off' | 'loading' | 'out' | 'in'
 interface AuthStore {
   status: AuthStatus
   userCode: string | null
+  admin: boolean
   results: Result[]
   error: string | null
   init: () => Promise<void>
@@ -41,20 +42,27 @@ function userManager(): UserManager | null {
 
 const message = (e: unknown, fallback: string): string => (e instanceof Error && e.message ? e.message : fallback)
 
+/** The current access token (renewed by the library when needed), or null when signed out. */
+export async function accessToken(): Promise<string | null> {
+  const user = await userManager()?.getUser()
+  return user && !user.expired ? user.access_token : null
+}
+
 /** Asks the score API who the access token belongs to, and puts the answer in the store. */
 async function loadIdentity(token: string, set: (p: Partial<AuthStore>) => void) {
   if (!authConfig) return
   try {
     const me = await fetchMe(authConfig.api, token)
-    set({ status: 'in', userCode: me.userCode, results: me.results, error: null })
+    set({ status: 'in', userCode: me.userCode, admin: me.admin, results: me.results, error: null })
   } catch (e) {
-    set({ status: 'out', userCode: null, results: [], error: message(e, 'Could not load your account.') })
+    set({ status: 'out', userCode: null, admin: false, results: [], error: message(e, 'Could not load your account.') })
   }
 }
 
 export const useAuthStore = create<AuthStore>((set) => ({
   status: authConfig ? 'loading' : 'off',
   userCode: null,
+  admin: false,
   results: [],
   error: null,
 
@@ -100,7 +108,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   logout: async () => {
     const um = userManager()
-    set({ status: 'out', userCode: null, results: [], error: null })
+    set({ status: 'out', userCode: null, admin: false, results: [], error: null })
     if (!um) return
     try {
       await um.signoutRedirect()
