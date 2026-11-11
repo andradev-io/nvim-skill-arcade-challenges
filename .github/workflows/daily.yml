@@ -21,6 +21,30 @@ on:
         description: "Extra guidance appended to the prompt for this run only (1000 characters at most)"
         required: false
         type: string
+      count:
+        description: "On demand: how many challenges to publish (3 to 20, default 3)"
+        required: false
+        type: string
+      areas:
+        description: "On demand: comma list of areas, e.g. search,marks,macros (default: today's rotation)"
+        required: false
+        type: string
+      levels:
+        description: "On demand: comma list of levels 1-5, e.g. 2,3,4 (default: today's rotation)"
+        required: false
+        type: string
+      languages:
+        description: "On demand: languages for refactor-style code, comma list, e.g. typescript,go,cs (default: all of lua, python, javascript, typescript, go, cs)"
+        required: false
+        type: string
+      theme:
+        description: "On demand: a topic or creative premise, e.g. 'tabletop RPG notes' (160 characters at most)"
+        required: false
+        type: string
+      budget_seconds:
+        description: "On demand: time budget per batch in seconds (default 300, at most 900); raise it for big requests"
+        required: false
+        type: string
       date:
         description: "Day to write for, YYYY-MM-DD (default: today, UTC)"
         required: false
@@ -38,7 +62,7 @@ jobs:
     # Kill switch: nothing runs unless the repository variable DAILY_ENABLED is exactly "true".
     if: ${{ vars.DAILY_ENABLED == 'true' }}
     runs-on: andradev-io # self-hosted ARC runner (homelab): the Anthropic org allowlists its IP, not the GitHub-hosted ones
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       # the engine that judges challenges is the plugin itself
@@ -65,13 +89,18 @@ jobs:
           ANTHROPIC_MODEL_HARD: ${{ vars.ANTHROPIC_MODEL_HARD }}
           ANTHROPIC_MODELS_EXTRA: ${{ vars.ANTHROPIC_MODELS_EXTRA }}
           DAILY_MODEL_TIMEOUT_SECONDS: ${{ vars.DAILY_MODEL_TIMEOUT_SECONDS }}
-          DAILY_BATCH_BUDGET_SECONDS: ${{ vars.DAILY_BATCH_BUDGET_SECONDS }}
+          DAILY_BATCH_BUDGET_SECONDS: ${{ inputs.budget_seconds || vars.DAILY_BATCH_BUDGET_SECONDS }}
           DAILY_MODEL: ${{ inputs.model }}
           DAILY_PROMPT_EXTRA: ${{ vars.DAILY_PROMPT_EXTRA }}
           DAILY_PROMPT_EXTRA_RUN: ${{ inputs.prompt_extra }}
           DAILY_PR_BODY: ${{ runner.temp }}/pr-body.md
           DAILY_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
           DAILY_DATE: ${{ inputs.date }}
+          DAILY_PUBLISH: ${{ inputs.count }}
+          DAILY_AREAS: ${{ inputs.areas }}
+          DAILY_LEVELS: ${{ inputs.levels }}
+          DAILY_THEME: ${{ inputs.theme }}
+          DAILY_LANGUAGES: ${{ inputs.languages }}
           ARCADE_PLUGIN: .plugin
         run: |
           set -o pipefail
