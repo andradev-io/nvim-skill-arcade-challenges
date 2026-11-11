@@ -136,7 +136,7 @@ const MOCK_REPLY = [
   { title: 'Already solved', brief: 'Rejected: nothing to do.', area: 'editing', level: 1, text: 'same', solution: 'l', expect: { text: 'same' }, why: 'Must fail: solved at the start.' },
 ]
 
-const OVERLOADED = new Set([429, 500, 502, 503, 529])
+const OVERLOADED = new Set([429, 500, 502, 503, 520, 521, 522, 523, 524, 529]) // 52x: proxy (Cloudflare) timeouts
 
 async function callApi(model, system, messages) {
   const key = env.ANTHROPIC_API_KEY
