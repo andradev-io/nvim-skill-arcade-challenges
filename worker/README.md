@@ -66,3 +66,20 @@ The client ids and allowed origins stay in `wrangler.toml`. Create the database 
 the repository only ever contains the placeholder.
 
 Tests (`worker/src/worker.test.ts`) run with the site's `npm test`; `npx tsc -p worker` type-checks.
+
+## Ask for AI challenges from the Admin page
+
+`POST /api/admin/generate` (Bearer, admin only) starts the repository's **daily challenges** workflow with the admin's
+choices (`count` 3-20, `areas`, `levels`, `languages`, `theme`, `dryRun`). It defaults to a dry run; only `"dryRun": false`
+opens a pull request. Nothing is published without a review. The Admin page has a form for it.
+
+It needs a GitHub token, kept only in the Worker:
+
+1. GitHub, Settings, Developer settings, Fine-grained tokens. Resource owner `andradev-io`, only the repository
+   `nvim-skill-arcade-challenges`, permission **Actions: Read and write** (nothing else). Set a short expiry and renew it.
+2. Add it as the repository secret **`DISPATCH_TOKEN`** (GitHub does not allow secret names starting with `GITHUB_`), then
+   run the "deploy score worker" workflow. It stores the token as the Worker secret `GITHUB_DISPATCH_TOKEN`.
+   By hand: `cd worker && npx wrangler secret put GITHUB_DISPATCH_TOKEN`.
+3. `GITHUB_REPO` in `wrangler.toml` names the repository (already set).
+
+Without the secret the endpoint answers 501 and the form says so. Requests are limited to one every 20 seconds per Worker instance.

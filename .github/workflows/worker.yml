@@ -18,6 +18,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      # secrets cannot be tested in a step `if`; GitHub forbids secret names that start with GITHUB_, hence DISPATCH_TOKEN
+      HAS_DISPATCH: ${{ secrets.DISPATCH_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -56,3 +59,11 @@ jobs:
         env:
           USER_CODE_SALT: ${{ secrets.USER_CODE_SALT }}
           ADMIN_USER_CODES: ${{ secrets.ADMIN_USER_CODES }}
+      - name: Set the dispatch token (optional: only when the DISPATCH_TOKEN secret exists)
+        if: ${{ env.HAS_DISPATCH == 'true' }}
+        working-directory: worker
+        env:
+          DISPATCH_TOKEN: ${{ secrets.DISPATCH_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: printf '%s' "$DISPATCH_TOKEN" | npx wrangler secret put GITHUB_DISPATCH_TOKEN
