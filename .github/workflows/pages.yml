@@ -41,7 +41,7 @@ jobs:
           neovim: true
           version: stable
       - name: Build the bundle (fails if any challenge is invalid)
-        run: ARCADE_PLUGIN=.plugin nvim --headless -u NONE -l scripts/build.lua challenges dist/community.json
+        run: ARCADE_PLUGIN=.plugin nvim --headless -u NONE -l scripts/build.lua challenges,daily dist/community.json
       - name: Export the built-in challenges (home page counts, Terminal buffers)
         run: ARCADE_PLUGIN=.plugin nvim --headless -u NONE -l scripts/stats.lua dist/stats.json dist/builtin.json
       - uses: actions/upload-pages-artifact@v3

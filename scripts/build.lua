@@ -1,4 +1,4 @@
--- usage: ARCADE_PLUGIN=../nvim-skill-arcade nvim --headless -u NONE -l scripts/build.lua [challenges-dir] [out-file]
+-- usage: ARCADE_PLUGIN=../nvim-skill-arcade nvim --headless -u NONE -l scripts/build.lua [challenges-dir[,more-dirs]] [out-file]
 -- Validates + replays every challenge (same as validate.lua), then writes the bundle the plugin downloads
 -- with :ArcadeSync. Fails (and writes nothing) if any challenge is invalid.
 local plugin = os.getenv("ARCADE_PLUGIN") or "../nvim-skill-arcade"
@@ -11,7 +11,11 @@ local validate = require("skill_arcade.validate")
 
 local dir = (arg and arg[1]) or "challenges"
 local out = (arg and arg[2]) or "dist/community.json"
-local files = vim.fn.glob(dir .. "/*.json", false, true)
+-- several directories can be given, separated by commas (challenges,daily)
+local files = {}
+for _, d in ipairs(vim.split(dir, ",", { plain = true, trimempty = true })) do
+  vim.list_extend(files, vim.fn.glob(d .. "/*.json", false, true))
+end
 table.sort(files)
 
 local list, failed = {}, 0

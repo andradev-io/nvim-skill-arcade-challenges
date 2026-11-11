@@ -81,3 +81,43 @@ language of the snippet (`lua`, `typescript`, `javascript`, `go`, `cs`, `python`
 to a few lines, state the goal in the brief ("Swap the two arguments", "Invert the condition"), and prefer a result that
 has one correct shape (use `loose` when only the indentation may differ). Refactors that need a language server (rename
 symbol, code actions) cannot be judged here: give them a plain-text route, with the LSP route in `helps`.
+
+## Daily challenges (maintainer)
+
+A scheduled workflow (`.github/workflows/daily.yml`, 04:17 UTC) asks a model for 8 new challenges and keeps 3 of them
+(native Vim only, areas without a game-made setup). A candidate survives only if it passes the same gates as a pull
+request: the plugin's schema (no shell, no expressions, no chaining, no file commands), the reference solution replayed in
+real headless Neovim, and de-duplication against the built-ins, the community and earlier daily files. Rejected ones are
+sent back to the model with the exact reason (two retries). Fewer than 3 survivors means nothing is published that day.
+The survivors arrive as a pull request that adds `daily/<id>.json` (with `date` and `generated: true`); once merged they
+join `community.json`, and the plugin's daily mode plays the ones dated today (the built-in daily set is the fallback).
+
+The model's text is only ever data: fields are whitelisted one by one, ids and the date are set by the script, and the
+keys run in a Neovim child process that is given no secrets. The API key is read from one environment variable in one step
+and is never printed; a private gateway host is masked in the log.
+
+Set it up (the values are yours to set; they never go in the repository):
+
+```sh
+gh secret set ANTHROPIC_API_KEY -R dev-vinicius-andrade/nvim-skill-arcade-challenges
+gh variable set ANTHROPIC_URL --body https://your-gateway.example.com -R dev-vinicius-andrade/nvim-skill-arcade-challenges   # optional
+gh variable set ANTHROPIC_MODEL --body claude-sonnet-5-5 -R dev-vinicius-andrade/nvim-skill-arcade-challenges               # optional
+gh variable set DAILY_ENABLED --body true -R dev-vinicius-andrade/nvim-skill-arcade-challenges
+```
+
+- `ANTHROPIC_URL` is a base URL (a proxy or gateway); unset or empty means `https://api.anthropic.com`. It must be https
+  (http only for `localhost`) and cannot contain credentials or a query.
+- **Kill switch:** `gh variable set DAILY_ENABLED --body false` (or delete it). Nothing runs unless it is exactly `true`.
+- **Dry run:** *Actions -> daily challenges -> Run workflow* with `dry_run` on (the default for manual runs) runs every gate
+  and prints the result in the run summary without opening a pull request.
+- **Budget:** one run is about 8k tokens in and 4k out, cents per day. Keep a spend alert of about $5 a month on the provider
+  side.
+- Pull requests opened with the built-in token do not start other workflows: run *validate challenges* by hand, or give the
+  workflow a token that can. The generator has already replayed every file with the same engine.
+
+Try the gates locally without any key (a built-in fake reply with good, unsafe, wrong, duplicate and already-solved
+candidates):
+
+```sh
+DAILY_MOCK=1 DAILY_DRY_RUN=true ARCADE_PLUGIN=../nvim-skill-arcade node scripts/generate-daily.mjs
+```

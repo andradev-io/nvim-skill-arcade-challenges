@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "challenges/**"
+      - "daily/**"
       - "src/**"
       - "package*.json"
       - "index.html"
@@ -30,7 +31,7 @@ jobs:
           neovim: true
           version: stable
       - name: Schema check + replay every reference solution
-        run: ARCADE_PLUGIN=.plugin nvim --headless -u NONE -l scripts/validate.lua challenges
+        run: ARCADE_PLUGIN=.plugin nvim --headless -u NONE -l scripts/validate.lua challenges,daily
 
   site:
     # the React site: lint, typecheck, unit tests and a production build
