@@ -1,0 +1,24 @@
+{
+  "id": "d20261111-fix-every-typo-in-the-re",
+  "title": "Fix every typo in the recipe",
+  "area": "search",
+  "level": 4,
+  "brief": "The word 'suger' is misspelled three times in this cookie recipe. Fix all occurrences to 'sugar' using search and repeat.",
+  "text": "Chocolate Chip Cookies\n1 cup suger\n1/2 cup brown suger\n2 cups flour\nSprinkle extra suger on top\nBake at 350F for 12 min.",
+  "solution": "/suger<CR>cwsugar<Esc>nn.n.",
+  "expect": {
+    "text": "Chocolate Chip Cookies\n1 cup sugar\n1/2 cup brown sugar\n2 cups flour\nSprinkle extra sugar on top\nBake at 350F for 12 min."
+  },
+  "why": "After changing the first match with cw, pressing n jumps to the next match and dot repeats the change. This avoids typing a global substitute command for quick fixes.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.2:594bc0b90c8a",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 15,
+  "hint": "Find the first one, fix it, then use n to find the next and . to repeat the edit."
+}

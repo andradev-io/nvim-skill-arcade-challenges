@@ -1,0 +1,24 @@
+{
+  "id": "d20261111-mark-edit-return",
+  "title": "Mark, edit, return",
+  "area": "marks",
+  "level": 3,
+  "brief": "Mark your current position, make a small edit elsewhere, then jump back to where you started.",
+  "text": "Start here\nMiddle section\nEnd here",
+  "solution": "maG$A.<Esc>'a",
+  "expect": {
+    "text": "Start here\nMiddle section\nEnd here."
+  },
+  "why": "ma saves your spot. After editing, 'a returns you to mark a.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.2:c1264f928c33",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 20,
+  "hint": "Set a mark before moving away."
+}
