@@ -2,25 +2,36 @@
 // request (schema + replay of the reference solution in a real headless Neovim, de-duplication), and writes the
 // survivors to daily/<id>.json. Nothing here needs npm packages.
 //
-//   ANTHROPIC_API_KEY   secret, sent only as the x-api-key header of the request
-//   ANTHROPIC_URL       base URL (a proxy or gateway); default https://api.anthropic.com; https only (http for localhost)
-//   ANTHROPIC_MODEL     default claude-sonnet-5-5
-//   DAILY_MOCK=1        no network and no key: a built-in fake reply exercises every gate (also a path to a JSON file)
-//   DAILY_DRY_RUN=true  run every gate, print the result, write nothing
-//   DAILY_DATE          YYYY-MM-DD (default today, UTC)    DAILY_PUBLISH (default 3)    DAILY_CANDIDATES (default 8)
-//   ARCADE_PLUGIN       path of the plugin checkout (default ../nvim-skill-arcade)
+//   ANTHROPIC_API_KEY         secret, sent only as the x-api-key header of the request
+//   ANTHROPIC_URL             base URL (a proxy or gateway); default https://api.anthropic.com; https only (http for localhost)
+//   ANTHROPIC_MODEL           the generator model (default claude-sonnet-5-5)
+//   ANTHROPIC_MODEL_FALLBACK  used on retries and when the API is overloaded (default: same as ANTHROPIC_MODEL)
+//   ANTHROPIC_MODEL_HARD      used for levels 4-5 (default: same as ANTHROPIC_MODEL)
+//   DAILY_MODEL               one-run override of all of the above (the workflow input `model`)
+//   DAILY_PROMPT_EXTRA        extra guidance appended to the prompt (repo variable), DAILY_PROMPT_EXTRA_RUN for one run
+//   DAILY_MOCK=1              no network and no key: a built-in fake reply exercises every gate (also a path to a JSON file)
+//   DAILY_DRY_RUN=true        run every gate, print the result, write nothing
+//   DAILY_DATE                YYYY-MM-DD (default today, UTC)    DAILY_PUBLISH (default 3)    DAILY_CANDIDATES (default 8)
+//   DAILY_PR_BODY             path where the pull request description is written
+//   ARCADE_PLUGIN             path of the plugin checkout (default ../nvim-skill-arcade)
+//
+//   node scripts/generate-daily.mjs --print-prompt    render the final prompt (no key, no network) and exit
+//
+// The prompt lives in daily/prompt/system.md and daily/prompt/user.md.tmpl: edit them with a pull request.
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {
-  SYSTEM, buildPrompt, duplicateOf, extractJson, focusFor, knownSet, parseValidateOutput, redact, remember, resolveBaseUrl, sanitize,
+  buildPrompt, capExtra, duplicateOf, extractJson, focusFor, knownSet, parseValidateOutput, redact, remember, resolveBaseUrl,
+  resolveModels, sanitize,
 } from './daily-lib.mjs'
 
 const env = process.env
 const log = (msg) => console.log(msg)
 const flag = (v) => /^(1|true|yes)$/i.test(String(v ?? ''))
 const MIN_DAY = 3 // the plugin only uses a day's own set when it has at least this many
+const printPrompt = process.argv.includes('--print-prompt')
 
 const date = env.DAILY_DATE || new Date().toISOString().slice(0, 10)
 if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('DAILY_DATE must be YYYY-MM-DD')
@@ -30,6 +41,8 @@ const dry = flag(env.DAILY_DRY_RUN)
 const mock = env.DAILY_MOCK
 const plugin = env.ARCADE_PLUGIN || '../nvim-skill-arcade'
 const dailyDir = 'daily'
+const models = resolveModels(env)
+const extra = capExtra(env.DAILY_PROMPT_EXTRA, env.DAILY_PROMPT_EXTRA_RUN)
 
 // ── what exists already ─────────────────────────────────────────────────────
 function readJson(file) {
@@ -47,7 +60,7 @@ for (const dir of ['challenges', dailyDir]) {
     if (c) existing.push({ id: c.id, title: c.title, text: c.text, expectText: c.expect?.text })
   }
 }
-// built-in ids and titles from the plugin sources, so the model is told what the game already teaches
+// built-in titles from the plugin sources, so the model is told what the game already teaches
 const builtinTitles = []
 const chdir = path.join(plugin, 'lua', 'skill_arcade', 'challenges')
 if (fs.existsSync(chdir)) {
@@ -59,6 +72,51 @@ if (fs.existsSync(chdir)) {
   }
 }
 const known = knownSet(existing)
+
+// ── the prompt (files in daily/prompt/) ─────────────────────────────────────
+const systemFile = fs.readFileSync(path.join(dailyDir, 'prompt', 'system.md'), 'utf8')
+const userFile = fs.readFileSync(path.join(dailyDir, 'prompt', 'user.md.tmpl'), 'utf8')
+const examples = existing
+  .filter((e) => e.text && e.id)
+  .slice(0, 3)
+  .map((e) => readJson(path.join('challenges', `${e.id}.json`)))
+  .filter(Boolean)
+  .map(({ title, area, level, brief, text, solution, expect, why, ft }) => ({ title, area, level, ft, brief, text, solution, expect, why }))
+const idsAndTitles = [
+  ...existing.filter((e) => e.id).map((e) => ({ id: e.id, title: e.title })),
+  ...builtinTitles.map((title) => ({ title })),
+].slice(0, 120)
+
+// Levels 4-5 go to the hard model when it differs from the main one: two batches, each with its own prompt.
+const focus = focusFor(date)
+const hardLevels = focus.levels.filter((l) => l >= 4)
+const split = models.hard !== models.main && hardLevels.length > 0 && hardLevels.length < focus.levels.length
+const batchSpecs = split
+  ? [
+      { levels: focus.levels.filter((l) => l < 4), model: models.main, count: Math.max(1, Math.round((wanted * (focus.levels.length - hardLevels.length)) / focus.levels.length)) },
+      { levels: hardLevels, model: models.hard, count: Math.max(1, Math.round((wanted * hardLevels.length) / focus.levels.length)) },
+    ]
+  : [{ levels: focus.levels, model: models.main, count: wanted }]
+const batches = batchSpecs.map((b) => ({
+  ...b,
+  accepted: 0,
+  prompt: buildPrompt({ systemFile, userFile, date, focus: { areas: focus.areas, levels: b.levels }, count: b.count, examples, existing: idsAndTitles, extra }),
+}))
+
+if (printPrompt) {
+  for (const b of batches) {
+    log(`=== prompt version ${b.prompt.version}  hash ${b.prompt.hash}  model ${b.model}${b.prompt.extraUsed ? '  (with extra guidance)' : ''}`)
+    log('--- system ---')
+    log(b.prompt.system)
+    log('--- user ---')
+    log(b.prompt.user)
+  }
+  process.exit(0)
+}
+
+function output(n) {
+  if (env.GITHUB_OUTPUT) fs.appendFileSync(env.GITHUB_OUTPUT, `published=${n}\n`)
+}
 
 if (fs.existsSync(dailyDir) && fs.readdirSync(dailyDir).some((n) => n.startsWith(`d${date.replace(/-/g, '')}-`))) {
   log(`daily/ already has challenges for ${date}: nothing to do`)
@@ -78,31 +136,52 @@ const MOCK_REPLY = [
   { title: 'Already solved', brief: 'Rejected: nothing to do.', area: 'editing', level: 1, text: 'same', solution: 'l', expect: { text: 'same' }, why: 'Must fail: solved at the start.' },
 ]
 
-async function askModel(messages) {
-  if (mock) {
-    const file = mock === '1' ? null : mock
-    return JSON.stringify(file ? readJson(file) : MOCK_REPLY)
-  }
+const OVERLOADED = new Set([429, 500, 502, 503, 529])
+
+async function callApi(model, system, messages) {
   const key = env.ANTHROPIC_API_KEY
-  if (!key) throw new Error('ANTHROPIC_API_KEY is not set (use DAILY_MOCK=1 to try the gates without a key)')
   const { url, label } = resolveBaseUrl(env.ANTHROPIC_URL)
-  log(`asking ${env.ANTHROPIC_MODEL || 'claude-sonnet-5-5'} at ${label}`)
+  log(`asking ${model} at ${label}`)
   let res
   try {
     res = await fetch(`${url}/v1/messages`, {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: env.ANTHROPIC_MODEL || 'claude-sonnet-5-5', max_tokens: 4096, system: SYSTEM, messages }),
+      body: JSON.stringify({ model, max_tokens: 4096, system, messages }),
       signal: AbortSignal.timeout(120_000),
     })
   } catch (e) {
-    throw new Error(`could not reach the model API: ${redact(e instanceof Error ? e.message : e, key)}`)
+    const err = new Error(`could not reach the model API: ${redact(e instanceof Error ? e.message : e, key)}`)
+    err.retryable = true
+    throw err
   }
-  if (!res.ok) throw new Error(`the model API answered ${res.status}: ${redact((await res.text()).slice(0, 200), key)}`)
+  if (!res.ok) {
+    const err = new Error(`the model API answered ${res.status}: ${redact((await res.text()).slice(0, 200), key)}`)
+    err.retryable = OVERLOADED.has(res.status)
+    throw err
+  }
   const body = await res.json()
   const text = (body.content ?? []).filter((b) => b.type === 'text').map((b) => b.text).join('\n')
   if (!text) throw new Error('the model API sent no text')
   return text
+}
+
+/** Returns { text, model }: the model that actually answered (the fallback takes over when the first one is overloaded). */
+async function askModel(batch, messages, attempt) {
+  if (mock) {
+    const file = mock === '1' ? null : mock
+    return { text: JSON.stringify(file ? readJson(file) : MOCK_REPLY), model: `${batch.model} (mock)` }
+  }
+  if (!env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not set (use DAILY_MOCK=1 to try the gates without a key)')
+  // retries use the fallback model (which is the main one unless ANTHROPIC_MODEL_FALLBACK is set)
+  const first = attempt > 0 ? models.fallback : batch.model
+  try {
+    return { text: await callApi(first, batch.prompt.system, messages), model: first }
+  } catch (e) {
+    if (!(e instanceof Error) || !e.retryable || models.fallback === first) throw e
+    log(`${first} failed (${e.message}); trying ${models.fallback}`)
+    return { text: await callApi(models.fallback, batch.prompt.system, messages), model: models.fallback }
+  }
 }
 
 // ── the gates ───────────────────────────────────────────────────────────────
@@ -115,60 +194,59 @@ function replay(dir) {
 }
 
 const accepted = []
-const examples = existing.filter((e) => e.text && e.id).slice(0, 3).map((e) => readJson(path.join('challenges', `${e.id}.json`))).filter(Boolean)
-const exampleBodies = examples.map(({ id, title, area, level, brief, text, solution, expect, why, ft }) => ({ title, area, level, ft, brief, text, solution, expect, why, id: undefined }))
-let messages = [
-  { role: 'user', content: buildPrompt({ date, focus: focusFor(date), count: wanted, examples: exampleBodies, titles: [...existing.map((e) => e.title), ...builtinTitles].filter(Boolean) }) },
-]
-
-for (let attempt = 0; attempt <= 2 && accepted.length < wanted; attempt += 1) {
-  const reply = await askModel(messages)
-  let list
-  try {
-    list = extractJson(reply)
-  } catch (e) {
-    log(`attempt ${attempt + 1}: ${e instanceof Error ? e.message : e}`)
-    messages = [...messages, { role: 'assistant', content: reply.slice(0, 4000) }, { role: 'user', content: 'Reply with ONLY a JSON array of challenges.' }]
-    continue
-  }
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'arcade-daily-'))
-  const byFile = new Map()
-  const problems = []
-  for (const raw of list.slice(0, wanted * 2)) {
-    const s = sanitize(raw, { date })
-    if (!s.challenge) {
-      problems.push(`${raw?.title ?? '?'}: ${s.error}`)
+for (const batch of batches) {
+  let messages = [{ role: 'user', content: batch.prompt.user }]
+  for (let attempt = 0; attempt <= 2 && batch.accepted < batch.count; attempt += 1) {
+    const { text: reply, model } = await askModel(batch, messages, attempt)
+    let list
+    try {
+      list = extractJson(reply)
+    } catch (e) {
+      log(`attempt ${attempt + 1}: ${e instanceof Error ? e.message : e}`)
+      messages = [...messages, { role: 'assistant', content: reply.slice(0, 4000) }, { role: 'user', content: 'Reply with ONLY a JSON array of challenges.' }]
       continue
     }
-    const dup = duplicateOf(s.challenge, known)
-    if (dup) {
-      problems.push(`${s.challenge.title}: duplicate (${dup})`)
-      continue
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'arcade-daily-'))
+    const byFile = new Map()
+    const problems = []
+    const provenance = { model, prompt: `v${batch.prompt.version}:${batch.prompt.hash}` }
+    for (const raw of list.slice(0, batch.count * 2)) {
+      const s = sanitize(raw, { date, ...provenance })
+      if (!s.challenge) {
+        problems.push(`${raw?.title ?? '?'}: ${s.error}`)
+        continue
+      }
+      const dup = duplicateOf(s.challenge, known)
+      if (dup) {
+        problems.push(`${s.challenge.title}: duplicate (${dup})`)
+        continue
+      }
+      remember(s.challenge, known)
+      const file = path.join(dir, `${s.challenge.id}.json`)
+      fs.writeFileSync(file, JSON.stringify(s.challenge, null, 2))
+      byFile.set(file, s.challenge)
     }
-    remember(s.challenge, known)
-    const file = path.join(dir, `${s.challenge.id}.json`)
-    fs.writeFileSync(file, JSON.stringify(s.challenge, null, 2))
-    byFile.set(file, s.challenge)
+    const result = byFile.size ? replay(dir) : { ok: [], failed: new Map() }
+    for (const file of result.ok) {
+      if (byFile.has(file)) {
+        accepted.push(byFile.get(file))
+        batch.accepted += 1
+      }
+    }
+    for (const [file, why] of result.failed) problems.push(`${byFile.get(file)?.title ?? file}: ${why}`)
+    fs.rmSync(dir, { recursive: true, force: true })
+    log(`attempt ${attempt + 1}: ${result.ok.length} passed, ${problems.length} rejected`)
+    for (const p of problems) log(`  rejected  ${p}`)
+    if (batch.accepted >= batch.count || attempt === 2 || mock) break
+    messages = [
+      ...messages,
+      { role: 'assistant', content: reply.slice(0, 4000) },
+      { role: 'user', content: `${batch.accepted} passed so far. Rejected:\n${problems.join('\n')}\nWrite ${batch.count - batch.accepted} new, different challenges that avoid these problems. Reply with ONLY a JSON array.` },
+    ]
   }
-  const result = byFile.size ? replay(dir) : { ok: [], failed: new Map() }
-  for (const file of result.ok) if (byFile.has(file)) accepted.push(byFile.get(file))
-  for (const [file, why] of result.failed) problems.push(`${byFile.get(file)?.title ?? file}: ${why}`)
-  fs.rmSync(dir, { recursive: true, force: true })
-  log(`attempt ${attempt + 1}: ${result.ok.length} passed, ${problems.length} rejected`)
-  for (const p of problems) log(`  rejected  ${p}`)
-  if (accepted.length >= wanted || attempt === 2 || mock) break
-  messages = [
-    ...messages,
-    { role: 'assistant', content: reply.slice(0, 4000) },
-    { role: 'user', content: `${accepted.length} passed so far. Rejected:\n${problems.join('\n')}\nWrite ${wanted - accepted.length} new, different challenges that avoid these problems. Reply with ONLY a JSON array.` },
-  ]
 }
 
 // ── result ──────────────────────────────────────────────────────────────────
-function output(n) {
-  if (env.GITHUB_OUTPUT) fs.appendFileSync(env.GITHUB_OUTPUT, `published=${n}\n`)
-}
-
 if (accepted.length < MIN_DAY) {
   log(`only ${accepted.length} challenge(s) passed the gates (need ${MIN_DAY}): publishing nothing today`)
   output(0)
@@ -176,9 +254,26 @@ if (accepted.length < MIN_DAY) {
 }
 const chosen = accepted.slice(0, publish)
 log(`${dry ? 'dry run: would publish' : 'publishing'} ${chosen.length} challenge(s) for ${date}:`)
-for (const c of chosen) log(`  ${c.id}  (${c.area}, level ${c.level})  ${c.title}`)
+for (const c of chosen) log(`  ${c.id}  (${c.area}, level ${c.level})  ${c.title}  [${c.model}, prompt ${c.prompt}]`)
 if (!dry) {
   fs.mkdirSync(dailyDir, { recursive: true })
   for (const c of chosen) fs.writeFileSync(path.join(dailyDir, `${c.id}.json`), `${JSON.stringify(c, null, 2)}\n`)
+  if (env.DAILY_PR_BODY) {
+    const used = [...new Set(chosen.map((c) => c.model))].join(', ')
+    const prompts = [...new Set(chosen.map((c) => c.prompt))].join(', ')
+    const lines = [
+      'Written by a model and checked by the same gates as any contribution: schema, the reference solution replayed in real Neovim, no duplicates. Read the idea and the keys before merging. The run log is in the summary of the workflow run.',
+      '',
+      `- Model: ${used}`,
+      `- Prompt: ${prompts} (files in \`daily/prompt/\`; the number after \`v\` is the file version, then the hash of the rendered prompt)`,
+      `- Extra guidance: ${extra ? `yes (${extra.length} characters)` : 'none'}`,
+      '',
+      '| challenge | level | model | prompt |',
+      '| --- | --- | --- | --- |',
+      ...chosen.map((c) => `| \`${c.id}\` | ${c.level} | ${c.model} | ${c.prompt} |`),
+      '',
+    ]
+    fs.writeFileSync(env.DAILY_PR_BODY, lines.join('\n'))
+  }
 }
 output(dry ? 0 : chosen.length)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_URL, duplicateOf, extractJson, focusFor, knownSet, parseValidateOutput, redact, remember, resolveBaseUrl, sanitize, slugify, unsafeKeys } from './daily-lib.mjs'
+import { DEFAULT_MODEL, DEFAULT_URL, EXTRA_MAX, buildPrompt, capExtra, cleanModel, duplicateOf, extractJson, focusFor, knownSet, parseValidateOutput, parsePromptFile, redact, render, resolveModels, remember, resolveBaseUrl, sanitize, slugify, unsafeKeys } from './daily-lib.mjs'
 
 const good = {
   title: 'Drop the first mineral',
@@ -118,5 +118,68 @@ describe('focus and parsing', () => {
     const r = parseValidateOutput(out)
     expect(r.ok).toEqual(['/tmp/a/x.json', '/tmp/a/z.json'])
     expect(r.failed.get('/tmp/a/y.json')).toMatch(/does not satisfy/)
+  })
+})
+
+describe('models', () => {
+  it('defaults and falls back to the main model', () => {
+    expect(resolveModels({})).toEqual({ main: DEFAULT_MODEL, fallback: DEFAULT_MODEL, hard: DEFAULT_MODEL })
+    expect(resolveModels({ ANTHROPIC_MODEL: 'm-a' })).toEqual({ main: 'm-a', fallback: 'm-a', hard: 'm-a' })
+  })
+  it('reads fallback and hard, and a run override wins over everything', () => {
+    const env = { ANTHROPIC_MODEL: 'm-a', ANTHROPIC_MODEL_FALLBACK: 'm-b', ANTHROPIC_MODEL_HARD: 'm-c' }
+    expect(resolveModels(env)).toEqual({ main: 'm-a', fallback: 'm-b', hard: 'm-c' })
+    expect(resolveModels({ ...env, DAILY_MODEL: 'm-z' }).hard).toBe('m-z')
+    expect(resolveModels({ ...env, DAILY_MODEL: 'm-z' }).main).toBe('m-z')
+  })
+  it('checks only charset and length, so new ids work', () => {
+    expect(cleanModel('claude-future-9-0')).toBe('claude-future-9-0')
+    expect(cleanModel('  ')).toBe('')
+    for (const bad of ['a b', 'x;rm -rf', 'm' + String.fromCharCode(10) + 'x', '-lead', 'a'.repeat(101), '$(x)']) expect(() => cleanModel(bad), bad).toThrow(/model id/)
+  })
+})
+
+describe('prompt files', () => {
+  const vars = { a: 1, b: '{{a}}' }
+  it('fills placeholders once and rejects unknown ones', () => {
+    expect(render('x {{a}} {{ b }}', vars)).toBe('x 1 {{a}}')
+    expect(() => render('{{nope}}', vars)).toThrow(/unknown placeholder/)
+  })
+  it('reads the version comment', () => {
+    expect(parsePromptFile('<!-- version: 3 -->' + String.fromCharCode(10) + 'body')).toEqual({ version: '3', body: 'body' })
+    expect(parsePromptFile('body').version).toBe('0')
+  })
+  it('caps and cleans the extra guidance', () => {
+    expect(capExtra('', undefined)).toBe('')
+    expect(capExtra('a' + String.fromCharCode(0) + 'b', '  more  ')).toBe('ab' + String.fromCharCode(10) + 'more')
+    expect(capExtra('x'.repeat(5000)).length).toBe(EXTRA_MAX)
+  })
+  it('renders, hashes and appends the extra', () => {
+    const args = {
+      systemFile: '<!-- version: 2 -->' + String.fromCharCode(10) + 'sys {{schema}}',
+      userFile: '<!-- version: 5 -->' + String.fromCharCode(10) + '{{date}} {{count}} {{area}} {{level}} {{languages}} {{examples}} {{existing_ids}}',
+      date: '2026-11-12',
+      focus: { areas: ['editing'], levels: [1, 2] },
+      count: 8,
+      examples: [{ t: 1 }],
+      existing: [{ id: 'a', title: 'A' }],
+    }
+    const p = buildPrompt({ ...args, extra: '' })
+    expect(p.version).toBe('2.5')
+    expect(p.hash).toMatch(/^[0-9a-f]{12}$/)
+    expect(p.user).toContain('2026-11-12 8 editing 1, 2')
+    expect(p.system).toContain('"area"')
+    expect(p.extraUsed).toBe(false)
+    const q = buildPrompt({ ...args, extra: 'prefer markdown' })
+    expect(q.user).toContain('prefer markdown')
+    expect(q.hash).not.toBe(p.hash)
+  })
+})
+
+describe('provenance', () => {
+  it('records the model and prompt on the challenge', () => {
+    const r = sanitize(good, { date: '2026-11-12', model: 'm-a', prompt: 'v1.1:abcdef123456' })
+    expect(r.challenge.model).toBe('m-a')
+    expect(r.challenge.prompt).toBe('v1.1:abcdef123456')
   })
 })

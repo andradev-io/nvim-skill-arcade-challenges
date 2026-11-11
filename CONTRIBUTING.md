@@ -102,9 +102,16 @@ Set it up (the values are yours to set; they never go in the repository):
 gh secret set ANTHROPIC_API_KEY -R dev-vinicius-andrade/nvim-skill-arcade-challenges
 gh variable set ANTHROPIC_URL --body https://your-gateway.example.com -R dev-vinicius-andrade/nvim-skill-arcade-challenges   # optional
 gh variable set ANTHROPIC_MODEL --body claude-sonnet-5-5 -R dev-vinicius-andrade/nvim-skill-arcade-challenges               # optional
+gh variable set ANTHROPIC_MODEL_HARD --body <model-id> -R dev-vinicius-andrade/nvim-skill-arcade-challenges                 # optional, levels 4-5
+gh variable set ANTHROPIC_MODEL_FALLBACK --body <model-id> -R dev-vinicius-andrade/nvim-skill-arcade-challenges             # optional
 gh variable set DAILY_ENABLED --body true -R dev-vinicius-andrade/nvim-skill-arcade-challenges
 ```
 
+- `ANTHROPIC_MODEL` is the generator (default `claude-sonnet-5-5`). Optional: `ANTHROPIC_MODEL_FALLBACK` (used on retries and when
+  the API is overloaded; default the same model) and `ANTHROPIC_MODEL_HARD` (levels 4-5, which then get their own batch;
+  default the same model). A manual run can override all three with the `model` input. Ids are only checked for charset
+  and length, so new models work without a code change. Each challenge records the model that wrote it (`model`) and the
+  prompt (`prompt`: file version and hash) in `daily/<id>.json`, and the pull request lists both.
 - `ANTHROPIC_URL` is a base URL (a proxy or gateway); unset or empty means `https://api.anthropic.com`. It must be https
   (http only for `localhost`) and cannot contain credentials or a query.
 - **Kill switch:** `gh variable set DAILY_ENABLED --body false` (or delete it). Nothing runs unless it is exactly `true`.
@@ -114,6 +121,20 @@ gh variable set DAILY_ENABLED --body true -R dev-vinicius-andrade/nvim-skill-arc
   side.
 - Pull requests opened with the built-in token do not start other workflows: run *validate challenges* by hand, or give the
   workflow a token that can. The generator has already replayed every file with the same engine.
+
+### The prompt
+
+The prompt is two versioned files, changed by pull request (the same gates still judge every challenge it produces):
+`daily/prompt/system.md` (role, field rules, key notation, hard rules, quality) and `daily/prompt/user.md.tmpl` (the daily
+request). The first line `<!-- version: N -->` is the file version: bump it when you change the file. Placeholders, filled
+in one pass: `{{schema}}`, `{{examples}}`, `{{existing_ids}}`, `{{area}}`, `{{level}}`, `{{languages}}`, `{{count}}`, `{{date}}`; an
+unknown one fails the *validate challenges* check. For a light touch without editing files, set the repository variable
+`DAILY_PROMPT_EXTRA` (appended, 1000 characters at most) or the `prompt_extra` input of a manual run.
+
+```sh
+gh variable set DAILY_PROMPT_EXTRA --body "Prefer small realistic code snippets." -R dev-vinicius-andrade/nvim-skill-arcade-challenges
+ARCADE_PLUGIN=../nvim-skill-arcade node scripts/generate-daily.mjs --print-prompt   # the final prompt, no key needed
+```
 
 Try the gates locally without any key (a built-in fake reply with good, unsafe, wrong, duplicate and already-solved
 candidates):
