@@ -12,7 +12,7 @@
  */
 import { AuthError, verifyToken } from './jwt'
 import type { Claims, Jwk } from './jwt'
-import { clampDays, dayOf, fillDays, isAdmin, parseEvent, visitorId } from './analytics'
+import { clampDays, dayOf, fillDays, isAdminUser, parseEvent, visitorId } from './analytics'
 import { isBetter, parseSubmission, userCodeFor } from './scores'
 import { dispatchWorkflow, parseGenerate } from './generate'
 
@@ -31,7 +31,9 @@ export interface Env {
   /** Comma-separated origins allowed by CORS. */
   ALLOWED_ORIGINS: string
   USER_CODE_SALT?: string
-  /** Comma-separated user codes that may open the admin stats (a secret). */
+  /** Keycloak role that makes a signed-in user an admin (default `arcade-admin`). Grant it in the realm: no deploy. */
+  ADMIN_ROLE?: string
+  /** Optional extra: comma-separated user codes that are admins too (a secret). */
   ADMIN_USER_CODES?: string
   /** Fine-grained token (Actions: read and write on one repository): lets an admin start the challenge generator. */
   GITHUB_DISPATCH_TOKEN?: string
@@ -164,24 +166,24 @@ export default {
       }
 
       if (req.method === 'GET' && url.pathname === '/api/me') {
-        const { code } = await who(req, env)
+        const { code, claims } = await who(req, env)
         const rows = await env.DB.prepare('SELECT challenge, keys, ms FROM scores WHERE user_code = ? ORDER BY challenge')
           .bind(code)
           .all<{ challenge: string; keys: number; ms: number }>()
-        return reply(req, env, { userCode: code, admin: isAdmin(code, env.ADMIN_USER_CODES), results: rows.results })
+        return reply(req, env, { userCode: code, admin: isAdminUser(claims, code, env), results: rows.results })
       }
 
       if (req.method === 'POST' && url.pathname === '/api/event') return await recordEvent(req, env)
 
       if (req.method === 'GET' && url.pathname === '/api/admin/stats') {
-        const { code } = await who(req, env)
-        if (!isAdmin(code, env.ADMIN_USER_CODES)) return reply(req, env, { error: 'not an admin' }, 403)
+        const { code, claims } = await who(req, env)
+        if (!isAdminUser(claims, code, env)) return reply(req, env, { error: 'not an admin' }, 403)
         return reply(req, env, await stats(env, clampDays(url.searchParams.get('days'))))
       }
 
       if (req.method === 'POST' && url.pathname === '/api/admin/generate') {
-        const { code } = await who(req, env)
-        if (!isAdmin(code, env.ADMIN_USER_CODES)) return reply(req, env, { error: 'not an admin' }, 403)
+        const { code, claims } = await who(req, env)
+        if (!isAdminUser(claims, code, env)) return reply(req, env, { error: 'not an admin' }, 403)
         // best-effort brake per Worker instance: one request every 20 seconds
         if (Date.now() - lastGenerate < 20_000) return reply(req, env, { error: 'Wait a few seconds between requests.' }, 429)
         const parsed = parseGenerate(await req.json().catch(() => null))

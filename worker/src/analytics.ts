@@ -48,6 +48,36 @@ export function isAdmin(code: string, list: string | undefined): boolean {
     .includes(code.toUpperCase())
 }
 
+/** The realm role that makes someone an admin when `ADMIN_ROLE` is not set. */
+export const DEFAULT_ADMIN_ROLE = 'arcade-admin'
+
+/**
+ * Does the (already verified) token carry this role? A realm role comes in `realm_access.roles`; a client role
+ * (on any client the Worker accepts) comes in `resource_access.<client>.roles`.
+ */
+export function hasRole(claims: Record<string, unknown>, role: string, clients: string[]): boolean {
+  if (!role) return false
+  const roles = (v: unknown): unknown[] => {
+    const list = (v as { roles?: unknown } | null | undefined)?.roles
+    return Array.isArray(list) ? list : []
+  }
+  if (roles(claims.realm_access).includes(role)) return true
+  const res = claims.resource_access
+  if (typeof res !== 'object' || res === null) return false
+  return clients.some((c) => roles((res as Record<string, unknown>)[c]).includes(role))
+}
+
+/** Admin = holds the Keycloak role (set it on the user in the realm, no deploy), or is listed in `ADMIN_USER_CODES`. */
+export function isAdminUser(
+  claims: Record<string, unknown>,
+  code: string,
+  env: { ADMIN_ROLE?: string; ADMIN_USER_CODES?: string; ALLOWED_CLIENTS: string },
+): boolean {
+  const role = (env.ADMIN_ROLE ?? DEFAULT_ADMIN_ROLE).trim()
+  const clients = env.ALLOWED_CLIENTS.split(',').map((s) => s.trim()).filter(Boolean)
+  return hasRole(claims, role, clients) || isAdmin(code, env.ADMIN_USER_CODES)
+}
+
 /** How many days of history to return: 1 to 90, 30 when missing or not a number. */
 export function clampDays(v: string | null): number {
   const n = Math.floor(Number(v))
