@@ -1,0 +1,13 @@
+{
+  "id": "swap-two-arguments",
+  "title": "Swap the two arguments",
+  "area": "refactor",
+  "level": 3,
+  "ft": "go",
+  "brief": "Swap the arguments: send(to, from) becomes send(from, to).",
+  "text": "err := send(to, from)",
+  "solution": "f(lcwfrom<Esc>wwcwto<Esc>",
+  "expect": { "text": "err := send(from, to)" },
+  "why": "Retype both names with cw; w from the end of a word steps over the comma. An argument text object swaps them in fewer keys.",
+  "author": "dev-vinicius-andrade"
+}
