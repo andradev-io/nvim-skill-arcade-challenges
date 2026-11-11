@@ -1,0 +1,25 @@
+{
+  "id": "d20261111-fix-misspelled-python-ke",
+  "title": "Fix misspelled Python key",
+  "area": "refactor",
+  "level": 1,
+  "brief": "The dictionary key 'recieve' is misspelled. Correct it to 'receive' without retyping the value.",
+  "text": "data = {\"recieve\": True}",
+  "solution": "ciwreceive<Esc>",
+  "expect": {
+    "text": "data = {\"receive\": True}"
+  },
+  "why": "ciw changes the inner word under the cursor, which is faster than searching when you are already positioned on the typo.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:bf1e8c995cdc",
+  "ft": "python",
+  "cursor": [
+    1,
+    9
+  ],
+  "par_seconds": 5,
+  "hint": "Use a text object that targets the current word."
+}
