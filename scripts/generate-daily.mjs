@@ -25,6 +25,7 @@ import path from 'node:path'
 import {
   buildPrompt, capExtra, duplicateOf, extractJson, focusFor, knownSet, parseValidateOutput, redact, remember, resolveBaseUrl,
   resolveModels, modelChain, AREAS, codeLanguages, resolveBudgetMs, resolveTimeoutMs, sanitize,
+  addUsage, readUsage, usageLines,
 } from './daily-lib.mjs'
 
 const env = process.env
@@ -161,6 +162,8 @@ const MOCK_REPLY = [
 
 const OVERLOADED = new Set([429, 500, 502, 503, 520, 521, 522, 523, 524, 529]) // 52x: proxy (Cloudflare) timeouts
 
+const usageTotals = new Map() // model -> tokens spent in this run
+
 async function callApi(model, system, messages, timeoutMs) {
   const key = env.ANTHROPIC_API_KEY
   const { url, label } = resolveBaseUrl(env.ANTHROPIC_URL)
@@ -184,6 +187,8 @@ async function callApi(model, system, messages, timeoutMs) {
     throw err
   }
   const body = await res.json()
+  // an answer costs tokens whether or not the gates keep what is in it
+  addUsage(usageTotals, model, readUsage(body))
   const text = (body.content ?? []).filter((b) => b.type === 'text').map((b) => b.text).join('\n')
   if (!text) throw new Error('the model API sent no text')
   return text
@@ -296,6 +301,11 @@ for (const batch of batches) {
 }
 
 // ── result ──────────────────────────────────────────────────────────────────
+const usage = usageLines(usageTotals)
+if (usage.length) {
+  log('token usage:')
+  for (const l of usage) log(l)
+}
 if (accepted.length < MIN_DAY) {
   log(`only ${accepted.length} challenge(s) passed the gates (need ${MIN_DAY}): publishing nothing today`)
   output(0)
@@ -321,6 +331,7 @@ if (!dry) {
       '| --- | --- | --- | --- |',
       ...chosen.map((c) => `| \`${c.id}\` | ${c.level} | ${c.model} | ${c.prompt} |`),
       '',
+      ...(usage.length ? ['Tokens spent by this run (including answers the gates rejected):', '', ...usage, ''] : []),
     ]
     fs.writeFileSync(env.DAILY_PR_BODY, lines.join('\n'))
   }

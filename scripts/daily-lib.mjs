@@ -313,3 +313,50 @@ export function parseValidateOutput(out) {
   }
   return { ok, failed }
 }
+
+// ── token usage ─────────────────────────────────────────────────────────────
+
+const count = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0)
+
+/**
+ * The token counts of one API answer, or null when it reports none. Anthropic names them input_tokens / output_tokens
+ * (plus cache_creation_input_tokens / cache_read_input_tokens); an OpenAI-style gateway says prompt_tokens /
+ * completion_tokens. Cached input is added to the input so the total is what was really read.
+ */
+export function readUsage(body) {
+  const u = body && typeof body === 'object' ? body.usage : null
+  if (!u || typeof u !== 'object') return null
+  const input = count(u.input_tokens ?? u.prompt_tokens) + count(u.cache_creation_input_tokens) + count(u.cache_read_input_tokens)
+  const output = count(u.output_tokens ?? u.completion_tokens)
+  return input || output ? { input, output } : null
+}
+
+/** Adds one answer to the per-model totals (a Map: model -> { calls, input, output }). A null usage still counts the call. */
+export function addUsage(totals, model, usage) {
+  const t = totals.get(model) ?? { calls: 0, input: 0, output: 0, reported: 0 }
+  t.calls += 1
+  if (usage) {
+    t.input += usage.input
+    t.output += usage.output
+    t.reported += 1
+  }
+  totals.set(model, t)
+  return totals
+}
+
+const num = (n) => n.toLocaleString('en-US')
+
+/** Markdown lines for the PR body and the run summary: one row per model and a total. Empty when nothing was called. */
+export function usageLines(totals) {
+  if (!totals.size) return []
+  const rows = [...totals.entries()].sort((a, b) => b[1].output + b[1].input - (a[1].output + a[1].input))
+  const sum = rows.reduce((s, [, t]) => ({ calls: s.calls + t.calls, input: s.input + t.input, output: s.output + t.output, reported: s.reported + t.reported }), { calls: 0, input: 0, output: 0, reported: 0 })
+  const note = sum.reported < sum.calls ? ` (${sum.calls - sum.reported} answer(s) did not report usage, so the real totals are higher)` : ''
+  return [
+    '| model | calls | input tokens | output tokens |',
+    '| --- | ---: | ---: | ---: |',
+    ...rows.map(([m, t]) => `| ${m} | ${t.calls} | ${num(t.input)} | ${num(t.output)} |`),
+    ...(rows.length > 1 ? [`| **total** | ${sum.calls} | ${num(sum.input)} | ${num(sum.output)} |`] : []),
+    ...(note ? ['', `Tokens${note}.`] : []),
+  ]
+}
