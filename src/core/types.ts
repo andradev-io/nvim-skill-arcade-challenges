@@ -48,6 +48,11 @@ export interface Challenge {
   needs?: string
   helps?: Record<string, string>
   loose?: boolean
+  /** Daily/AI challenges: the day they are featured (YYYY-MM-DD), the model that wrote them and the prompt (file version and hash). */
+  date?: string
+  generated?: boolean
+  model?: string
+  prompt?: string
 }
 
 /** Every form field as typed text, exactly what the author sees. */

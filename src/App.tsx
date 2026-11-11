@@ -7,6 +7,7 @@ import { Footer } from './components/layout/Footer'
 import { TopBar } from './components/layout/TopBar'
 import { useRoute } from './hooks/useRoute'
 import type { Route } from './hooks/useRoute'
+import { AiPage } from './pages/AiPage'
 import { AccountPage } from './pages/AccountPage'
 import { AdminPage } from './pages/AdminPage'
 import { ChallengesPage } from './pages/ChallengesPage'
@@ -23,6 +24,7 @@ const TITLES: Record<Route, string> = {
   terminal: 'Terminal | arcade.nvim',
   support: 'What works in the terminal | arcade.nvim',
   challenges: 'Published challenges | arcade.nvim',
+  ai: 'AI challenges | arcade.nvim',
   account: 'Account | arcade.nvim',
   admin: 'Admin | arcade.nvim',
 }
@@ -65,6 +67,7 @@ export default function App() {
         {route === 'create' && <CreatePage />}
         {route === 'support' && <SupportPage />}
         {route === 'challenges' && <ChallengesPage />}
+        {route === 'ai' && <AiPage />}
         {route === 'account' && <AccountPage />}
         {route === 'admin' && <AdminPage />}
       </Container>

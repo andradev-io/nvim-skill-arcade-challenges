@@ -180,6 +180,7 @@ export function HomePage() {
         <Stat value={stats ? stats.builtin : null} label="built-in challenges" />
         <Stat value={AREAS.length} label="skill areas" />
         <Stat value={community.status === 'ready' ? published.length : null} label="community challenges" />
+        <Stat value={stats && typeof stats.ai === 'number' ? stats.ai : null} label="AI challenges" />
         <Stat value={EXAMPLES.length} label="examples to start from" />
       </Stack>
 

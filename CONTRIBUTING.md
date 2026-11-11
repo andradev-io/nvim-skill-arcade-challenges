@@ -90,7 +90,10 @@ request: the plugin's schema (no shell, no expressions, no chaining, no file com
 real headless Neovim, and de-duplication against the built-ins, the community and earlier daily files. Rejected ones are
 sent back to the model with the exact reason (two retries). Fewer than 3 survivors means nothing is published that day.
 The survivors arrive as a pull request that adds `daily/<id>.json` (with `date` and `generated: true`); once merged they
-join `community.json`, and the plugin's daily mode plays the ones dated today (the built-in daily set is the fallback).
+join `community.json` in a separate `ai` collection (`scripts/build.lua` puts every `generated` challenge there; `challenges/`
+stays the human collection). The plugin lists them with `:ArcadeAI` and keeps them out of normal runs unless `ai.in_runs` is set;
+the site shows them on the *AI challenges* page and `stats.json` gets an `ai` count. The plugin's daily mode plays the ones dated
+today (the built-in daily set is the fallback).
 
 The model's text is only ever data: fields are whitelisted one by one, ids and the date are set by the script, and the
 keys run in a Neovim child process that is given no secrets. The API key is read from one environment variable in one step
