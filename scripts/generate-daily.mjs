@@ -227,7 +227,9 @@ function replay(dir) {
 
 const accepted = []
 for (const batch of batches) {
-  let messages = [{ role: 'user', content: batch.prompt.user }]
+  // later batches are told what the earlier ones already produced in this run
+  const taken = accepted.length ? `\n\nAlready accepted in this run by another batch (do not repeat or reword): ${accepted.map((c) => c.title).join('; ')}` : ''
+  let messages = [{ role: 'user', content: batch.prompt.user + taken }]
   const deadline = Date.now() + resolveBudgetMs(env)
   // keep trying (rotating models) until the batch has what it needs or its time budget is gone
   for (let attempt = 0; batch.accepted < batch.count && (attempt < 6 || mock) && Date.now() < deadline; attempt += 1) {
