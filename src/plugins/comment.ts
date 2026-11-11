@@ -45,7 +45,7 @@ export const COMMENT_TOKENS: Record<string, CommentToken> = {
 }
 
 export const FILETYPE_CHOICES = [
-  'text', 'lua', 'javascript', 'typescript', 'python', 'sh', 'json', 'markdown', 'html', 'css', 'yaml', 'sql', 'c', 'go', 'rust', 'vim',
+  'text', 'lua', 'javascript', 'typescript', 'python', 'sh', 'json', 'markdown', 'html', 'css', 'yaml', 'sql', 'c', 'cs', 'go', 'rust', 'vim',
 ]
 
 /** `text` and `json` have no comment syntax; the toggler falls back to `#` so the key still does something. */
