@@ -17,7 +17,7 @@ import { authConfig } from '../auth/config'
 
 const INSTALL = `{
   "andradev-io/nvim-skill-arcade",
-  cmd = { "ArcadeMenu", "ArcadeRun", "ArcadeSync", "ArcadeTry", "ArcadeJoin" },
+  cmd = { "ArcadeMenu", "ArcadeRun", "ArcadeSync", "ArcadeTry", "ArcadeJoin", "ArcadeLogin", "ArcadeAccount" },
   keys = {
     { "<leader>Gm", "<cmd>ArcadeMenu<cr>", desc = "Arcade: menu" },
     { "<leader>Gg", "<cmd>ArcadeRun<cr>", desc = "Arcade: start a run" },
@@ -61,8 +61,8 @@ const FEATURES: { title: string; text: string; to?: Route; cta?: string }[] = [
 ]
 
 const WHY_SIGN_IN = [
-  'The only thing it unlocks is the leaderboard: your best result (fewest keys, then least time) on challenges you play in the browser terminal, under a short player code.',
-  'Nothing else needs it. Playing, the terminal, creating challenges, the AI section and the whole plugin work signed out.',
+  'The only thing it unlocks is the leaderboard: your best result (fewest keys, then least time) per challenge, under a short player code. It counts what you play in the browser terminal, and what you play in Neovim if you sign in there too.',
+  'Nothing else needs it. Playing, the terminal, creating challenges, the AI section and the whole plugin work signed out, and nothing is sent unless you choose it.',
   'The site and its score service never receive your name, e-mail or GitHub account. The code is derived from your login, is the same every time and cannot be traced back to you.',
   'Scores are reported by the client, so the board is an honor system.',
 ]
@@ -74,6 +74,7 @@ const IN_NEOVIM = [
   [':ArcadeDaily', "today's set: the AI-written challenges of the day when synced, a built-in set otherwise"],
   [':ArcadeAI', 'play the AI challenges (latest, or pick an area)'],
   [':ArcadeJoin ROOM-XXXX', 'play a challenge you just built here, no sign-in and no pull request'],
+  [':ArcadeLogin', 'optional: sign in to send finished rounds to the leaderboard (:ArcadeAccount on|off, :ArcadeLogout)'],
 ]
 
 const STEPS = [
@@ -265,8 +266,9 @@ export function HomePage() {
           <Paper sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             <Typography sx={{ fontWeight: 700, fontSize: 18 }}>And in Neovim</Typography>
             <Typography color="text.secondary" sx={{ lineHeight: 1.8 }}>
-              The plugin has no login and no account. It works offline and keeps your results locally; scores are not sent to
-              the leaderboard from Neovim. The commands:
+              The plugin works offline and keeps your results on your machine. If you want the leaderboard, run{' '}
+              <code>:ArcadeLogin</code>: it shows a short code, you approve it in any browser, and then you choose whether
+              finished rounds are sent automatically. It is optional, and you can turn it off or sign out any time. The commands:
             </Typography>
             <Stack spacing={1}>
               {IN_NEOVIM.map(([cmd, what]) => (
