@@ -1,0 +1,24 @@
+{
+  "id": "d20261111-delete-matching-parenthe",
+  "title": "Delete matching parentheses content",
+  "area": "textobjects",
+  "level": 2,
+  "brief": "Remove everything inside the outermost parentheses, keeping the parens themselves.",
+  "text": "console.log(someVeryLongFunctionCall())",
+  "solution": "di(",
+  "expect": {
+    "text": "console.log()"
+  },
+  "why": "di( deletes inside parentheses, a text object that respects nesting.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:250c8015fb86",
+  "ft": "javascript",
+  "cursor": [
+    1,
+    12
+  ],
+  "par_seconds": 10
+}

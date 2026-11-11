@@ -1,0 +1,20 @@
+{
+  "id": "d20261111-find-and-replace-all-tod",
+  "title": "Find and replace all TODO comments",
+  "area": "search",
+  "level": 2,
+  "brief": "Change all TODO comments to FIXME throughout the file.",
+  "text": "# TODO: fix this\nx = 1\n# TODO: refactor later\ny = 2\n# normal comment",
+  "solution": ":%s/# TODO:/# FIXME:/g\r",
+  "expect": {
+    "text": "# FIXME: fix this\nx = 1\n# FIXME: refactor later\ny = 2\n# normal comment"
+  },
+  "why": "A global substitution replaces all occurrences of the pattern in one command.",
+  "author": "claude (daily)",
+  "date": "2026-11-11",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:250c8015fb86",
+  "ft": "python",
+  "par_seconds": 8
+}
