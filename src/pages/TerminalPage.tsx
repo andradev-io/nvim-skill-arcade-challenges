@@ -26,6 +26,8 @@ import type { Snap } from '../components/terminal/Statusline'
 import { setEditorSink } from '../components/play/exCommands'
 import { EXAMPLES } from '../examples'
 import { useCommunity } from '../hooks/useCommunity'
+import { useBuiltin } from '../hooks/useBuiltin'
+import type { BuiltinChallenge } from '../hooks/useBuiltin'
 import { useDraft } from '../hooks/useDraft'
 import { THEMES, themeById, themeVars } from '../components/terminal/themes'
 import { useThemeStore } from '../store/themeStore'
@@ -67,6 +69,7 @@ function Group({ title, summary, defaultOpen = true, children }: { title: string
 export function TerminalPage() {
   const { data } = useDraft()
   const community = useCommunity()
+  const builtin = useBuiltin()
   const tabs = useTerminalStore((s) => s.tabs)
   const activeTab = useTerminalStore((s) => s.active)
   const buffer = tabs[activeTab]
@@ -162,7 +165,7 @@ export function TerminalPage() {
     >
       <Collapse in={showMenu} orientation="vertical" sx={{ display: { md: 'none' }, flexShrink: 0 }} unmountOnExit={false}>
         <Box sx={{ maxHeight: '55dvh', overflowY: 'auto', bgcolor: 'var(--t-side)', borderBottom: LINE }}>
-          <SideContent buffer={buffer} published={published} data={data} onOpen={load} onInfo={setInfo} />
+          <SideContent buffer={buffer} published={published} builtin={builtin} data={data} onOpen={load} onInfo={setInfo} />
         </Box>
       </Collapse>
       <Box
@@ -177,7 +180,7 @@ export function TerminalPage() {
           borderRight: LINE,
         }}
       >
-        <SideContent buffer={buffer} published={published} data={data} onOpen={load} onInfo={setInfo} />
+        <SideContent buffer={buffer} published={published} builtin={builtin} data={data} onOpen={load} onInfo={setInfo} />
       </Box>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>
@@ -307,12 +310,14 @@ export function TerminalPage() {
 function SideContent({
   buffer,
   published,
+  builtin,
   data,
   onOpen,
   onInfo,
 }: {
   buffer: TerminalBuffer
   published: { id: string; title: string; text: string; cursor: [number, number] }[]
+  builtin: BuiltinChallenge[]
   data: { id: string; title: string; text: string; cursor: [number, number] }
   onOpen: (b: TerminalBuffer) => void
   onInfo: (t: InfoTab) => void
@@ -326,6 +331,7 @@ function SideContent({
     { label: 'Yours', items: [SAMPLE_BUFFER, ...(data.text ? [draft] : [])] },
     { label: 'Examples', items: EXAMPLES.map((e) => ({ name: e.challenge.id, text: e.challenge.text, cursor: e.challenge.cursor })) },
     { label: 'Community', items: published.map((c) => ({ name: c.id, text: c.text, cursor: c.cursor })) },
+    ...builtinGroups(builtin),
   ].filter((g) => g.items.length > 0)
   return (
     <Box>
@@ -369,4 +375,16 @@ function SideContent({
       </Box>
     </Box>
   )
+}
+
+/** One dropdown group per area, easiest first: "Built-in: refactor" and so on. */
+function builtinGroups(list: BuiltinChallenge[]): { label: string; items: TerminalBuffer[] }[] {
+  const byArea = new Map<string, BuiltinChallenge[]>()
+  for (const c of list) byArea.set(c.area, [...(byArea.get(c.area) ?? []), c])
+  return [...byArea.entries()].map(([area, items]) => ({
+    label: `Built-in: ${area}`,
+    items: [...items]
+      .sort((a, b) => a.level - b.level || a.id.localeCompare(b.id))
+      .map((c) => ({ name: c.id.slice(c.area.length + 1), text: c.text, cursor: c.cursor })),
+  }))
 }
