@@ -1,15 +1,7 @@
 import { useEffect, useState } from 'react'
+import type { BuiltinChallenge } from '../core/builtin'
 
-export type BuiltinChallenge = {
-  id: string
-  title: string
-  area: string
-  level: number
-  ft: string
-  text: string
-  cursor: [number, number]
-  brief: string
-}
+export type { BuiltinChallenge } from '../core/builtin'
 
 /** The plugin's plain-text built-in challenges (exported at deploy time). Empty while loading or when unavailable. */
 export function useBuiltin(): BuiltinChallenge[] {

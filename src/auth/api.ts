@@ -47,3 +47,19 @@ export async function fetchStats(api: string, token: string, days: number): Prom
   if (!Array.isArray(body.daily) || !body.scores) throw new Error('The score service sent something unexpected.')
   return { days: body.days ?? days, daily: body.daily, pages: body.pages ?? [], challenges: body.challenges ?? [], scores: body.scores }
 }
+
+/** Sends one finished challenge. The service keeps it only when it beats the previous best (fewer keys, then less time). */
+export async function submitScore(api: string, token: string, r: Result): Promise<void> {
+  let res: Response
+  try {
+    res = await fetch(`${api}/api/score`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ challenge: r.challenge, keys: r.keys, ms: r.ms }),
+    })
+  } catch {
+    throw new Error('Could not reach the score service.')
+  }
+  if (res.status === 401) throw new Error('Your session expired. Sign in again to save results.')
+  if (!res.ok) throw new Error(`The score service answered ${res.status}.`)
+}

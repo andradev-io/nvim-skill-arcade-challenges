@@ -1,10 +1,13 @@
 import { create } from 'zustand'
+import type { BuiltinChallenge } from '../core/builtin'
 import type { Cursor } from '../core/types'
 
 export interface TerminalBuffer {
   name: string
   text: string
   cursor: Cursor
+  /** Set when the buffer is a built-in challenge: the Terminal then judges the end state. */
+  challenge?: BuiltinChallenge
 }
 
 export const SAMPLE_BUFFER: TerminalBuffer = {
@@ -65,7 +68,7 @@ export const useTerminalStore = create<TerminalStore>((set) => ({
   tabs: [tabOf(SAMPLE_BUFFER)],
   active: 0,
   run: 0,
-  open: (b) => set((s) => ({ tabs: s.tabs.map((t, i) => (i === s.active ? tabOf(b) : t)), run: s.run + 1 })),
+  open: (b) => set((s) => ({ tabs: s.tabs.map((t, i) => (i === s.active ? tabOf(b, b.challenge?.ft) : t)), run: s.run + 1 })),
   save: (text, cursor) => set((s) => ({ tabs: s.tabs.map((t, i) => (i === s.active ? { ...t, text, cursor } : t)) })),
   setFt: (ft) => set((s) => ({ tabs: s.tabs.map((t, i) => (i === s.active ? { ...t, ft } : t)) })),
   reset: () =>
