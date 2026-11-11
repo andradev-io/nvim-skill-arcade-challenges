@@ -85,7 +85,7 @@ export function findUnknownRepos(texts: string[]): string[] {
   return [...found].sort().slice(0, 80)
 }
 
-const ISSUES = 'https://github.com/dev-vinicius-andrade/nvim-skill-arcade-challenges/issues/new'
+const ISSUES = 'https://github.com/andradev-io/nvim-skill-arcade-challenges/issues/new'
 
 /** A prefilled GitHub issue asking for support of a plugin (or reporting a key that does not behave). */
 export function requestUrl(plugin: string, kind: 'request' | 'bug' = 'request'): string {

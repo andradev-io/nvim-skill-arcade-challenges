@@ -24,7 +24,7 @@ jobs:
       # the engine that judges challenges is the plugin itself
       - uses: actions/checkout@v4
         with:
-          repository: dev-vinicius-andrade/nvim-skill-arcade
+          repository: andradev-io/nvim-skill-arcade
           path: .plugin
       - uses: rhysd/action-setup-vim@v1
         with:

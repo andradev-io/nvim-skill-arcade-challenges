@@ -3,8 +3,8 @@ import Link from '@mui/material/Link'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 
-const PLUGIN = 'https://github.com/dev-vinicius-andrade/nvim-skill-arcade'
-const SITE = 'https://github.com/dev-vinicius-andrade/nvim-skill-arcade-challenges'
+const PLUGIN = 'https://github.com/andradev-io/nvim-skill-arcade'
+const SITE = 'https://github.com/andradev-io/nvim-skill-arcade-challenges'
 const OPEN = { target: '_blank', rel: 'noopener noreferrer' } as const
 
 const LINKS = [
