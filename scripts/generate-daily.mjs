@@ -58,7 +58,7 @@ for (const dir of ['challenges', dailyDir]) {
   if (!fs.existsSync(dir)) continue
   for (const f of fs.readdirSync(dir).filter((n) => n.endsWith('.json'))) {
     const c = readJson(path.join(dir, f))
-    if (c) existing.push({ id: c.id, title: c.title, text: c.text, expectText: c.expect?.text })
+    if (c) existing.push({ id: c.id, title: c.title, text: c.text, expectText: c.expect?.text, daily: dir === dailyDir })
   }
 }
 // built-in titles from the plugin sources, so the model is told what the game already teaches
@@ -83,14 +83,15 @@ const examples = existing
   .map((e) => readJson(path.join('challenges', `${e.id}.json`)))
   .filter(Boolean)
   .map(({ title, area, level, brief, text, solution, expect, why, ft }) => ({ title, area, level, ft, brief, text, solution, expect, why }))
-// Every title that exists (built-in, published, AI, daily), once each and all of them, so the model can steer away from
-// them instead of finding out at the gate. Capped by size, not by count: titles are short.
-const TITLES_MAX_CHARS = 14_000
+// The titles that exist (daily and AI first, newest first, then published and built-in), once each, so the model can steer
+// away from them instead of finding out at the gate. Input tokens cost money on every call, so the list is capped by size
+// (DAILY_TITLES_MAX_CHARS, default 6000); the ones that do not fit are still caught by the local duplicate gate.
+const TITLES_MAX_CHARS = Math.min(14_000, Math.max(500, Number(env.DAILY_TITLES_MAX_CHARS) || 6_000))
 const idsAndTitles = (() => {
   const seen = new Set()
   const out = []
   let size = 0
-  for (const t of [...existing.map((e) => e.title), ...builtinTitles]) {
+  for (const t of [...existing.filter((e) => e.daily).reverse().map((e) => e.title), ...existing.filter((e) => !e.daily).map((e) => e.title), ...builtinTitles]) {
     const title = String(t ?? '').trim()
     const key = title.toLowerCase()
     if (!title || seen.has(key) || size + title.length + 4 > TITLES_MAX_CHARS) continue
@@ -234,7 +235,11 @@ const accepted = []
 for (const batch of batches) {
   // later batches are told what the earlier ones already produced in this run
   const taken = accepted.length ? `\n\nAlready accepted in this run by another batch (do not repeat or reword): ${accepted.map((c) => c.title).join('; ')}` : ''
-  let messages = [{ role: 'user', content: batch.prompt.user + taken }]
+  // Every attempt sends the same prompt plus a short note, never the model's earlier replies: a replayed reply is up to
+  // 1000 input tokens per attempt, paid again on every later call.
+  const base = batch.prompt.user + taken
+  let messages = [{ role: 'user', content: base }]
+  log(`prompt for this batch: about ${Math.round((batch.prompt.system.length + base.length) / 4).toLocaleString('en-US')} input tokens per call`)
   const deadline = Date.now() + resolveBudgetMs(env)
   // keep trying (rotating models) until the batch has what it needs or its time budget is gone
   for (let attempt = 0; batch.accepted < batch.count && (attempt < 6 || mock) && Date.now() < deadline; attempt += 1) {
@@ -251,7 +256,7 @@ for (const batch of batches) {
       list = extractJson(reply)
     } catch (e) {
       log(`attempt ${attempt + 1}: ${e instanceof Error ? e.message : e}`)
-      messages = [...messages, { role: 'assistant', content: reply.slice(0, 4000) }, { role: 'user', content: 'Reply with ONLY a JSON array of challenges.' }]
+      messages = [{ role: 'user', content: `${base}\n\nYour previous reply was not a JSON array. Reply with ONLY a JSON array of challenges.` }]
       continue
     }
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'arcade-daily-'))
@@ -286,13 +291,12 @@ for (const batch of batches) {
     log(`attempt ${attempt + 1}: ${result.ok.length} passed, ${problems.length} rejected`)
     for (const p of problems) log(`  rejected  ${p}`)
     if (batch.accepted >= batch.count || mock) break
+    const why = problems.slice(0, 12).map((x) => `- ${x.replace(/\s+/g, ' ').slice(0, 160)}`).join('\n')
     messages = [
-      ...messages,
-      { role: 'assistant', content: reply.slice(0, 4000) },
       {
         role: 'user',
         content:
-          `${batch.accepted} passed so far. Rejected:\n${problems.join('\n')}\n` +
+          `${base}\n\n${batch.accepted} passed so far; the last attempt had these rejected:\n${why}\n` +
           (accepted.length ? `Already accepted in this run (do not repeat or reword): ${accepted.map((c) => c.title).join('; ')}\n` : '') +
           `Write ${batch.count - batch.accepted} new, different challenges that avoid these problems. Reply with ONLY a JSON array.`,
       },
