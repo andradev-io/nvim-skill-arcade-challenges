@@ -48,7 +48,7 @@ export const PLUGINS: PluginInfo[] = [
     note: 'Arguments (ia / aa), any quote (iq / aq) and calls (if / af), found by brackets, not by a syntax tree. Class and function-body objects are not simulated.',
     keys: 'ia aa  iq aq  if af',
   },
-  { id: 'telescope', name: 'Telescope / fzf', repos: ['nvim-telescope/telescope.nvim', 'ibhagwan/fzf-lua', 'junegunn/fzf.vim'], status: 'unsupported', note: 'Needs a file system and a project to search. Its keys are claimed and say so.' },
+  { id: 'telescope', name: 'Telescope / fzf', repos: ['nvim-telescope/telescope.nvim', 'ibhagwan/fzf-lua', 'junegunn/fzf.vim'], status: 'partial', note: 'Picker UI simulation: :Telescope find_files, live_grep or buffers opens a fuzzy picker over challenge-provided items. Selection jumps the cursor to the chosen entry.', keys: ':Telescope' },
   { id: 'tree', name: 'File explorers', repos: ['nvim-tree/nvim-tree.lua', 'nvim-neo-tree/neo-tree.nvim', 'stevearc/oil.nvim', 'echasnovski/mini.files'], status: 'unsupported', note: 'There are no files here, only buffers.' },
   { id: 'lsp', name: 'LSP, completion and formatting', repos: ['neovim/nvim-lspconfig', 'hrsh7th/nvim-cmp', 'saghen/blink.cmp', 'stevearc/conform.nvim', 'williamboman/mason.nvim', 'mfussenegger/nvim-lint'], status: 'unsupported', note: 'Needs language servers running on a machine.' },
   { id: 'git', name: 'Git', repos: ['kdheepak/lazygit.nvim', 'tpope/vim-fugitive', 'lewis6991/gitsigns.nvim', 'sindrets/diffview.nvim', 'nvim-telescope/telescope-advanced-git-search.nvim'], status: 'unsupported', note: 'There is no repository here.' },

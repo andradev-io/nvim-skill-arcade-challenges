@@ -20,7 +20,7 @@ export function linesEqual(a: string, b: string, loose = false): boolean {
 }
 
 export interface CheckPart {
-  name: 'text' | 'cursor'
+  name: 'text' | 'cursor' | 'picker_selected'
   ok: boolean
 }
 export interface CheckResult {
@@ -28,8 +28,12 @@ export interface CheckResult {
   parts: CheckPart[]
 }
 
-/** End-state check for the two assertions the browser can judge (buffer text, cursor). */
-export function check(expect: Pick<Expect, 'text' | 'cursor'>, state: State, loose = false): CheckResult {
+/** End-state check for the assertions the browser can judge (buffer text, cursor, picker selection). */
+export function check(
+  expect: Pick<Expect, 'text' | 'cursor'> & { picker_selected?: number | string },
+  state: State & { pickerSelection?: number | string | null },
+  loose = false,
+): CheckResult {
   const parts: CheckPart[] = []
   let ok = true
   if (expect.text !== undefined) {
@@ -44,12 +48,18 @@ export function check(expect: Pick<Expect, 'text' | 'cursor'>, state: State, loo
     parts.push({ name: 'cursor', ok: c })
     ok = ok && c
   }
+  if (expect.picker_selected !== undefined) {
+    const sel = state.pickerSelection
+    const p = sel !== null && sel !== undefined && sel === expect.picker_selected
+    parts.push({ name: 'picker_selected', ok: p })
+    ok = ok && p
+  }
   if (!parts.length) ok = false
   return { ok, parts }
 }
 
-/** The browser can judge only text and cursor; the rest needs real Neovim. */
-export const BROWSER_KEYS = ['text', 'cursor'] as const
+/** The browser can judge only text, cursor and picker selection; the rest needs real Neovim. */
+export const BROWSER_KEYS = ['text', 'cursor', 'picker_selected'] as const
 
 export function neovimOnlyKeys(expect: Expect): string[] {
   return Object.keys(expect).filter((k) => !(BROWSER_KEYS as readonly string[]).includes(k))

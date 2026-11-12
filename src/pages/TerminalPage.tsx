@@ -24,6 +24,8 @@ import { VimEditor } from '../components/play/VimEditor'
 import type { VimEditorHandle } from '../components/play/VimEditor'
 import { CommandPalette } from '../components/terminal/CommandPalette'
 import type { PaletteItem } from '../components/terminal/CommandPalette'
+import { PickerOverlay } from '../components/play/PickerOverlay'
+import type { PickerConfig } from '../core/types'
 import { InfoDialog } from '../components/terminal/InfoDialog'
 import type { InfoTab } from '../components/terminal/InfoDialog'
 import { Statusline } from '../components/terminal/Statusline'
@@ -90,6 +92,9 @@ export function TerminalPage() {
   const [snap, setSnap] = useState<Snap>({ mode: 'normal', row: 1, col: 0 })
   const [keys, setKeys] = useState<string[]>([])
   const [palette, setPalette] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerConfig, setPickerConfig] = useState<PickerConfig | null>(null)
+  const [pickerSelection, setPickerSelection] = useState<number | string | null>(null)
   const [confirmReset, setConfirmReset] = useState(false)
   const [settings, setSettings] = useState<HTMLElement | null>(null)
   // hints belong to one attempt: a retry, another buffer or tab starts again from none
@@ -177,7 +182,15 @@ export function TerminalPage() {
         // (retry, hint and next judge the buffer open right now)
         else if (name === 'hint') actions.current.revealHint()
         else if (name === 'next') actions.current.goNext()
-        else setPalette(true)
+        else if (name.startsWith('picker:')) {
+          const cfg = judged?.picker
+          if (cfg) {
+            setPickerConfig(cfg)
+            setPickerOpen(true)
+          } else {
+            actions.current.say('No picker configured for this challenge')
+          }
+        } else setPalette(true)
       },
     })
     return () => {
@@ -473,6 +486,24 @@ export function TerminalPage() {
         items={palItems}
         onClose={() => {
           setPalette(false)
+          setTimeout(() => editor.current?.focus(), 0)
+        }}
+      />
+      <PickerOverlay
+        open={pickerOpen}
+        config={pickerConfig}
+        onSelect={(index, item) => {
+          setPickerSelection(index)
+          setPickerOpen(false)
+          if (item.line !== undefined && editor.current) {
+            const ed = editor.current
+            ed.setCursor({ line: item.line - 1, ch: 0 })
+            onSync()
+          }
+          setTimeout(() => editor.current?.focus(), 0)
+        }}
+        onClose={() => {
+          setPickerOpen(false)
           setTimeout(() => editor.current?.focus(), 0)
         }}
       />
