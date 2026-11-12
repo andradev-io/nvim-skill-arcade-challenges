@@ -11,8 +11,9 @@ const form = (patch: Partial<DraftForm>): DraftForm => ({
   brief: 'A test challenge for picker schema validation.',
   text: 'placeholder',
   why: 'Testing picker serialization.',
-  solution: ':Telescope find_files<CR>',
+  solution: 'gg',
   expectText: 'placeholder',
+  expectCursor: '1:0',
   ...patch,
 })
 
