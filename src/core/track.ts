@@ -31,3 +31,9 @@ export function judgeTrack(t: Track, cp: number, cursor: Cursor, textSame: boole
   const onGoal = cursor[0] === t.goal[0] && cursor[1] === t.goal[1]
   return { solved: onGoal && cp >= total && textSame, reached: cp, total }
 }
+
+/** Advance harpoon sequence checkpoint count when the active slot matches the next expected visit. */
+export function stepHarpoonSequence(seq: string[], visited: number, activeSlot: string): number {
+  if (visited >= seq.length) return visited
+  return seq[visited] === activeSlot ? visited + 1 : visited
+}

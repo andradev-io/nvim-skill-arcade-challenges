@@ -54,6 +54,33 @@
       },
       "description": "Pre-computed jump targets for label-based motion simulation"
     },
+    "harpoon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slots"],
+      "description": "Harpoon-style named slot navigation: each slot is a buffer the player can save and jump to.",
+      "properties": {
+        "slots": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[a-d]$" },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["text"],
+            "properties": {
+              "text": { "type": "string", "maxLength": 2000 },
+              "cursor": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 1, "maxItems": 2 },
+              "ft": { "enum": ["text", "lua", "python", "javascript", "typescript", "go", "cs", "markdown", "json", "html"] }
+            }
+          }
+        },
+        "sequence": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-d]$" },
+          "description": "Expected visit order of slot names for checkpoint judging."
+        }
+      }
+    },
     "helps": { "type": "object", "maxProperties": 13, "additionalProperties": { "type": "string", "maxLength": 200 } },
     "preset": { "enum": ["diagnostics", "splits", "alt_buffer", "quickfix_hits"] },
     "preset_rows": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "maxItems": 10 },
