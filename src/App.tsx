@@ -13,6 +13,7 @@ import { AdminPage } from './pages/AdminPage'
 import { ChallengesPage } from './pages/ChallengesPage'
 import { CreatePage } from './pages/CreatePage'
 import { HomePage } from './pages/HomePage'
+import { StatsPage } from './pages/StatsPage'
 import { SupportPage } from './pages/SupportPage'
 
 // The terminal pulls in the Vim editor (CodeMirror): load it in its own chunk.
@@ -27,6 +28,7 @@ const TITLES: Record<Route, string> = {
   ai: 'AI challenges | arcade.nvim',
   account: 'Account | arcade.nvim',
   admin: 'Admin | arcade.nvim',
+  stats: 'Stats | arcade.nvim',
 }
 
 export default function App() {
@@ -69,6 +71,7 @@ export default function App() {
         {route === 'challenges' && <ChallengesPage />}
         {route === 'ai' && <AiPage />}
         {route === 'account' && <AccountPage />}
+        {route === 'stats' && <StatsPage />}
         {route === 'admin' && <AdminPage />}
       </Container>
       <Footer />

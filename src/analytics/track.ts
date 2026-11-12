@@ -1,7 +1,14 @@
 /**
- * Anonymous usage counts: which page was opened, which published challenge was started and finished. Nothing that
- * identifies a person is sent (no cookie, no id, no account), only what the Worker needs to add one to a counter.
- * Off when the browser asks not to be tracked, when the API is not configured, and in local development.
+ * Anonymous usage analytics with event batching.
+ *
+ * Events are buffered in memory and flushed every 10 seconds or when the buffer reaches 10 events.
+ * A `beforeunload` handler flushes remaining events. No PII is ever sent: no IP, no user agent,
+ * no referrer with query params. Tracking respects Do Not Track and Global Privacy Control.
+ *
+ * Event types:
+ *   - view:             page visit (path only)
+ *   - play:             challenge started (done=false) or completed (done=true)
+ *   - challenge_abandon: user switched away from a challenge without completing it
  */
 import { authConfig } from '../auth/config'
 
@@ -35,20 +42,127 @@ export function shouldTrack(prefs: Prefs): boolean {
   return prefs.doNotTrack !== '1' && prefs.globalPrivacyControl !== true
 }
 
-function send(body: Record<string, unknown>): void {
-  if (!authConfig || !import.meta.env.PROD || typeof navigator === 'undefined') return
+// ---- session & batching ---------------------------------------------------------------------------
+
+/** A random session id per page load. Never persisted across reloads. */
+let sessionId: string | null = null
+
+function getSessionId(): string {
+  if (!sessionId) {
+    sessionId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36)
+  }
+  return sessionId
+}
+
+interface BatchEvent {
+  type: string
+  ts: number
+  sid: string
+  path?: string
+  challenge?: string
+  done?: boolean
+  area?: string
+  level?: number
+  keys?: number
+  par?: number
+  duration_ms?: number
+}
+
+const FLUSH_INTERVAL_MS = 10_000
+const MAX_BATCH_SIZE = 10
+
+let buffer: BatchEvent[] = []
+let flushTimer: ReturnType<typeof setInterval> | null = null
+let unloadRegistered = false
+
+/** Strip any field that could accidentally carry PII. Defense in depth alongside the Worker check. */
+function sanitize(e: Record<string, unknown>): BatchEvent {
+  const clean: Record<string, unknown> = {}
+  const allowed = new Set(['type', 'ts', 'sid', 'path', 'challenge', 'done', 'area', 'level', 'keys', 'par', 'duration_ms'])
+  for (const k of Object.keys(e)) {
+    if (allowed.has(k)) clean[k] = e[k]
+  }
+  return clean as BatchEvent
+}
+
+function enqueue(e: BatchEvent): void {
+  buffer.push(sanitize(e))
+  if (buffer.length >= MAX_BATCH_SIZE) flush()
+}
+
+/** Send buffered events to the Worker. Safe to call multiple times; does nothing when empty. */
+export function flush(): void {
+  if (buffer.length === 0) return
+  if (!authConfig || !import.meta.env.PROD || typeof navigator === 'undefined') {
+    buffer = []
+    return
+  }
   const nav = navigator as Navigator & { globalPrivacyControl?: boolean }
-  if (!shouldTrack({ doNotTrack: nav.doNotTrack, globalPrivacyControl: nav.globalPrivacyControl })) return
+  if (!shouldTrack({ doNotTrack: nav.doNotTrack, globalPrivacyControl: nav.globalPrivacyControl })) {
+    buffer = []
+    return
+  }
+  const batch = buffer
+  buffer = []
   try {
-    // text/plain keeps it a "simple" request: no CORS preflight, and keepalive lets it finish while the page changes
-    void fetch(`${authConfig.api}/api/event`, { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'text/plain' }, keepalive: true }).catch(() => undefined)
+    void fetch(`${authConfig.api}/api/event`, {
+      method: 'POST',
+      body: JSON.stringify(batch),
+      headers: { 'Content-Type': 'text/plain' },
+      keepalive: true,
+    }).catch(() => undefined)
   } catch {
     /* counting is never worth an error */
   }
 }
 
-export const trackView = (page: string): void => send({ type: 'view', path: page })
+function startFlushTimer(): void {
+  if (flushTimer !== null) return
+  flushTimer = setInterval(flush, FLUSH_INTERVAL_MS)
+}
 
-export function trackPlay(challenge: string, done: boolean): void {
-  if (published.has(challenge)) send({ type: 'play', challenge, done })
+function registerUnload(): void {
+  if (unloadRegistered) return
+  unloadRegistered = true
+  window.addEventListener('beforeunload', flush)
+  // also flush on visibility hidden (mobile tab switch)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flush()
+  })
+}
+
+function track(e: Omit<BatchEvent, 'ts' | 'sid'>): void {
+  if (!import.meta.env.PROD) return
+  startFlushTimer()
+  registerUnload()
+  enqueue({ ...e, ts: Date.now(), sid: getSessionId() })
+}
+
+// ---- public API -----------------------------------------------------------------------------------
+
+export const trackView = (page: string): void => track({ type: 'view', path: page })
+
+export function trackPlay(
+  challenge: string,
+  done: boolean,
+  opts?: { area?: string; level?: number; keys?: number; par?: number },
+): void {
+  if (!published.has(challenge)) return
+  const ev: Omit<BatchEvent, 'ts' | 'sid'> = { type: 'play', challenge, done }
+  if (opts?.area) ev.area = opts.area
+  if (typeof opts?.level === 'number') ev.level = opts.level
+  if (done && typeof opts?.keys === 'number') ev.keys = opts.keys
+  if (done && typeof opts?.par === 'number') ev.par = opts.par
+  track(ev)
+}
+
+export function trackAbandon(challenge: string, area?: string, level?: number): void {
+  if (!published.has(challenge)) return
+  track({ type: 'challenge_abandon', challenge, area, level })
+}
+
+/** Reports how long a session lasted (e.g. terminal page open). Uses the batch with keepalive on unload. */
+export function trackSession(durationMs: number): void {
+  if (!Number.isFinite(durationMs) || durationMs <= 0) return
+  track({ type: 'session', duration_ms: Math.floor(durationMs) })
 }

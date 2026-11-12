@@ -25,9 +25,20 @@ CREATE TABLE IF NOT EXISTS visitors (
 );
 -- Challenges started and finished on the site per day.
 CREATE TABLE IF NOT EXISTS plays (
-  day       TEXT    NOT NULL,
-  challenge TEXT    NOT NULL,
-  started   INTEGER NOT NULL DEFAULT 0,
-  completed INTEGER NOT NULL DEFAULT 0,
+  day        TEXT    NOT NULL,
+  challenge  TEXT    NOT NULL,
+  started    INTEGER NOT NULL DEFAULT 0,
+  completed  INTEGER NOT NULL DEFAULT 0,
+  total_keys INTEGER NOT NULL DEFAULT 0,
+  total_par  INTEGER NOT NULL DEFAULT 0,
+  area       TEXT,
   PRIMARY KEY (day, challenge)
+);
+
+-- Session durations in milliseconds. One row per day; multiple sessions are summed.
+CREATE TABLE IF NOT EXISTS sessions (
+  day         TEXT    NOT NULL,
+  count       INTEGER NOT NULL DEFAULT 0,
+  duration_ms INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (day)
 );

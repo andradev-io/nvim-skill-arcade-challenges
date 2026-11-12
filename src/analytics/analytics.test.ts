@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { labelIndexes, niceMax, rate, shortDay, ticks } from '../components/admin/chartMath'
-import { setPublished, shouldTrack, trackPlay, trackView } from './track'
+import { setPublished, shouldTrack, trackPlay, trackSession, trackView } from './track'
 
 describe('shouldTrack', () => {
   it('respects Do Not Track and Global Privacy Control', () => {
@@ -20,6 +20,33 @@ describe('tracking is quiet when it is not set up', () => {
     trackPlay('only-this-window', false)
     expect(f).not.toHaveBeenCalled()
     vi.unstubAllGlobals()
+  })
+})
+
+describe('trackPlay with keys and par', () => {
+  it('accepts optional keys, par and area without throwing', () => {
+    setPublished(['test-challenge'])
+    expect(() => trackPlay('test-challenge', true, { keys: 42, par: 10, area: 'motion' })).not.toThrow()
+    expect(() => trackPlay('test-challenge', false, { area: 'motion', level: 2 })).not.toThrow()
+  })
+
+  it('ignores unpublished challenges even with extra fields', () => {
+    setPublished([])
+    expect(() => trackPlay('unknown', true, { keys: 5, par: 3 })).not.toThrow()
+  })
+})
+
+describe('trackSession', () => {
+  it('does not throw for valid durations', () => {
+    expect(() => trackSession(1234)).not.toThrow()
+    expect(() => trackSession(0.5)).not.toThrow()
+  })
+
+  it('silently ignores invalid durations', () => {
+    expect(() => trackSession(0)).not.toThrow()
+    expect(() => trackSession(-100)).not.toThrow()
+    expect(() => trackSession(NaN)).not.toThrow()
+    expect(() => trackSession(Infinity)).not.toThrow()
   })
 })
 
