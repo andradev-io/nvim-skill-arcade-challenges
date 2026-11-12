@@ -1,0 +1,24 @@
+{
+  "id": "test-jump-motion",
+  "title": "Jump to a word",
+  "area": "motions",
+  "level": 1,
+  "brief": "Use label-based jumping to move the cursor to the word 'target'.",
+  "text": "hello world foo bar target baz",
+  "cursor": [1, 0],
+  "expect": {
+    "cursor": [1, 20]
+  },
+  "solution": "se<Esc>",
+  "why": "Label-based jump motions let you reach any visible word start in one or two keystrokes instead of repeated w/b searches.",
+  "hint": "Press s in normal mode to activate jump labels, then type the label shown over the target word.",
+  "needs": "motion",
+  "jump_targets": [
+    { "label": "a", "row": 0, "col": 0 },
+    { "label": "b", "row": 0, "col": 6 },
+    { "label": "c", "row": 0, "col": 12 },
+    { "label": "d", "row": 0, "col": 16 },
+    { "label": "e", "row": 0, "col": 20 },
+    { "label": "f", "row": 0, "col": 27 }
+  ]
+}

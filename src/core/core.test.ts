@@ -53,6 +53,20 @@ describe('replay', () => {
   it('reports keys it cannot run', () => {
     expect(replay('x', [1, 0], 'q').unsupported).toBe('q')
   })
+  it('jumps to a target via label when jump_targets are provided', () => {
+    const targets = [
+      { label: 'a', row: 0, col: 0 },
+      { label: 'b', row: 0, col: 6 },
+      { label: 'c', row: 1, col: 0 },
+    ]
+    const r = replay('hello world\nfoo bar', [1, 0], 'sb', [], targets)
+    expect(r.cursor).toEqual([1, 6])
+    expect(r.unsupported).toBeNull()
+  })
+  it('falls back to substitute when no jump_targets', () => {
+    const r = replay('abc', [1, 0], 'sx<Esc>')
+    expect(r.text).toBe('xbc')
+  })
 })
 
 describe('replay surround', () => {

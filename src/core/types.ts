@@ -27,6 +27,12 @@ export interface Track {
   forbid?: Forbid[]
 }
 
+export interface JumpTargetData {
+  label: string
+  row: number
+  col: number
+}
+
 export interface Challenge {
   id: string
   title: string
@@ -48,6 +54,8 @@ export interface Challenge {
   needs?: string
   helps?: Record<string, string>
   loose?: boolean
+  /** Pre-computed jump targets for label-based motion simulation. */
+  jump_targets?: JumpTargetData[]
   /** Daily/AI challenges: the day they are featured (YYYY-MM-DD), the model that wrote them and the prompt (file version and hash). */
   date?: string
   generated?: boolean
@@ -89,6 +97,7 @@ export interface DraftForm {
   htip: string
   pluginPar: string
   needs: string
+  jumpTargets: string
   /** track area only: goal cell, checkpoints as "row:col, row:col", key rules */
   goalRow: string
   goalCol: string
