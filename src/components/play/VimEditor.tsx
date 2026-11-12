@@ -12,9 +12,8 @@ import type { Cursor } from '../../core/types'
 import { buildJumpDecorations, type JumpTarget } from '../../plugins/jumpLabels'
 import { applyShims, handleShimKey, setFiletype, setJumpTargets, getJumpState, isSurroundAwaiting } from '../../plugins/vimGlue'
 import type { Cm } from '../../plugins/vimGlue'
-import { whichKeyStep, buildWhichKeyFromMaps, buildWhichKeyFromChallenge, initialWhichKeyState } from '../../core/whichKey'
+import { whichKeyStep, initialWhichKeyState } from '../../core/whichKey'
 import type { WhichKeyConfig, WhichKeyState } from '../../core/whichKey'
-import type { ChallengeWhichKey } from '../../core/types'
 import { installExCommands, stubNotes } from './exCommands'
 import { highlighting, loadLanguage } from './languages'
 
@@ -187,7 +186,7 @@ const cmTheme = EditorView.theme({
 })
 
 /** Stock Vim emulation (CodeMirror 6 + @replit/codemirror-vim). Your own Neovim keybinds are not active here. */
-export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse = false, maps, plugins, filetype = 'text', size = 'play', whichKeyConfig, ref }: Props) {
+export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse = false, maps, plugins, filetype = 'text', size = 'play', jumpTargets, whichKeyConfig, ref }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const hooks = useRef({ onKey, onSync })
@@ -201,7 +200,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
   const wkConfigRef = useRef<WhichKeyConfig | null>(whichKeyConfig ?? null)
   const wkStateRef = useRef<WhichKeyState>(initialWhichKeyState())
   const wkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [wkState, setWkState] = useState<WhichKeyState>(initialWhichKeyState())
+  const [_wkState, setWkState] = useState<WhichKeyState>(initialWhichKeyState())
   useEffect(() => {
     hooks.current = { onKey, onSync }
     lockMouse.current = noMouse
@@ -294,7 +293,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
         // refresh jump decorations if jump state is active
         const js = getJumpState()
         if (js && v) {
-          v.dispatch({ effects: jumpDeco.current.reconfigure(buildJumpDecorations(v, jumpTargetsRef.current ?? [], js.typed)) })
+          v.dispatch({ effects: jumpDeco.current.reconfigure([buildJumpDecorations(v, jumpTargetsRef.current ?? [], js.typed)]) })
         } else if (v) {
           v.dispatch({ effects: jumpDeco.current.reconfigure([]) })
         }

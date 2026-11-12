@@ -23,7 +23,7 @@ describe('harpoon replay', () => {
   it('jump to unsaved slot is unsupported', () => {
     const sol = ':archoon jump c<CR>'
     const res = replay('x', [1, 0], sol, [], 'text', undefined, config)
-    expect(res.unsupported.length).toBeGreaterThan(0)
+    expect(res.unsupported!.length).toBeGreaterThan(0)
   })
 
   it('round-trip add then jump returns to saved state', () => {
