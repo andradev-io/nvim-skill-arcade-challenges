@@ -1,0 +1,25 @@
+{
+  "id": "d20261112-unwrap-split-csv-header",
+  "title": "Unwrap split CSV header",
+  "area": "editing",
+  "level": 2,
+  "brief": "Join a two-line wrapped CSV header back into a single line, replacing the newline and leading spaces with a comma.",
+  "text": "first_name,\n  last_name,email",
+  "solution": "J:s/^  // <CR>",
+  "expect": {
+    "text": "first_name, last_name,email"
+  },
+  "why": "J merges the lines preserving the space after the comma; a quick substitute cleans the leftover indentation.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:d727d16de78d",
+  "ft": "text",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 9,
+  "hint": "Join first, then strip the leading spaces that came from the wrap."
+}

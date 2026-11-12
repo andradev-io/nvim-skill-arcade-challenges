@@ -1,0 +1,23 @@
+{
+  "id": "d20261112-promote-csv-header-to-ti",
+  "title": "Promote CSV header to title",
+  "area": "editing",
+  "level": 2,
+  "brief": "Turn the raw header row into a Markdown title above the table for a quick report.",
+  "text": "player,score,rank\nMia,980,1\nLeo,870,2",
+  "solution": "yyP:s/,/ /g<CR>I# <Esc>",
+  "expect": {
+    "text": "# player score rank\nplayer,score,rank\nMia,980,1\nLeo,870,2"
+  },
+  "why": "Yank and paste duplicates the header, then a line-scoped substitute and insert-mode prefix format it as a title.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:d727d16de78d",
+  "ft": "markdown",
+  "cursor": [
+    1,
+    0
+  ]
+}

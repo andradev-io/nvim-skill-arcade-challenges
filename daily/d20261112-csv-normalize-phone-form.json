@@ -1,0 +1,23 @@
+{
+  "id": "d20261112-csv-normalize-phone-form",
+  "title": "CSV: Normalize phone formats",
+  "area": "search",
+  "level": 4,
+  "brief": "Standardize all phone numbers to (XXX) XXX-XXXX format.",
+  "text": "name,phone\nAlice,555-123-4567\nBob,(555) 987-6543\nCarol,5551234567",
+  "solution": ":%s/\\(\\d\\{3\\}\\)[- ]\\?\\(\\d\\{3\\}\\)[- ]\\?\\(\\d\\{4\\}\\)/(\\1) \\2-\\3/g<CR>",
+  "expect": {
+    "text": "name,phone\nAlice,(555) 123-4567\nBob,(555) 987-6543\nCarol,(555) 123-4567"
+  },
+  "why": "The regex captures three groups of digits separated by optional dashes or spaces, then reconstructs them in the standard format.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:8466afd197d9",
+  "ft": "text",
+  "cursor": [
+    2,
+    6
+  ]
+}

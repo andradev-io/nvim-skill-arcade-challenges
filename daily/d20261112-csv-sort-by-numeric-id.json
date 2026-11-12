@@ -1,0 +1,23 @@
+{
+  "id": "d20261112-csv-sort-by-numeric-id",
+  "title": "CSV: Sort by numeric ID",
+  "area": "editing",
+  "level": 3,
+  "brief": "Sort the data rows by the first column (ID) numerically, keeping the header at the top.",
+  "text": "id,name,score\n3,Charlie,88\n1,Alice,95\n2,Bob,72",
+  "solution": ":2,$sort n<CR>",
+  "expect": {
+    "text": "id,name,score\n1,Alice,95\n2,Bob,72\n3,Charlie,88"
+  },
+  "why": "The sort command with 'n' flag sorts numerically. Specifying the range from line 2 to end preserves the header row.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:8466afd197d9",
+  "ft": "text",
+  "cursor": [
+    1,
+    0
+  ]
+}

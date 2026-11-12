@@ -1,0 +1,19 @@
+{
+  "id": "d20261112-remove-trailing-commas-f",
+  "title": "Remove trailing commas from CSV",
+  "area": "search",
+  "level": 1,
+  "brief": "Every line ends with a stray comma. Remove it.",
+  "text": "Alice,30,\nBob,25,\nCharlie,35,",
+  "solution": ":%s/,$//g<CR>",
+  "expect": {
+    "text": "Alice,30\nBob,25\nCharlie,35"
+  },
+  "why": "$ anchors to end of line. Simple substitution removes the trailing comma.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:d727d16de78d",
+  "par_seconds": 10
+}

@@ -1,0 +1,22 @@
+{
+  "id": "d20261112-pad-csv-ids-manually",
+  "title": "Pad CSV IDs manually",
+  "area": "editing",
+  "level": 2,
+  "brief": "Add leading zeros to short IDs on three known rows so they align visually.",
+  "text": "id,val\n7,a\n42,b\n3,c",
+  "solution": "I000<Esc>jI00<Esc>jI000<Esc>",
+  "expect": {
+    "text": "id,val\n0007,a\n0042,b\n0003,c"
+  },
+  "why": "When computation isn't allowed, direct insertion at known positions is the honest Vim way to pad fixed-width fields.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:d727d16de78d",
+  "cursor": [
+    2,
+    0
+  ]
+}

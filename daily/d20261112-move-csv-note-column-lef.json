@@ -1,0 +1,22 @@
+{
+  "id": "d20261112-move-csv-note-column-lef",
+  "title": "Move CSV note column left",
+  "area": "refactor",
+  "level": 3,
+  "brief": "Reorder columns so note comes before status in this task export.",
+  "text": "task,status,note\nfix,open,urgent\ntest,closed,minor",
+  "solution": ":%s/\\([^,]*\\),\\([^,]*\\),\\(.*\\)/\\1,\\3,\\2/<CR>",
+  "expect": {
+    "text": "task,note,status\nfix,urgent,open\ntest,minor,closed"
+  },
+  "why": "Capturing three comma-separated fields lets a single substitute reorder them across every row at once.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:d727d16de78d",
+  "cursor": [
+    1,
+    0
+  ]
+}

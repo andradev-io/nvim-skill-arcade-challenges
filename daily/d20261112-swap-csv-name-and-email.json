@@ -1,0 +1,24 @@
+{
+  "id": "d20261112-swap-csv-name-and-email",
+  "title": "Swap CSV name and email",
+  "area": "editing",
+  "level": 2,
+  "brief": "In each row, swap the name and email columns (columns 1 and 2).",
+  "text": "Alice,alice@example.com,30\nBob,bob@example.com,25\nCarol,carol@example.com,28",
+  "solution": ":%s/^\\([^,]*\\),\\([^,]*\\)/\\2,\\1/<CR>",
+  "expect": {
+    "text": "alice@example.com,Alice,30\nbob@example.com,Bob,25\ncarol@example.com,Carol,28"
+  },
+  "why": "Capture the first two comma-separated fields and swap them in the replacement.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:d727d16de78d",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 20,
+  "hint": "Use capture groups to swap the first two fields."
+}
