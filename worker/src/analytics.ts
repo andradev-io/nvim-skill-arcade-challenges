@@ -7,9 +7,12 @@
  */
 
 /** The pages of the site that may be reported. Anything else is ignored. */
-export const PAGES = ['home', 'create', 'terminal', 'support', 'challenges', 'ai', 'account', 'admin'] as const
+export const PAGES = ['home', 'create', 'terminal', 'support', 'challenges', 'ai', 'account', 'admin', 'stats'] as const
 
-export type Event = { type: 'view'; path: string } | { type: 'play'; challenge: string; done: boolean }
+export type Event =
+  | { type: 'view'; path: string }
+  | { type: 'play'; challenge: string; done: boolean; keys?: number; par?: number; area?: string }
+  | { type: 'session'; duration_ms: number }
 
 const ID = /^[a-z0-9][a-z0-9-]{0,63}$/
 
@@ -21,8 +24,16 @@ export function parseEvent(body: unknown): Event | null {
     return typeof b.path === 'string' && (PAGES as readonly string[]).includes(b.path) ? { type: 'view', path: b.path } : null
   }
   if (b.type === 'play') {
-    return typeof b.challenge === 'string' && ID.test(b.challenge) && typeof b.done === 'boolean'
-      ? { type: 'play', challenge: b.challenge, done: b.done }
+    if (typeof b.challenge !== 'string' || !ID.test(b.challenge) || typeof b.done !== 'boolean') return null
+    const ev: Event & { type: 'play' } = { type: 'play', challenge: b.challenge, done: b.done }
+    if (typeof b.keys === 'number' && Number.isFinite(b.keys) && b.keys >= 0) ev.keys = Math.floor(b.keys)
+    if (typeof b.par === 'number' && Number.isFinite(b.par) && b.par > 0) ev.par = Math.floor(b.par)
+    if (typeof b.area === 'string' && /^[a-z][a-z0-9-]{0,31}$/.test(b.area)) ev.area = b.area
+    return ev
+  }
+  if (b.type === 'session') {
+    return typeof b.duration_ms === 'number' && Number.isFinite(b.duration_ms) && b.duration_ms > 0
+      ? { type: 'session', duration_ms: Math.floor(b.duration_ms) }
       : null
   }
   return null

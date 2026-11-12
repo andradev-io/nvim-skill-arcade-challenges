@@ -84,36 +84,113 @@ async function who(req: Request, env: Env): Promise<{ claims: Claims; code: stri
   return { claims, code: await userCodeFor(claims.sub, claims.user_code, env.USER_CODE_SALT) }
 }
 
-/** An anonymous usage event from the site: a page view or a challenge started / finished. */
-async function recordEvent(req: Request, env: Env): Promise<Response> {
-  // only the site's own pages report; nothing is stored for browsers that ask not to be tracked
-  const allowed = env.ALLOWED_ORIGINS.split(',').map((s) => s.trim())
-  if (!allowed.includes(req.headers.get('Origin') ?? '')) return reply(req, env, { error: 'origin not allowed' }, 403)
-  if (req.headers.get('DNT') === '1' || req.headers.get('Sec-GPC') === '1') return new Response(null, { status: 204, headers: cors(req, env) })
-  if (Number(req.headers.get('Content-Length') ?? 0) > 1024) return reply(req, env, { error: 'too large' }, 413)
-
-  const event = parseEvent(await req.json().catch(() => null))
-  if (!event) return reply(req, env, { error: 'unknown event' }, 400)
-
+/** Process a single parsed event against the database. */
+async function processEvent(env: Env, event: ReturnType<typeof parseEvent>, ip: string, agent: string, salt: string): Promise<void> {
+  if (!event) return
   const now = Date.now()
   const day = dayOf(now)
   if (event.type === 'view') {
-    const visitor = await visitorId(day, env.USER_CODE_SALT ?? '', req.headers.get('CF-Connecting-IP') ?? '', req.headers.get('User-Agent') ?? '')
+    const visitor = await visitorId(day, salt, ip, agent)
     await env.DB.prepare('INSERT INTO hits (day, path, views) VALUES (?, ?, 1) ON CONFLICT(day, path) DO UPDATE SET views = views + 1')
       .bind(day, event.path)
       .run()
     await env.DB.prepare('INSERT OR IGNORE INTO visitors (day, visitor) VALUES (?, ?)').bind(day, visitor).run()
     // housekeeping: now and then, drop visitor rows older than 90 days
     if (Math.random() < 0.02) await env.DB.prepare('DELETE FROM visitors WHERE day < ?').bind(dayOf(now - 90 * 86_400_000)).run()
-  } else {
+  } else if (event.type === 'play') {
+    const keys = event.done && typeof event.keys === 'number' ? event.keys : 0
+    const par = event.done && typeof event.par === 'number' ? event.par : 0
+    const area = event.area ?? null
     await env.DB.prepare(
-      'INSERT INTO plays (day, challenge, started, completed) VALUES (?, ?, ?, ?) ' +
-        'ON CONFLICT(day, challenge) DO UPDATE SET started = started + excluded.started, completed = completed + excluded.completed',
+      'INSERT INTO plays (day, challenge, started, completed, total_keys, total_par, area) VALUES (?, ?, ?, ?, ?, ?, ?) ' +
+        'ON CONFLICT(day, challenge) DO UPDATE SET started = started + excluded.started, completed = completed + excluded.completed, ' +
+        'total_keys = total_keys + excluded.total_keys, total_par = total_par + excluded.total_par, ' +
+        'area = COALESCE(excluded.area, plays.area)',
     )
-      .bind(day, event.challenge, event.done ? 0 : 1, event.done ? 1 : 0)
+      .bind(day, event.challenge, event.done ? 0 : 1, event.done ? 1 : 0, keys, par, area)
+      .run()
+  } else if (event.type === 'session') {
+    await env.DB.prepare(
+      'INSERT INTO sessions (day, count, duration_ms) VALUES (?, 1, ?) ' +
+        'ON CONFLICT(day) DO UPDATE SET count = count + 1, duration_ms = duration_ms + excluded.duration_ms',
+    )
+      .bind(day, event.duration_ms)
       .run()
   }
+}
+
+/** An anonymous usage event from the site: accepts a single event object or an array of events (batched). */
+async function recordEvent(req: Request, env: Env): Promise<Response> {
+  // only the site's own pages report; nothing is stored for browsers that ask not to be tracked
+  const allowed = env.ALLOWED_ORIGINS.split(',').map((s) => s.trim())
+  if (!allowed.includes(req.headers.get('Origin') ?? '')) return reply(req, env, { error: 'origin not allowed' }, 403)
+  if (req.headers.get('DNT') === '1' || req.headers.get('Sec-GPC') === '1') return new Response(null, { status: 204, headers: cors(req, env) })
+  if (Number(req.headers.get('Content-Length') ?? 0) > 8192) return reply(req, env, { error: 'too large' }, 413)
+
+  const body = await req.json().catch(() => null)
+  const ip = req.headers.get('CF-Connecting-IP') ?? ''
+  const agent = req.headers.get('User-Agent') ?? ''
+  const salt = env.USER_CODE_SALT ?? ''
+
+  // accept either a single event or an array of events (batched client)
+  if (Array.isArray(body)) {
+    if (body.length > 50) return reply(req, env, { error: 'batch too large' }, 413)
+    for (const item of body) {
+      const event = parseEvent(item)
+      if (event) await processEvent(env, event, ip, agent, salt)
+    }
+  } else {
+    const event = parseEvent(body)
+    if (!event) return reply(req, env, { error: 'unknown event' }, 400)
+    await processEvent(env, event, ip, agent, salt)
+  }
   return new Response(null, { status: 204, headers: cors(req, env) })
+}
+
+/** Public stats: aggregate metrics anyone can see. Cached for 5 minutes. */
+let publicStatsCache: { at: number; data: unknown } | null = null
+
+async function publicStats(req: Request, env: Env): Promise<Response> {
+  const now = Date.now()
+  if (publicStatsCache && now - publicStatsCache.at < 300_000) {
+    return reply(req, env, publicStatsCache.data)
+  }
+  const days = 30
+  const from = dayOf(now - (days - 1) * 86_400_000)
+  const q = <T>(sql: string, ...binds: unknown[]) => env.DB.prepare(sql).bind(...binds).all<T>()
+  const [views, plays, challenges] = await Promise.all([
+    q<{ total: number }>('SELECT COALESCE(SUM(views), 0) AS total FROM hits WHERE day >= ?', from),
+    q<{ started: number; completed: number }>('SELECT COALESCE(SUM(started), 0) AS started, COALESCE(SUM(completed), 0) AS completed FROM plays WHERE day >= ?', from),
+    q<{ challenge: string; started: number; completed: number }>(
+      'SELECT challenge, SUM(started) AS started, SUM(completed) AS completed FROM plays WHERE day >= ? GROUP BY challenge ORDER BY started DESC LIMIT 10',
+      from,
+    ),
+  ])
+  const totalViews = views.results[0]?.total ?? 0
+  const totalStarted = plays.results[0]?.started ?? 0
+  const totalCompleted = plays.results[0]?.completed ?? 0
+  const daily = fillDays(
+    days,
+    now,
+    (await q<{ day: string; views: number }>('SELECT day, SUM(views) AS views FROM hits WHERE day >= ? GROUP BY day', from)).results,
+    [],
+    (await q<{ day: string; started: number; completed: number }>('SELECT day, SUM(started) AS started, SUM(completed) AS completed FROM plays WHERE day >= ? GROUP BY day', from)).results,
+  )
+  const data = {
+    totalViews,
+    totalAttempts: totalStarted,
+    totalCompletions: totalCompleted,
+    completionRate: totalStarted > 0 ? Math.round((totalCompleted / totalStarted) * 100) : null,
+    topChallenges: challenges.results.map((c) => ({
+      challenge: c.challenge,
+      attempts: c.started,
+      completions: c.completed,
+      rate: c.started > 0 ? Math.round((c.completed / c.started) * 100) : null,
+    })),
+    daily,
+  }
+  publicStatsCache = { at: now, data }
+  return reply(req, env, data)
 }
 
 /** Everything the admin page draws. */
@@ -174,6 +251,12 @@ export default {
       }
 
       if (req.method === 'POST' && url.pathname === '/api/event') return await recordEvent(req, env)
+
+      if (req.method === 'GET' && url.pathname === '/api/stats') {
+        const res = await publicStats(req, env)
+        res.headers.set('Cache-Control', 'public, max-age=300')
+        return res
+      }
 
       if (req.method === 'GET' && url.pathname === '/api/admin/stats') {
         const { code, claims } = await who(req, env)
