@@ -39,6 +39,21 @@
     "par_seconds": { "type": "integer", "minimum": 3, "maximum": 120 },
     "plugin_par": { "type": "integer", "minimum": 1, "maximum": 50 },
     "needs": { "enum": ["jump", "surround", "textobjects", "comment", "picker", "keyhints", "files", "bookmarks", "trouble", "replace", "multicursor", "move", "treesitter"] },
+    "jump_targets": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "row", "col"],
+        "properties": {
+          "label": { "type": "string", "minLength": 1, "maxLength": 2 },
+          "row": { "type": "integer", "minimum": 0 },
+          "col": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "description": "Pre-computed jump targets for label-based motion simulation"
+    },
     "helps": { "type": "object", "maxProperties": 13, "additionalProperties": { "type": "string", "maxLength": 200 } },
     "preset": { "enum": ["diagnostics", "splits", "alt_buffer", "quickfix_hits"] },
     "preset_rows": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "maxItems": 10 },

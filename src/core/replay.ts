@@ -2,7 +2,7 @@
 // reaches the expected state. It is not Neovim: unsupported keys are reported, never guessed.
 // The CI replay in real Neovim stays the authority.
 import { tokens } from './keys'
-import type { Cursor } from './types'
+import type { Cursor, JumpTargetData } from './types'
 
 export interface ReplayResult {
   text: string
@@ -27,7 +27,7 @@ interface Motion {
 const lit = (t: string): string => (t === '<Space>' ? ' ' : t === '<lt>' ? '<' : t)
 const cls = (ch: string): number => (/\s/.test(ch) ? 0 : /\w/.test(ch) ? 2 : 1)
 
-export function replay(text: string, cursor: Cursor, solution: string, forbid: string[] = []): ReplayResult {
+export function replay(text: string, cursor: Cursor, solution: string, forbid: string[] = [], jumpTargets?: JumpTargetData[]): ReplayResult {
   let lines = String(text).replace(/\r\n/g, '\n').split('\n')
   let r = Math.max(0, Math.min(lines.length, cursor[0] || 1) - 1)
   let c = cursor[1] || 0
@@ -515,6 +515,31 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
         break
       case 'x':
         deleteRange(o, Math.min(off(r, L.length), o + cnt))
+        break
+      case 's':
+        if (jumpTargets && jumpTargets.length > 0) {
+          // label-based jump: read label chars from token stream, find matching target
+          let label = ''
+          while (i < toks.length) {
+            const ch = toks[i]
+            if (ch.length !== 1 || !/[a-z;]/i.test(ch)) break
+            label += ch.toLowerCase()
+            i++
+            const match = jumpTargets.find((t) => t.label === label)
+            if (match) {
+              r = match.row
+              c = match.col
+              clamp()
+              break
+            }
+            // check if any target starts with current prefix
+            if (!jumpTargets.some((t) => t.label.startsWith(label))) break
+          }
+        } else {
+          // substitute: delete char under cursor, enter insert mode
+          deleteRange(o, Math.min(off(r, L.length), o + cnt))
+          readInsert(o)
+        }
         break
       case 'D':
         deleteRange(o, off(r, L.length))
