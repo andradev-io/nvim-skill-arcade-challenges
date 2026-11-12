@@ -5,3 +5,6 @@ _old/
 *.log
 *.local
 public/community.json
+.claude/worktrees/
+.claude/worktrees/
+.claude/worktrees/
