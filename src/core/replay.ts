@@ -4,7 +4,8 @@
 import { tokens } from './keys'
 import { toggleLines } from '../plugins/comment'
 import { findSurround, pairFor } from '../plugins/surround'
-import type { Cursor, HarpoonConfig, JumpTargetData } from './types'
+import { findDefinition, findNextDiagnostic, findPrevDiagnostic } from '../plugins/lsp/lookup'
+import type { Cursor, HarpoonConfig, JumpTargetData, LspConfig } from './types'
 
 export interface ReplayResult {
   text: string
@@ -29,7 +30,7 @@ interface Motion {
 const lit = (t: string): string => (t === '<Space>' ? ' ' : t === '<lt>' ? '<' : t)
 const cls = (ch: string): number => (/\s/.test(ch) ? 0 : /\w/.test(ch) ? 2 : 1)
 
-export function replay(text: string, cursor: Cursor, solution: string, forbid: string[] = [], ft: string = 'text', jumpTargets?: JumpTargetData[], harpoon?: HarpoonConfig): ReplayResult & { activeSlot?: string } {
+export function replay(text: string, cursor: Cursor, solution: string, forbid: string[] = [], ft: string = 'text', jumpTargets?: JumpTargetData[], harpoon?: HarpoonConfig, lspData?: LspConfig): ReplayResult & { activeSlot?: string } {
   let lines = String(text).replace(/\r\n/g, '\n').split('\n')
   let r = Math.max(0, Math.min(lines.length, cursor[0] || 1) - 1)
   let c = cursor[1] || 0
@@ -709,6 +710,39 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       case ':':
         exCommand()
         break
+      case 'K':
+        // LSP hover: no state change in replay (tooltip is UI-only)
+        break
+      case ']': {
+        const bk = toks[i]
+        if (bk === 'd' && lspData) {
+          i++
+          const diag = findNextDiagnostic(lspData, { line: r, ch: c })
+          if (diag) {
+            r = diag.row - 1
+            c = diag.col
+            clamp()
+          }
+        } else {
+          unsupported(']')
+        }
+        break
+      }
+      case '[': {
+        const bk2 = toks[i]
+        if (bk2 === 'd' && lspData) {
+          i++
+          const diag = findPrevDiagnostic(lspData, { line: r, ch: c })
+          if (diag) {
+            r = diag.row - 1
+            c = diag.col
+            clamp()
+          }
+        } else {
+          unsupported('[')
+        }
+        break
+      }
       case 'g': {
         // NOTE: Visual mode gc is not supported in replay. Authors should use normal-mode gc{motion} or gcc.
         const gk = toks[i++]
@@ -716,6 +750,14 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
           r = count ? Math.min(lines.length, count) - 1 : 0
           c = firstNonBlank(r)
           clamp()
+        } else if (gk === 'd' && lspData) {
+          // go-to-definition: move cursor to target position
+          const def = findDefinition(lspData, { line: r, ch: c })
+          if (def) {
+            r = def.target_row - 1
+            c = def.target_col
+            clamp()
+          }
         } else if (gk === 'c') {
           const next = toks[i]
           if (next === 'c') {

@@ -147,6 +147,57 @@
         }
       }
     },
+    "lsp": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "LSP simulation: scripted hover, go-to-definition and diagnostics (no completion).",
+      "properties": {
+        "hover": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["row", "col", "text"],
+            "properties": {
+              "row": { "type": "integer", "minimum": 1 },
+              "col": { "type": "integer", "minimum": 0 },
+              "end_col": { "type": "integer", "minimum": 0 },
+              "text": { "type": "string", "maxLength": 500 }
+            }
+          }
+        },
+        "definition": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["row", "col", "target_row", "target_col"],
+            "properties": {
+              "row": { "type": "integer", "minimum": 1 },
+              "col": { "type": "integer", "minimum": 0 },
+              "end_col": { "type": "integer", "minimum": 0 },
+              "target_row": { "type": "integer", "minimum": 1 },
+              "target_col": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["row", "col", "end_col", "severity"],
+            "properties": {
+              "row": { "type": "integer", "minimum": 1 },
+              "col": { "type": "integer", "minimum": 0 },
+              "end_col": { "type": "integer", "minimum": 0 },
+              "severity": { "enum": ["error", "warning", "info", "hint"] },
+              "message": { "type": "string", "maxLength": 300 }
+            }
+          }
+        }
+      }
+    },
     "helps": { "type": "object", "maxProperties": 13, "additionalProperties": { "type": "string", "maxLength": 200 } },
     "preset": { "enum": ["diagnostics", "splits", "alt_buffer", "quickfix_hits"] },
     "preset_rows": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "maxItems": 10 },

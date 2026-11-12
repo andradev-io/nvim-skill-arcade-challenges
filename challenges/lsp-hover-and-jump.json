@@ -1,0 +1,18 @@
+{
+  "id": "lsp-hover-and-jump",
+  "title": "Explore with LSP",
+  "area": "plugins",
+  "level": 3,
+  "brief": "Use K to inspect the function, then gd to jump to its definition.",
+  "text": "local result = parse(input)\nprint(result)",
+  "cursor": [1, 14],
+  "ft": "lua",
+  "needs": "lsp",
+  "lsp": {
+    "hover": [{ "row": 1, "col": 13, "end_col": 18, "text": "function parse(input: string): table" }],
+    "definition": [{ "row": 1, "col": 13, "end_col": 18, "target_row": 2, "target_col": 0 }]
+  },
+  "solution": "Kgd",
+  "expect": { "cursor": [2, 0] },
+  "why": "K shows type info without leaving your position; gd jumps to the definition."
+}
