@@ -78,6 +78,25 @@ export interface ChallengeWhichKey {
   timeout_ms?: number
 }
 
+/** A range in a treesitter object: [startLine (1-based), startCol (0-based), endLine (1-based), endCol (0-based exclusive)]. */
+export type TsRange = [number, number, number, number]
+
+/** One treesitter text object with its inner and outer ranges. */
+export interface TsObjectEntry {
+  inner: TsRange
+  outer: TsRange
+}
+
+/** Pre-computed treesitter text objects by kind. Each array holds entries for that object type. */
+export interface TreesitterObjects {
+  function?: TsObjectEntry[]
+  class?: TsObjectEntry[]
+  statement?: TsObjectEntry[]
+  parameter?: TsObjectEntry[]
+  block?: TsObjectEntry[]
+  tag?: TsObjectEntry[]
+}
+
 export interface Challenge {
   id: string
   title: string
@@ -107,6 +126,8 @@ export interface Challenge {
   harpoon?: HarpoonConfig
   /** Which-key prefix hint overlay configuration for this challenge. */
   which_key?: ChallengeWhichKey
+  /** Pre-computed treesitter text objects for structural editing. */
+  treesitter_objects?: TreesitterObjects
   /** Daily/AI challenges: the day they are featured (YYYY-MM-DD), the model that wrote them and the prompt (file version and hash). */
   date?: string
   generated?: boolean
@@ -161,6 +182,7 @@ export interface DraftForm {
   harpoonSlots: string
   harpoonSequence: string
   whichKeyJson: string
+  treesitterObjectsJson: string
 }
 
 export interface State {

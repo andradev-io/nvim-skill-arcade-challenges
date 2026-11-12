@@ -19,7 +19,7 @@ export const EMPTY_FORM: DraftForm = {
   marks: '', altBuffer: false, preset: '', presetRows: '', solution: '', why: '', hint: '', author: '',
   hgroup: '', htip: '', pluginPar: '', needs: '', jumpTargets: '', pickerJson: '',
   goalRow: '', goalCol: '', checkpoints: '', forbidHjkl: false, forbidArrows: false, forbidMouse: false,
-harpoonSlots: '', harpoonSequence: '', whichKeyJson: '',
+harpoonSlots: '', harpoonSequence: '', whichKeyJson: '', treesitterObjectsJson: '',
 }
 
 /** Inverse of buildChallenge: fills the form from a challenge (an example or a published one). */
@@ -76,6 +76,7 @@ pickerJson: c.picker ? JSON.stringify(c.picker, null, 2) : '',
     forbidArrows: !!c.track?.forbid?.includes('arrows'),
     forbidMouse: !!c.track?.forbid?.includes('mouse'),
     whichKeyJson: c.which_key ? JSON.stringify(c.which_key, null, 2) : '',
+    treesitterObjectsJson: c.treesitter_objects ? JSON.stringify(c.treesitter_objects, null, 2) : '',
   }
 }
 
@@ -350,6 +351,15 @@ export function buildChallenge(f: DraftForm): BuildResult {
       else errors.push('which_key must have a prefixes array')
     } catch {
       errors.push('which_key is not valid JSON')
+    }
+  }
+  if (f.treesitterObjectsJson.trim()) {
+    try {
+      const parsed = JSON.parse(f.treesitterObjectsJson) as import('./types').TreesitterObjects
+      if (parsed && typeof parsed === 'object') c.treesitter_objects = parsed
+      else errors.push('treesitter_objects must be an object')
+    } catch {
+      errors.push('treesitter_objects is not valid JSON')
     }
   }
   return { data: c, errors }
