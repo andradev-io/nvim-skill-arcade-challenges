@@ -38,8 +38,13 @@ import { shortName, toChallenge } from '../core/builtin'
 import { hintSteps, nextChallenge, orderedBuiltin } from '../core/terminalUx'
 import type { Challenge } from '../core/types'
 import { usePlay } from '../hooks/usePlay'
+import { trackSession } from '../analytics/track'
+import { trackAbandon } from '../analytics/track'
 import { ChallengeBar } from '../components/terminal/ChallengeBar'
 import { SideContent, SideResizer } from '../components/terminal/TerminalSide'
+import { StatsPanel } from '../components/stats/StatsPanel'
+import Drawer from '@mui/material/Drawer'
+import BarChartIcon from '@mui/icons-material/BarChart'
 import { useDraft } from '../hooks/useDraft'
 import { THEMES, themeById, themeVars } from '../components/terminal/themes'
 import { useThemeStore } from '../store/themeStore'
@@ -62,6 +67,12 @@ const NO_CHALLENGE: Challenge = {
 
 /** The Terminal page: a full-screen Vim with a side menu for keymaps, buffers and help. */
 export function TerminalPage() {
+  // anonymous session duration: how long the terminal was open (flushed on unmount via keepalive)
+  useEffect(() => {
+    const t0 = performance.now()
+    return () => trackSession(performance.now() - t0)
+  }, [])
+
   const { data } = useDraft()
   const community = useCommunity()
   const builtin = useBuiltin()
@@ -100,6 +111,7 @@ export function TerminalPage() {
   const [, setPickerSelection] = useState<number | string | null>(null)
   const [confirmReset, setConfirmReset] = useState(false)
   const [settings, setSettings] = useState<HTMLElement | null>(null)
+  const [statsOpen, setStatsOpen] = useState(false)
   // hints belong to one attempt: a retry, another buffer or tab starts again from none
   const attempt = `${run}|${buffer.id}`
   const [hintState, setHintState] = useState({ attempt, n: 0 })
@@ -126,6 +138,17 @@ export function TerminalPage() {
     setCounted(passed)
     if (challengeId && !(bests[challengeId] && bests[challengeId] <= passed.keys)) setBests({ ...bests, [challengeId]: passed.keys })
   }
+
+  // fire abandon when the user switches away from a started-but-not-completed challenge
+  const prevChallengeRef = useRef<string | null>(null)
+  useEffect(() => {
+    const prev = prevChallengeRef.current
+    if (prev && prev !== challengeId && !play.state.passed && play.state.t0 !== null) {
+      const prevBuiltin = builtin.find((c) => c.id === prev)
+      trackAbandon(prev, prevBuiltin?.area, prevBuiltin?.level)
+    }
+    prevChallengeRef.current = challengeId ?? null
+  }, [challengeId, play.state.passed, play.state.t0, builtin])
 
   const next = useMemo(() => (buffer.challenge ? nextChallenge(builtin, buffer.challenge.id) : null), [builtin, buffer.challenge])
   const dirty = buffer.text !== buffer.orig.text
@@ -409,6 +432,9 @@ export function TerminalPage() {
               <AddIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Stack>
+          <IconButton size="small" aria-label="Your stats" title="Personal stats" onClick={() => setStatsOpen(true)} sx={{ color: 'var(--t-fg)', mx: 0.5 }}>
+            <BarChartIcon sx={{ fontSize: 18 }} />
+          </IconButton>
           <IconButton size="small" aria-label="Command palette" title="Command palette (Ctrl+K)" onClick={() => setPalette(true)} sx={{ color: 'var(--t-fg)', mx: 0.5 }}>
             <SearchIcon sx={{ fontSize: 18 }} />
           </IconButton>
@@ -454,6 +480,7 @@ export function TerminalPage() {
             onRetry={retry}
             onNext={next ? goNext : null}
             best={bests[buffer.challenge.id]}
+            newBest={play.state.newBest}
           />
         )}
         <Box
@@ -537,6 +564,9 @@ export function TerminalPage() {
           </Button>
         </DialogActions>
       </Dialog>
+      <Drawer anchor="right" open={statsOpen} onClose={() => setStatsOpen(false)} className="dark" PaperProps={{ sx: { bgcolor: 'var(--t-side)', color: 'var(--t-fg)', borderLeft: LINE } }}>
+        <StatsPanel />
+      </Drawer>
     </Box>
   )
 }

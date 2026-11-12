@@ -42,5 +42,6 @@ export function toChallenge(b: BuiltinChallenge | undefined): Challenge | null {
     solution: b.solution ?? '',
     why: b.why ?? '',
     loose: b.loose,
+    par_keys: b.par_keys,
   }
 }

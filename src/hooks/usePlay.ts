@@ -2,9 +2,11 @@ import { useCallback, useEffect, useReducer, useRef } from 'react'
 import type { RefObject } from 'react'
 import { trackPlay } from '../analytics/track'
 import { check, linesEqual } from '../core/compare'
+import { keyRank } from '../core/keys'
 import { judgeTrack, stepTrack } from '../core/track'
 import type { Challenge, Cursor } from '../core/types'
 import type { VimEditorHandle } from '../components/play/VimEditor'
+import { useScoringStore } from '../store/scoringStore'
 
 export interface PlayState {
   keys: number
@@ -18,6 +20,8 @@ export interface PlayState {
   cp: number
   /** Track only: last forbidden key that was swallowed. */
   blocked: string | null
+  /** True when the last pass set a new personal best in localStorage. */
+  newBest: boolean
 }
 
 interface SyncAction {
@@ -35,12 +39,14 @@ type Action =
   | { type: 'tick'; now: number }
   | { type: 'blocked'; key: string }
   | { type: 'reset' }
+  | { type: 'newbest' }
   | SyncAction
 
-const INITIAL: PlayState = { keys: 0, t0: null, elapsed: 0, mode: 'normal', passed: null, miss: [], cp: 0, blocked: null }
+const INITIAL: PlayState = { keys: 0, t0: null, elapsed: 0, mode: 'normal', passed: null, miss: [], cp: 0, blocked: null, newBest: false }
 
 function reduce(s: PlayState, a: Action): PlayState {
   if (a.type === 'reset') return INITIAL
+  if (a.type === 'newbest') return { ...s, newBest: true }
   if (a.type === 'blocked') return s.passed ? s : { ...s, blocked: a.key }
   if (a.type === 'key') {
     if (s.passed) return s
@@ -74,10 +80,17 @@ export function usePlay(draft: Challenge, editor: RefObject<VimEditorHandle | nu
   const started = state.t0 !== null
   const finished = state.passed !== null
   useEffect(() => {
-    if (started) trackPlay(latest.current.id, false)
+    if (started) trackPlay(latest.current.id, false, { area: latest.current.area, level: latest.current.level })
   }, [started])
   useEffect(() => {
-    if (finished) trackPlay(latest.current.id, true)
+    if (finished && state.passed) {
+      trackPlay(latest.current.id, true, {
+        area: latest.current.area,
+        level: latest.current.level,
+        keys: state.passed.keys,
+        par: latest.current.plugin_par,
+      })
+    }
   }, [finished])
 
   const running = state.t0 !== null && !state.passed
@@ -86,6 +99,22 @@ export function usePlay(draft: Challenge, editor: RefObject<VimEditorHandle | nu
     const id = setInterval(() => dispatch({ type: 'tick', now: performance.now() }), 100)
     return () => clearInterval(id)
   }, [running])
+
+  // Save personal best to localStorage when a challenge passes (skip empty-id placeholders).
+  const passedRef = useRef(state.passed)
+  useEffect(() => {
+    const p = state.passed
+    if (!p || p === passedRef.current) return
+    passedRef.current = p
+    const id = latest.current.id
+    if (!id) return
+    const par = latest.current.par_keys ?? 0
+    const rank = keyRank(p.keys, par)
+    if (!rank) return
+    const ms = Math.max(200, Math.round(p.secs * 1000))
+    const isNew = useScoringStore.getState().saveResult(id, p.keys, ms, rank)
+    if (isNew) dispatch({ type: 'newbest' })
+  }, [state.passed])
 
   /** Called before Vim sees a key. Returns true to swallow it (a key family the track forbids). */
   const onKey = (key: string, mode: string): boolean => {

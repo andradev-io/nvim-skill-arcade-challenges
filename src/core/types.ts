@@ -163,6 +163,8 @@ export interface Challenge {
   treesitter_objects?: TreesitterObjects
   /** LSP simulation configuration (hover, go-to-definition, diagnostics). */
   lsp?: LspConfig
+  /** Par key count for scoring (carried from BuiltinChallenge when available). */
+  par_keys?: number
   /** Daily/AI challenges: the day they are featured (YYYY-MM-DD), the model that wrote them and the prompt (file version and hash). */
   date?: string
   generated?: boolean
