@@ -6,6 +6,8 @@ import { Compartment, EditorState } from '@codemirror/state'
 import { EditorView, lineNumbers } from '@codemirror/view'
 import { getCM, Vim, vim } from '@replit/codemirror-vim'
 import type { Keymap } from '../../core/keymaps'
+import { pendingText } from '../../core/terminalUx'
+import type { VimInput } from '../../core/terminalUx'
 import type { Cursor } from '../../core/types'
 import { applyShims, handleShimKey, setFiletype } from '../../plugins/vimGlue'
 import type { Cm } from '../../plugins/vimGlue'
@@ -67,6 +69,15 @@ export interface VimEditorHandle {
   text: () => string
   cursor: () => Cursor
   focus: () => void
+  /** What Vim is waiting for (`"a2d`), empty when nothing is pending. */
+  pending: () => string
+  /** The register being recorded into, or null. */
+  recording: () => string | null
+}
+
+interface VimInternals {
+  inputState?: VimInput
+  macroModeState?: { isRecording?: boolean; latestRegister?: string | null }
 }
 
 interface Props {
@@ -279,6 +290,11 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
       return c ? [c.line + 1, c.ch] : [1, 0]
     },
     focus: () => view.current?.focus(),
+    pending: () => pendingText(((view.current && getCM(view.current)?.state.vim) as VimInternals | undefined)?.inputState),
+    recording: () => {
+      const m = ((view.current && getCM(view.current)?.state.vim) as VimInternals | undefined)?.macroModeState
+      return m?.isRecording ? (m.latestRegister ?? '?') : null
+    },
   }))
 
   return (

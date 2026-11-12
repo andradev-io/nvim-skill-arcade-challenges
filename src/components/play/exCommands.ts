@@ -12,6 +12,8 @@ export interface EditorSink {
   note?: (text: string) => void
   /** Tab / buffer navigation. */
   tab?: (action: TabAction) => void
+  /** Terminal page actions: `:retry`, `:hint`, `:nextchallenge`, `:palette`. */
+  action?: (name: 'retry' | 'hint' | 'next' | 'palette') => void
 }
 
 let sink: EditorSink = {}
@@ -91,6 +93,11 @@ function install() {
   ] as const) {
     define(name, prefix, () => say(`:${name} has no effect here: the browser terminal has no windows`))
   }
+
+  define('retry', 'retry', () => sink.action?.('retry'))
+  define('hint', 'hint', () => sink.action?.('hint'))
+  define('nextchallenge', 'nextc', () => sink.action?.('next'))
+  define('palette', 'palette', () => sink.action?.('palette'))
 
   define('tabnew', 'tabnew', () => sink.tab?.('new'))
   define('tabedit', 'tabe', () => sink.tab?.('new'))
