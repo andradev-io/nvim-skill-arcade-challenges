@@ -12,8 +12,9 @@ const form = (patch: Partial<DraftForm>): DraftForm => ({
   text: 'start buffer',
   why: 'Testing picker serialization.',
   solution: 'ggj',
-  expectText: 'changed buffer',
-  expectCursor: '2:0',
+  etext: 'changed buffer',
+  erow: '2',
+  ecol: '0',
   ...patch,
 })
 
