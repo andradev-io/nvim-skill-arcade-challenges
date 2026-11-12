@@ -1,0 +1,17 @@
+{
+ "id": "delete-the-function",
+ "title": "Delete the function body",
+ "area": "textobjects",
+ "level": 3,
+ "brief": "Delete the body of the greet function, keeping its signature.",
+ "text": "def greet(name):\n    print(f\"Hello {name}\")\n    return True\n\nx = 1",
+ "cursor": [2, 5],
+ "ft": "python",
+ "needs": "treesitter",
+ "treesitter_objects": {
+   "function": [{ "inner": [2, 4, 3, 16], "outer": [1, 0, 3, 16] }]
+ },
+ "solution": "dif",
+ "expect": { "text": "def greet(name):\n\nx = 1" },
+ "why": "dif deletes the inner function body using treesitter structural awareness."
+}
