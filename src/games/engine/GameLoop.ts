@@ -16,9 +16,9 @@ export class GameLoop {
   start(): void {
     if (this.running) return
     this.running = true
-    this.lastTime = performance.now()
+    this.lastTime = -1 // sentinel: first tick establishes baseline
     this.accumulator = 0
-    this.tick(this.lastTime)
+    this.rafId = requestAnimationFrame(this.tick)
   }
 
   stop(): void {
@@ -35,6 +35,14 @@ export class GameLoop {
 
   private tick = (now: number): void => {
     if (!this.running) return
+
+    // First frame after start(): establish baseline, no delta yet
+    if (this.lastTime < 0) {
+      this.lastTime = now
+      this.render()
+      this.rafId = requestAnimationFrame(this.tick)
+      return
+    }
 
     let dt = now - this.lastTime
     this.lastTime = now
