@@ -33,7 +33,7 @@ function userManager(): UserManager | null {
     response_type: 'code', // authorization code + PKCE (S256); there is no client secret in a browser
     // Only "openid": no profile, no e-mail. The site never learns who you are, only a derived code.
     scope: 'openid',
-    userStore: new WebStorageStateStore({ store: window.sessionStorage }),
+    userStore: new WebStorageStateStore({ store: window.localStorage }),
     automaticSilentRenew: true,
     loadUserInfo: false,
   })
