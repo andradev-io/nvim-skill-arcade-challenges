@@ -33,6 +33,19 @@ export interface JumpTargetData {
   col: number
 }
 
+export interface PickerItem {
+  label: string
+  line?: number
+  content?: string
+}
+
+export interface PickerConfig {
+  type?: 'find_files' | 'grep' | 'buffers'
+  prompt?: string
+  items: PickerItem[]
+  expect_selection?: number | string
+}
+
 export interface Challenge {
   id: string
   title: string
@@ -56,6 +69,8 @@ export interface Challenge {
   loose?: boolean
   /** Pre-computed jump targets for label-based motion simulation. */
   jump_targets?: JumpTargetData[]
+  /** Picker simulation config (Telescope/fzf). */
+  picker?: PickerConfig
   /** Daily/AI challenges: the day they are featured (YYYY-MM-DD), the model that wrote them and the prompt (file version and hash). */
   date?: string
   generated?: boolean
@@ -98,6 +113,7 @@ export interface DraftForm {
   pluginPar: string
   needs: string
   jumpTargets: string
+  pickerJson: string
   /** track area only: goal cell, checkpoints as "row:col, row:col", key rules */
   goalRow: string
   goalCol: string

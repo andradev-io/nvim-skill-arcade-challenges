@@ -12,8 +12,8 @@ export interface EditorSink {
   note?: (text: string) => void
   /** Tab / buffer navigation. */
   tab?: (action: TabAction) => void
-  /** Terminal page actions: `:retry`, `:hint`, `:nextchallenge`, `:palette`. */
-  action?: (name: 'retry' | 'hint' | 'next' | 'palette') => void
+  /** Terminal page actions: `:retry`, `:hint`, `:nextchallenge`, `:palette`, or `picker:<type>`. */
+  action?: (name: 'retry' | 'hint' | 'next' | 'palette' | `picker:${string}`) => void
 }
 
 let sink: EditorSink = {}
@@ -98,6 +98,13 @@ function install() {
   define('hint', 'hint', () => sink.action?.('hint'))
   define('nextchallenge', 'nextc', () => sink.action?.('next'))
   define('palette', 'palette', () => sink.action?.('palette'))
+
+  define('Telescope', 'Tel', (_cm, p) => {
+    const arg = (p.argString ?? '').trim().split(/\s+/)[0] ?? ''
+    const map: Record<string, string> = { find_files: 'find_files', fd: 'find_files', live_grep: 'grep', lg: 'grep', buffers: 'buffers' }
+    const type = map[arg] ?? 'find_files'
+    sink.action?.(`picker:${type}`)
+  })
 
   define('tabnew', 'tabnew', () => sink.tab?.('new'))
   define('tabedit', 'tabe', () => sink.tab?.('new'))

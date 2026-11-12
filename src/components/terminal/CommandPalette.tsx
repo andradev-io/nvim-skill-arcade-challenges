@@ -15,16 +15,16 @@ export interface PaletteItem {
 }
 
 /** Ctrl+K: type a few letters to open a challenge, switch theme, change tab or run an action. */
-export function CommandPalette({ open, items, onClose }: { open: boolean; items: PaletteItem[]; onClose: () => void }) {
+export function CommandPalette({ open, items, onClose, placeholder }: { open: boolean; items: PaletteItem[]; onClose: () => void; placeholder?: string }) {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" className="dark" aria-label="Command palette" slotProps={{ paper: { sx: { alignSelf: 'flex-start', mt: '12vh' } } }}>
       {/* the dialog unmounts its content when closed, so every opening starts with an empty search */}
-      <PaletteBody items={items} onClose={onClose} />
+      <PaletteBody items={items} onClose={onClose} placeholder={placeholder} />
     </Dialog>
   )
 }
 
-function PaletteBody({ items, onClose }: { items: PaletteItem[]; onClose: () => void }) {
+function PaletteBody({ items, onClose, placeholder }: { items: PaletteItem[]; onClose: () => void; placeholder?: string }) {
   const [q, setQ] = useState('')
   const [at, setAt] = useState(0)
   const list = useMemo(() => filterCommands(items, q, 40), [items, q])
@@ -55,7 +55,7 @@ function PaletteBody({ items, onClose }: { items: PaletteItem[]; onClose: () => 
         autoFocus
         inputRef={input}
         fullWidth
-        placeholder="Type to search: challenges, themes, tabs, actions"
+        placeholder={placeholder ?? 'Type to search: challenges, themes, tabs, actions'}
         value={q}
         onChange={(e) => {
           setQ(e.target.value)

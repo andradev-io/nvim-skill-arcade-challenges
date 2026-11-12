@@ -54,6 +54,34 @@
       },
       "description": "Pre-computed jump targets for label-based motion simulation"
     },
+    "picker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items"],
+      "properties": {
+        "type": { "enum": ["find_files", "grep", "buffers"] },
+        "prompt": { "type": "string", "maxLength": 60 },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label"],
+            "properties": {
+              "label": { "type": "string", "minLength": 1, "maxLength": 120 },
+              "line": { "type": "integer", "minimum": 1 },
+              "content": { "type": "string", "maxLength": 200 }
+            }
+          }
+        },
+        "expect_selection": {
+          "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "string", "maxLength": 120 }]
+        }
+      },
+      "description": "Picker (Telescope/fzf) simulation: items to show and which one is expected"
+    },
     "helps": { "type": "object", "maxProperties": 13, "additionalProperties": { "type": "string", "maxLength": 200 } },
     "preset": { "enum": ["diagnostics", "splits", "alt_buffer", "quickfix_hits"] },
     "preset_rows": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "maxItems": 10 },
