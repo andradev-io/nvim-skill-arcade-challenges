@@ -10,7 +10,7 @@ export const GROUPS = ['jump', 'surround', 'textobjects', 'comment', 'picker', '
 export const PRESETS = ['', 'diagnostics', 'splits', 'alt_buffer', 'quickfix_hits']
 
 const EX_ALLOWED = new Set(
-  's substitute g global v vglobal m move t co copy d delete y yank j join norm normal sort noh nohlsearch tabnew copen cclose cc cn cnext cp cprev vim vimgrep only sp split vs vsplit b buffer tabclose'.split(' '),
+  's substitute g global v vglobal m move t co copy d delete y yank j join norm normal sort noh nohlsearch tabnew copen cclose cc cn cnext cp cprev vim vimgrep only sp split vs vsplit b buffer tabclose Telescope archoon'.split(' '),
 )
 
 export const EMPTY_FORM: DraftForm = {
