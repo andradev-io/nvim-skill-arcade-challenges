@@ -97,6 +97,39 @@ export interface TreesitterObjects {
   tag?: TsObjectEntry[]
 }
 
+/** A single hover entry for LSP simulation (row is 1-based). */
+export interface LspHoverEntry {
+  row: number
+  col: number
+  end_col?: number
+  text: string
+}
+
+/** A single go-to-definition entry for LSP simulation (row is 1-based). */
+export interface LspDefinitionEntry {
+  row: number
+  col: number
+  end_col?: number
+  target_row: number
+  target_col: number
+}
+
+/** A single diagnostic entry for LSP simulation (row is 1-based). */
+export interface LspDiagnosticEntry {
+  row: number
+  col: number
+  end_col: number
+  severity: 'error' | 'warning' | 'info' | 'hint'
+  message?: string
+}
+
+/** LSP simulation configuration embedded in a challenge. */
+export interface LspConfig {
+  hover?: LspHoverEntry[]
+  definition?: LspDefinitionEntry[]
+  diagnostics?: LspDiagnosticEntry[]
+}
+
 export interface Challenge {
   id: string
   title: string
@@ -126,8 +159,10 @@ export interface Challenge {
   harpoon?: HarpoonConfig
   /** Which-key prefix hint overlay configuration for this challenge. */
   which_key?: ChallengeWhichKey
-  /** Pre-computed treesitter text objects for structural editing. */
+/** Pre-computed treesitter text objects for structural editing. */
   treesitter_objects?: TreesitterObjects
+  /** LSP simulation configuration (hover, go-to-definition, diagnostics). */
+  lsp?: LspConfig
   /** Daily/AI challenges: the day they are featured (YYYY-MM-DD), the model that wrote them and the prompt (file version and hash). */
   date?: string
   generated?: boolean
@@ -182,7 +217,8 @@ export interface DraftForm {
   harpoonSlots: string
   harpoonSequence: string
   whichKeyJson: string
-  treesitterObjectsJson: string
+treesitterObjectsJson: string
+  lspJson: string
 }
 
 export interface State {

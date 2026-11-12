@@ -6,6 +6,8 @@ import { findSurround, pairFor } from './surround'
 import { argumentAt, callAt, quoteAt, treesitterObjectAt } from './textobjects'
 import type { Range } from './textobjects'
 import type { TreesitterObjects } from '../core/types'
+import { findHover, findDefinition, findNextDiagnostic, findPrevDiagnostic } from './lsp/lookup'
+import type { LspConfig } from '../core/types'
 
 /**
  * Connects the plugin imitations to the Vim editor: operators and motions go into its tables, and a few keys
@@ -43,6 +45,29 @@ export const setFiletype = (ft: string) => {
 let tsObjects: TreesitterObjects | null = null
 export const setTreesitterObjects = (objs: TreesitterObjects | null) => {
   tsObjects = objs
+}
+
+// ---------- LSP simulation ----------
+
+let lspData: LspConfig | undefined
+let lspAwaitingG = false
+let lspAwaitingBracket: string | null = null
+/** Callback for dispatching hover tooltips from handleShimKey (set by VimEditor). */
+let lspHoverDispatch: ((pos: number, text: string) => void) | null = null
+/** Callback for clearing hover tooltips from handleShimKey (set by VimEditor). */
+let lspHoverClear: (() => void) | null = null
+
+export const setLspData = (data: LspConfig | undefined) => {
+  lspData = data
+  lspAwaitingG = false
+  lspAwaitingBracket = null
+}
+export const setLspHoverCallbacks = (
+  dispatch: ((pos: number, text: string) => void) | null,
+  clear: (() => void) | null,
+) => {
+  lspHoverDispatch = dispatch
+  lspHoverClear = clear
 }
 
 // ---------- jump motion ----------
@@ -224,6 +249,58 @@ export function handleShimKey(e: KeyboardEvent, cm: Cm, on: ReadonlySet<string>)
   // clear jump state on mode transitions
   if (vim.insertMode || vim.visualMode) {
     jumpState = null
+  }
+
+  // ---------- LSP key handling (normal mode only) ----------
+  if (!vim.insertMode && !vim.visualMode && lspData && on.has('lsp')) {
+    // Two-key sequence: g followed by d (go-to-definition)
+    if (lspAwaitingG) {
+      lspAwaitingG = false
+      if (key === 'd') {
+        const cursor = cm.getCursor()
+        const def = findDefinition(lspData, cursor)
+        if (def) cm.setCursor(P(def.target_row - 1, def.target_col))
+        return true
+      }
+      // Not 'd': fall through, g was consumed
+      return false
+    }
+    // Two-key sequence: ] or [ followed by d (diagnostic navigation)
+    if (lspAwaitingBracket !== null) {
+      const bracket = lspAwaitingBracket
+      lspAwaitingBracket = null
+      if (key === 'd') {
+        const cursor = cm.getCursor()
+        const diag = bracket === ']' ? findNextDiagnostic(lspData, cursor) : findPrevDiagnostic(lspData, cursor)
+        if (diag) cm.setCursor(P(diag.row - 1, diag.col))
+        return true
+      }
+      // Not 'd': fall through, bracket was consumed
+      return false
+    }
+    // K: hover
+    if (key === 'K') {
+      const cursor = cm.getCursor()
+      const hover = findHover(lspData, cursor)
+      if (hover) {
+        const line = cm.getLine(cursor.line)
+        const pos = cm.indexFromPos(P(cursor.line, Math.min(hover.col, line.length)))
+        lspHoverDispatch?.(pos, hover.text)
+      } else {
+        lspHoverClear?.()
+      }
+      return true
+    }
+    // g: start gd sequence
+    if (key === 'g') {
+      lspAwaitingG = true
+      return true
+    }
+    // ] or [: start diagnostic navigation sequence
+    if (key === ']' || key === '[') {
+      lspAwaitingBracket = key
+      return true
+    }
   }
 
   // a surround waiting for its character
