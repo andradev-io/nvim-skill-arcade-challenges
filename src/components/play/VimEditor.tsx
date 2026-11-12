@@ -2,7 +2,7 @@ import { useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { Ref } from 'react'
 import Box from '@mui/material/Box'
 import { history } from '@codemirror/commands'
-import { Compartment, EditorState } from '@codemirror/state'
+import { Compartment, EditorState, type Extension } from '@codemirror/state'
 import { EditorView, lineNumbers } from '@codemirror/view'
 import { getCM, Vim, vim } from '@replit/codemirror-vim'
 import type { Keymap } from '../../core/keymaps'
@@ -71,6 +71,7 @@ export interface VimEditorHandle {
   mode: () => VimMode
   text: () => string
   cursor: () => Cursor
+  setCursor: (pos: { line: number; ch: number }) => void
   focus: () => void
   /** What Vim is waiting for (`"a2d`), empty when nothing is pending. */
   pending: () => string
@@ -293,7 +294,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
         // refresh jump decorations if jump state is active
         const js = getJumpState()
         if (js && v) {
-          v.dispatch({ effects: jumpDeco.current.reconfigure([buildJumpDecorations(v, jumpTargetsRef.current ?? [], js.typed)]) })
+          v.dispatch({ effects: jumpDeco.current.reconfigure(buildJumpDecorations(v, jumpTargetsRef.current ?? [], js.typed) as unknown as Extension) })
         } else if (v) {
           v.dispatch({ effects: jumpDeco.current.reconfigure([]) })
         }
@@ -383,6 +384,10 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
     cursor: () => {
       const c = view.current && getCM(view.current)?.getCursor()
       return c ? [c.line + 1, c.ch] : [1, 0]
+    },
+    setCursor: (pos) => {
+      const cm = view.current && getCM(view.current)
+      if (cm) cm.setCursor(pos.line, pos.ch)
     },
     focus: () => view.current?.focus(),
     pending: () => pendingText(((view.current && getCM(view.current)?.state.vim) as VimInternals | undefined)?.inputState),
