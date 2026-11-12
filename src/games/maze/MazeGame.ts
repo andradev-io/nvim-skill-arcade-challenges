@@ -170,35 +170,76 @@ export class MazeGame implements GameEngine {
     this.renderer.draw(this.grid, this.doors, this.playerRow, this.playerCol, this.getMazeState())
   }
 
+  /** Callback invoked when Backspace is pressed outside active gameplay. */
+  onNavigateBack: (() => void) | null = null
+
+  /** Callback invoked when Enter or r requests a start/restart. */
+  onRequestStart: (() => void) | null = null
+
+  /** Callback invoked when r requests a reset during gameplay. */
+  onRequestReset: (() => void) | null = null
+
   private handleKey(code: string): void {
-    if (this.gameOver || this.paused) {
-      // Allow Escape to unpause
-      if (code === 'Escape' && this.paused) {
-        this.resume()
+    // --- Global shortcuts that work in any state ---
+
+    // Backspace: navigate back when not actively playing
+    if (code === 'Backspace') {
+      if (!this.running || this.gameOver) {
+        this.onNavigateBack?.()
       }
       return
     }
+
+    // --- State-specific shortcuts ---
+
+    if (this.gameOver) {
+      if (code === 'Enter') {
+        this.onRequestStart?.()
+      }
+      return
+    }
+
+    if (this.paused) {
+      if (code === 'Escape') {
+        this.resume()
+      } else if (code === 'KeyR') {
+        this.onRequestReset?.()
+      }
+      return
+    }
+
+    if (!this.running) {
+      if (code === 'Enter') {
+        this.onRequestStart?.()
+      }
+      return
+    }
+
+    // --- Active gameplay ---
 
     if (code === 'Escape') {
       this.pause()
       return
     }
 
-    // Movement keys
-    let dr = 0
-    let dc = 0
-    let vimKey = ''
-
-    switch (code) {
-      case 'KeyH': dr = 0; dc = -1; vimKey = 'h'; break
-      case 'KeyJ': dr = 1; dc = 0; vimKey = 'j'; break
-      case 'KeyK': dr = -1; dc = 0; vimKey = 'k'; break
-      case 'KeyL': dr = 0; dc = 1; vimKey = 'l'; break
-      default: return
+    if (code === 'KeyR') {
+      this.onRequestReset?.()
+      return
     }
 
+    // Determine if this key contributes to the input buffer
+    const isLetter = code.startsWith('Key') && code.length === 4
+    const isDigit = code.startsWith('Digit') && code.length === 6
+
+    if (!isLetter && !isDigit) return
+
+    // Map code to the character for the input buffer
+    const char = isLetter
+      ? code.charAt(3).toLowerCase()
+      : code.charAt(5)
+
     // Add to input buffer for door matching
-    this.inputBuffer += vimKey
+    this.inputBuffer += char
     this.lastInputTime = performance.now()
 
     // Check door commands before moving
@@ -206,6 +247,21 @@ export class MazeGame implements GameEngine {
     if (doorOpened) {
       this.emitState()
       return
+    }
+
+    // Movement only for h/j/k/l
+    let dr = 0
+    let dc = 0
+
+    switch (code) {
+      case 'KeyH': dr = 0; dc = -1; break
+      case 'KeyJ': dr = 1; dc = 0; break
+      case 'KeyK': dr = -1; dc = 0; break
+      case 'KeyL': dr = 0; dc = 1; break
+      default:
+        // Non-movement key added to buffer; no movement
+        this.emitState()
+        return
     }
 
     // Attempt movement

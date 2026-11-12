@@ -42,6 +42,32 @@ export function MazePage() {
     })
 
     game.loadLevel(MAZE_LEVELS[levelIndex])
+
+    // Wire up keyboard shortcut callbacks
+    game.onNavigateBack = () => {
+      window.location.hash = '#/arcade'
+    }
+    game.onRequestStart = () => {
+      if (game.getState().isGameOver) {
+        // Restart: reload current level and start
+        game.loadLevel(MAZE_LEVELS[levelIndex])
+      }
+      game.start()
+      container.focus()
+    }
+    game.onRequestReset = () => {
+      game.stop()
+      game.loadLevel(MAZE_LEVELS[levelIndex])
+      setGameState({
+        score: 0,
+        lives: 1,
+        wave: 0,
+        isRunning: false,
+        isPaused: false,
+        isGameOver: false,
+      })
+    }
+
     gameRef.current = game
 
     // Focus container for keyboard input
@@ -49,6 +75,9 @@ export function MazePage() {
 
     return () => {
       game.stop()
+      game.onNavigateBack = null
+      game.onRequestStart = null
+      game.onRequestReset = null
       gameRef.current = null
     }
   }, [levelIndex, saveScore])

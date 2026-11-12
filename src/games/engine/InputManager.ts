@@ -40,9 +40,11 @@ export class InputManager {
     if (event.key.startsWith('F') && event.key.length > 1) return
     if (event.ctrlKey || event.metaKey || event.altKey) return
 
-    // Prevent default scrolling for game keys
-    const gameKeys = new Set(['KeyH', 'KeyJ', 'KeyK', 'KeyL', 'Space', 'Enter', 'Escape'])
-    if (gameKeys.has(event.code)) {
+    // Prevent default scrolling for game keys (movement + letters/digits for door commands)
+    const isLetter = event.code.startsWith('Key') && event.code.length === 4
+    const isDigit = event.code.startsWith('Digit') && event.code.length === 6
+    const gameKeys = new Set(['Space', 'Enter', 'Escape', 'Backspace'])
+    if (gameKeys.has(event.code) || isLetter || isDigit) {
       event.preventDefault()
     }
 

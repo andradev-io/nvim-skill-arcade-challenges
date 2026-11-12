@@ -136,24 +136,84 @@ describe('MazeGame', () => {
     game.stop()
   })
 
-  it('opens doors when input buffer matches command', () => {
+  it('opens doors when non-movement key matches command', () => {
     const game = new MazeGame(config)
     game.loadLevel(DOOR_LEVEL)
     game.start()
 
     const container = config.canvas.parentElement ?? config.canvas
-    // Move right to (0,1), then type 'w' to open door at (0,2)
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyL', key: 'l' }))
-    // The 'w' key for door — but our input handler only processes h/j/k/l for movement
-    // Doors are matched against vim keys added during movement. Let's adjust:
-    // In this test level, the door is at (0,2) and we need to type 'w'.
-    // But 'w' is not a movement key in our handler. The spec says doors use vim commands.
-    // For testing, let's verify the door blocks movement until opened.
-
-    // Try to move right into door — should be blocked
+    // Move right to (0,1)
     container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyL', key: 'l' }))
     let state = game.getMazeState()
-    expect(state.playerCol).toBe(1) // still at (0,1), door blocks
+    expect(state.playerCol).toBe(1)
+
+    // Type 'w' (non-movement key) to open door at (0,2)
+    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', key: 'w' }))
+    state = game.getMazeState()
+    expect(state.inputBuffer).toBe('') // buffer cleared after door opened
+
+    // Now move right into the opened door cell (now 'open')
+    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyL', key: 'l' }))
+    state = game.getMazeState()
+    expect(state.playerCol).toBe(2) // moved through opened door
+
+    game.stop()
+  })
+
+  it('accumulates digit and letter keys in input buffer without moving', () => {
+    const game = new MazeGame(config)
+    game.loadLevel(SIMPLE_LEVEL)
+    game.start()
+
+    const container = config.canvas.parentElement ?? config.canvas
+    // Type '3' then 'w' — neither should move the player
+    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit3', key: '3' }))
+    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', key: 'w' }))
+
+    const state = game.getMazeState()
+    expect(state.playerRow).toBe(0)
+    expect(state.playerCol).toBe(0)
+    expect(state.inputBuffer).toBe('3w')
+
+    game.stop()
+  })
+
+  it('starts game with Enter when not running', () => {
+    const game = new MazeGame(config)
+    game.loadLevel(SIMPLE_LEVEL)
+    let startCalled = false
+    game.onRequestStart = () => { startCalled = true }
+
+    const container = config.canvas.parentElement ?? config.canvas
+    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', key: 'Enter' }))
+    expect(startCalled).toBe(true)
+
+    game.stop()
+  })
+
+  it('resets game with r during gameplay', () => {
+    const game = new MazeGame(config)
+    game.loadLevel(SIMPLE_LEVEL)
+    game.start()
+    let resetCalled = false
+    game.onRequestReset = () => { resetCalled = true }
+
+    const container = config.canvas.parentElement ?? config.canvas
+    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', key: 'r' }))
+    expect(resetCalled).toBe(true)
+
+    game.stop()
+  })
+
+  it('navigates back with Backspace when not running', () => {
+    const game = new MazeGame(config)
+    game.loadLevel(SIMPLE_LEVEL)
+    let backCalled = false
+    game.onNavigateBack = () => { backCalled = true }
+
+    const container = config.canvas.parentElement ?? config.canvas
+    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'Backspace', key: 'Backspace' }))
+    expect(backCalled).toBe(true)
 
     game.stop()
   })
