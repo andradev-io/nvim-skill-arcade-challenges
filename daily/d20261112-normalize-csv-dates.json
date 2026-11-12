@@ -1,0 +1,20 @@
+{
+  "id": "d20261112-normalize-csv-dates",
+  "title": "Normalize CSV dates",
+  "area": "refactor",
+  "level": 3,
+  "brief": "Convert date format from MM/DD/YYYY to YYYY-MM-DD in a Python string.",
+  "text": "dates = [\"01/15/2026\", \"12/25/2025\", \"07/04/2024\"]",
+  "solution": ":%s/\\(\\d\\d\\)\\/\\(\\d\\d\\)\\/\\(\\d\\{4\\}\\)/\\3-\\1-\\2/g<CR>",
+  "expect": {
+    "text": "dates = [\"2026-01-15\", \"2025-12-25\", \"2024-07-04\"]"
+  },
+  "why": "Capture groups reorder date components and change separators.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:d727d16de78d",
+  "ft": "python",
+  "par_seconds": 20
+}

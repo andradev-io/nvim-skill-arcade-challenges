@@ -1,0 +1,23 @@
+{
+  "id": "d20261112-csv-split-combined-name",
+  "title": "CSV: Split combined name field",
+  "area": "editing",
+  "level": 3,
+  "brief": "Split the 'Last, First' name format into separate last_name and first_name columns.",
+  "text": "id,name,email\n1,\"Smith, John\",john@test.com\n2,\"Doe, Jane\",jane@test.com",
+  "solution": ":%s/\"\\([^,]*\\), \\([^\"]*\\)\"/\\1,\\2/g<CR>",
+  "expect": {
+    "text": "id,name,email\n1,Smith,John,john@test.com\n2,Doe,Jane,jane@test.com"
+  },
+  "why": "The substitution captures the last name and first name separately, removing the quotes and comma between them to create distinct fields.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:8466afd197d9",
+  "ft": "text",
+  "cursor": [
+    2,
+    3
+  ]
+}

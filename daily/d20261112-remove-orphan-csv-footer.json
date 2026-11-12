@@ -1,0 +1,22 @@
+{
+  "id": "d20261112-remove-orphan-csv-footer",
+  "title": "Remove orphan CSV footer",
+  "area": "motions",
+  "level": 1,
+  "brief": "A summary line got appended after the data; delete it so only records remain.",
+  "text": "k,v\na,1\nb,2\nTOTAL:3",
+  "solution": "dd",
+  "expect": {
+    "text": "k,v\na,1\nb,2\n"
+  },
+  "why": "dd deletes the entire line under the cursor; perfect for removing a single unwanted trailer after navigation.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:d727d16de78d",
+  "cursor": [
+    4,
+    0
+  ]
+}

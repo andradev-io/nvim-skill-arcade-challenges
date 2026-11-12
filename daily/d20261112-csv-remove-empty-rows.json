@@ -1,0 +1,23 @@
+{
+  "id": "d20261112-csv-remove-empty-rows",
+  "title": "CSV: Remove empty rows",
+  "area": "search",
+  "level": 2,
+  "brief": "Delete all completely empty lines from this CSV data.",
+  "text": "id,name\n1,Alice\n\n2,Bob\n\n\n3,Charlie",
+  "solution": ":g/^$/d<CR>",
+  "expect": {
+    "text": "id,name\n1,Alice\n2,Bob\n3,Charlie"
+  },
+  "why": "The global command matches empty lines (^$) and deletes them. This is faster than manually finding and deleting each blank line.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:8466afd197d9",
+  "ft": "text",
+  "cursor": [
+    1,
+    0
+  ]
+}
