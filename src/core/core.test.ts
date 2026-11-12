@@ -59,7 +59,7 @@ describe('replay', () => {
       { label: 'b', row: 1, col: 6 },
       { label: 'c', row: 2, col: 0 },
     ]
-    const r = replay('hello world\nfoo bar', [1, 0], 'sb', [], targets)
+    const r = replay('hello world\nfoo bar', [1, 0], 'sb', [], 'text', targets)
     expect(r.cursor).toEqual([1, 6])
     expect(r.unsupported).toBeNull()
   })
