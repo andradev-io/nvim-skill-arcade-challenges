@@ -1,0 +1,22 @@
+{
+  "id": "d20261112-lowercase-csv-headers",
+  "title": "Lowercase CSV headers",
+  "area": "editing",
+  "level": 1,
+  "brief": "Normalize screaming headers to lowercase so they match the schema expected by the loader.",
+  "text": "ID,NAME,EMAIL\n1,Ava,a@b.com",
+  "solution": "gUUgu_",
+  "expect": {
+    "text": "id,name,email\n1,Ava,a@b.com"
+  },
+  "why": "gUU uppercases then gu_ lowercases the whole first line; together they normalize any mixed-case header quickly.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:d727d16de78d",
+  "cursor": [
+    1,
+    0
+  ]
+}

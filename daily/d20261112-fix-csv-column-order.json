@@ -1,0 +1,19 @@
+{
+  "id": "d20261112-fix-csv-column-order",
+  "title": "Fix CSV column order",
+  "area": "editing",
+  "level": 2,
+  "brief": "The CSV has 'name,age,email' but should be 'email,name,age'. Swap the columns in every row.",
+  "text": "Alice,30,alice@example.com\nBob,25,bob@example.com\nCharlie,35,charlie@example.com",
+  "solution": ":%s/\\([^,]*\\),\\([^,]*\\),\\(.*\\)/\\3,\\1,\\2/g<CR>",
+  "expect": {
+    "text": "alice@example.com,Alice,30\nbob@example.com,Bob,25\ncharlie@example.com,Charlie,35"
+  },
+  "why": "Capture groups let you reorder fields. The pattern matches three comma-separated values and rearranges them.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:d727d16de78d",
+  "par_seconds": 20
+}

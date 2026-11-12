@@ -1,0 +1,24 @@
+{
+  "id": "d20261112-remove-csv-header-row",
+  "title": "Remove CSV header row",
+  "area": "editing",
+  "level": 1,
+  "brief": "Delete the first line (the header) from this CSV data.",
+  "text": "name,email,age\nAlice,alice@example.com,30\nBob,bob@example.com,25\nCarol,carol@example.com,28",
+  "solution": "dd",
+  "expect": {
+    "text": "Alice,alice@example.com,30\nBob,bob@example.com,25\nCarol,carol@example.com,28"
+  },
+  "why": "The cursor is already on line 1, so dd deletes the header row directly.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:d727d16de78d",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 5,
+  "hint": "Just delete the current line."
+}

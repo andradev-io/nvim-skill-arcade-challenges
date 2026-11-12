@@ -1,0 +1,20 @@
+{
+  "id": "d20261112-transpose-first-two-csv",
+  "title": "Transpose first two CSV columns",
+  "area": "refactor",
+  "level": 3,
+  "brief": "Swap the first two parameters in each function call.",
+  "text": "process(name, age)\nvalidate(email, name)\nsave(age, email)",
+  "solution": ":%s/\\(\\w\\+\\), \\(\\w\\+\\)/\\2, \\1/g<CR>",
+  "expect": {
+    "text": "process(age, name)\nvalidate(name, email)\nsave(email, age)"
+  },
+  "why": "Capture groups with word boundaries swap adjacent parameters cleanly.",
+  "author": "claude (daily)",
+  "date": "2026-11-12",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:d727d16de78d",
+  "ft": "python",
+  "par_seconds": 20
+}
