@@ -106,10 +106,10 @@ describe('replay surround', () => {
     expect(r.text).toBe('[ hello ]')
     expect(r.unsupported).toBeNull()
   })
-  it('cs()" changes spaced parens to quotes', () => {
-    // cs()": change surrounding ( to ". findSurround detects padding on '( hello )',
+  it('cs(" changes spaced parens to quotes', () => {
+    // cs(": change surrounding ( to ". findSurround detects padding on '( hello )',
     // strips it during replacement. pairFor('"') returns unspaced quotes.
-    const r = replay('( hello )', [1, 4], 'cs()"')
+    const r = replay('( hello )', [1, 4], 'cs("')
     expect(r.text).toBe('"hello"')
     expect(r.unsupported).toBeNull()
   })
