@@ -143,6 +143,54 @@ describe('track', () => {
   })
 })
 
+describe('replay comment', () => {
+  it('gcc toggles current line (python)', () => {
+    const r = replay('def greet():\n    print("hi")', [1, 0], 'gcc', [], 'python')
+    expect(r.text).toBe('# def greet():\n    print("hi")')
+    expect(r.unsupported).toBeNull()
+  })
+  it('gcc uncomments already-commented line', () => {
+    const r = replay('# def greet():\n    print("hi")', [1, 0], 'gcc', [], 'python')
+    expect(r.text).toBe('def greet():\n    print("hi")')
+    expect(r.unsupported).toBeNull()
+  })
+  it('gcc defaults to # for unknown filetype', () => {
+    const r = replay('hello world', [1, 0], 'gcc', [], 'unknown')
+    expect(r.text).toBe('# hello world')
+    expect(r.unsupported).toBeNull()
+  })
+  it('{n}gcc toggles n lines', () => {
+    const r = replay('a\nb\nc\nd', [1, 0], '2gcc', [], 'python')
+    expect(r.text).toBe('# a\n# b\nc\nd')
+    expect(r.unsupported).toBeNull()
+  })
+  it('gcj toggles current and next line', () => {
+    const r = replay('def greet():\n    print("hi")', [1, 0], 'gcj', [], 'python')
+    expect(r.text).toBe('# def greet():\n#     print("hi")')
+    expect(r.unsupported).toBeNull()
+  })
+  it('gc$ toggles single line (javascript //)', () => {
+    const r = replay('const x = 1\nconst y = 2', [1, 0], 'gc$', [], 'javascript')
+    expect(r.text).toBe('// const x = 1\nconst y = 2')
+    expect(r.unsupported).toBeNull()
+  })
+  it('gcG toggles from cursor to end', () => {
+    const r = replay('a\nb\nc', [2, 0], 'gcG', [], 'python')
+    expect(r.text).toBe('a\n# b\n# c')
+    expect(r.unsupported).toBeNull()
+  })
+  it('skips blank lines when commenting', () => {
+    const r = replay('a\n\nb', [1, 0], '3gcc', [], 'python')
+    expect(r.text).toBe('# a\n\n# b')
+    expect(r.unsupported).toBeNull()
+  })
+  it('cursor lands on first non-blank after toggle', () => {
+    const r = replay('  indented line', [1, 0], 'gcc', [], 'python')
+    expect(r.cursor).toEqual([1, 2])
+    expect(r.unsupported).toBeNull()
+  })
+})
+
 describe('examples', () => {
   it('round trip through the form and pass the schema', async () => {
     const { EXAMPLES } = await import('../examples')
@@ -157,7 +205,7 @@ describe('examples', () => {
     const { EXAMPLES } = await import('../examples')
     for (const { challenge: c } of EXAMPLES) {
       if (c.expect.text === undefined) continue
-      const res = replay(c.text, c.cursor, c.solution)
+      const res = replay(c.text, c.cursor, c.solution, [], c.ft ?? 'text')
       expect(res.unsupported, c.id).toBeNull()
       expect(check(c.expect, res).ok, c.id).toBe(true)
     }
@@ -168,7 +216,7 @@ describe('examples', () => {
     expect(tracks.length).toBeGreaterThanOrEqual(3)
     for (const { challenge: c } of tracks) {
       const t = c.track!
-      const res = replay(c.text, c.cursor, c.solution, t.forbid)
+      const res = replay(c.text, c.cursor, c.solution, t.forbid, c.ft ?? 'text')
       expect(res.unsupported, c.id).toBeNull()
       expect(res.blocked, c.id).toBeNull()
       expect(checkpointsReached(t, res.visited), c.id).toBe(t.checkpoints?.length ?? 0)
