@@ -544,7 +544,9 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
         putCursor(fnb)
         return true
       }
-      // ys{motion}{ch}
+      // ys[count]{motion}{ch} — read optional inner count
+      const innerCount = readCount()
+      const totalCnt = cnt * (innerCount || 1)
       const k = toks[i++]
       if (!k) { unsupported('ys'); return true }
       let range: [number, number] | null = null
@@ -554,7 +556,7 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       } else {
         let arg: string | null = null
         if (k === 'f' || k === 't' || k === 'F' || k === 'T') arg = lit(toks[i++])
-        const mo = motion(k, cnt, arg)
+        const mo = motion(k, totalCnt, arg)
         if (mo && mo.o !== undefined) {
           const o = off(r, c)
           let s0 = o
@@ -594,8 +596,16 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       const newPair = pairFor(newCh)
       if (!newPair) { unsupported('cs' + oldCh + newCh); return true }
       const closeStart = found.closeAt - (found.closeLen - 1)
+      // Strip padding from inner text when changing between spaced/unspaced pairs
+      let inner = f.slice(found.openAt + found.openLen, closeStart)
+      const oldSpaced = found.openLen > 1 || found.closeLen > 1
+      const newSpaced = newPair.open.length > 1 || newPair.close.length > 1
+      if (oldSpaced && !newSpaced) {
+        inner = inner.replace(/^\s+/, '').replace(/\s+$/, '')
+      } else if (!oldSpaced && newSpaced) {
+        inner = ' ' + inner + ' '
+      }
       const before = f.slice(0, found.openAt)
-      const inner = f.slice(found.openAt + found.openLen, closeStart)
       const after = f.slice(found.closeAt + 1)
       setFlat(before + newPair.open + inner + newPair.close + after)
       putCursor(found.openAt)
