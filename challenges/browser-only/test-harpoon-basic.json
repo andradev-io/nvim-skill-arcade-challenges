@@ -6,7 +6,7 @@
   "brief": "Add the current buffer to slot a, then jump to slot b.",
   "text": "placeholder\nbuffer",
   "cursor": [1, 0],
-  "solution": ":archoon add a<Esc>:archoon jump b<Esc>",
+  "solution": ":archoon add a<CR>:archoon jump b<CR>",
   "expect": {
     "text": "second\nslot",
     "cursor": [2, 0],

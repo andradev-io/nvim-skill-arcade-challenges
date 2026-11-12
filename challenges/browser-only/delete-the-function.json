@@ -12,6 +12,6 @@
    "function": [{ "inner": [2, 4, 3, 16], "outer": [1, 0, 3, 16] }]
  },
  "solution": "dif",
- "expect": { "text": "def greet(name):\n\nx = 1" },
+ "expect": { "text": "def greet(name):\n    \nx = 1" },
  "why": "dif deletes the inner function body using treesitter structural awareness."
 }
