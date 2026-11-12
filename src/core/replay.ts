@@ -2,6 +2,7 @@
 // reaches the expected state. It is not Neovim: unsupported keys are reported, never guessed.
 // The CI replay in real Neovim stays the authority.
 import { tokens } from './keys'
+import { findSurround, pairFor } from '../plugins/surround'
 import type { Cursor } from './types'
 
 export interface ReplayResult {
@@ -479,6 +480,83 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
     }
   }
 
+  // NOTE: Visual mode S{char} is not supported in replay. Authors should use ys{motion}{ch}.
+  function surroundOp(kind: 'add' | 'delete' | 'change', cnt: number): boolean {
+    if (kind === 'add') {
+      if (toks[i] === 's') {
+        // yss: surround whole line (first-non-blank to end-of-line)
+        i++
+        const ch = toks[i++]
+        if (!ch) { unsupported('yss'); return true }
+        const pair = pairFor(ch)
+        if (!pair) { unsupported('yss' + ch); return true }
+        const f = flat()
+        const fnb = off(r, firstNonBlank(r))
+        const eol = off(r, lines[r].length)
+        setFlat(f.slice(0, fnb) + pair.open + f.slice(fnb, eol) + pair.close + f.slice(eol))
+        putCursor(fnb)
+        return true
+      }
+      // ys{motion}{ch}
+      const k = toks[i++]
+      if (!k) { unsupported('ys'); return true }
+      let range: [number, number] | null = null
+      if (k === 'i' || k === 'a') {
+        const obj = textObject(k, toks[i++])
+        if (obj) range = obj
+      } else {
+        let arg: string | null = null
+        if (k === 'f' || k === 't' || k === 'F' || k === 'T') arg = lit(toks[i++])
+        const mo = motion(k, cnt, arg)
+        if (mo && mo.o !== undefined) {
+          const o = off(r, c)
+          let s0 = o
+          let e0 = mo.o + (mo.inclusive ? 1 : 0)
+          if (e0 < s0) [s0, e0] = [e0, s0]
+          range = [s0, e0]
+        }
+      }
+      if (!range) { unsupported('ys' + k); return true }
+      const ch = toks[i++]
+      if (!ch) { unsupported('ys' + k); return true }
+      const pair = pairFor(ch)
+      if (!pair) { unsupported('ys' + k + ch); return true }
+      const f = flat()
+      setFlat(f.slice(0, range[0]) + pair.open + f.slice(range[0], range[1]) + pair.close + f.slice(range[1]))
+      putCursor(range[0])
+      return true
+    }
+    if (kind === 'delete') {
+      const ch = toks[i++]
+      if (!ch) { unsupported('ds'); return true }
+      const f = flat()
+      const found = findSurround(f, off(r, c), ch)
+      if (!found) { unsupported('ds' + ch); return true }
+      const closeStart = found.closeAt - (found.closeLen - 1)
+      setFlat(f.slice(0, found.openAt) + f.slice(found.openAt + found.openLen, closeStart) + f.slice(found.closeAt + 1))
+      putCursor(found.openAt)
+      return true
+    }
+    if (kind === 'change') {
+      const oldCh = toks[i++]
+      const newCh = toks[i++]
+      if (!oldCh || !newCh) { unsupported('cs'); return true }
+      const f = flat()
+      const found = findSurround(f, off(r, c), oldCh)
+      if (!found) { unsupported('cs' + oldCh); return true }
+      const newPair = pairFor(newCh)
+      if (!newPair) { unsupported('cs' + oldCh + newCh); return true }
+      const closeStart = found.closeAt - (found.closeLen - 1)
+      const before = f.slice(0, found.openAt)
+      const inner = f.slice(found.openAt + found.openLen, closeStart)
+      const after = f.slice(found.closeAt + 1)
+      setFlat(before + newPair.open + inner + newPair.close + after)
+      putCursor(found.openAt)
+      return true
+    }
+    return false
+  }
+
   while (i < toks.length && !fail) {
     const count = readCount()
     const cnt = count || 1
@@ -629,8 +707,14 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       case 'd':
       case 'c':
       case 'y':
-        if (isForbidden(toks[i])) blocked = blocked ?? toks[i]
-        operator(t, cnt, count, L, o)
+        if (toks[i] === 's') {
+          i++
+          const kind = t === 'y' ? 'add' : t === 'd' ? 'delete' : 'change'
+          surroundOp(kind, cnt)
+        } else {
+          if (isForbidden(toks[i])) blocked = blocked ?? toks[i]
+          operator(t, cnt, count, L, o)
+        }
         break
       default:
         if (isForbidden(t)) {

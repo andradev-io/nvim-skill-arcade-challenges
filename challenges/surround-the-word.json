@@ -1,0 +1,13 @@
+{
+  "id": "surround-the-word",
+  "title": "Surround the word",
+  "area": "textobjects",
+  "level": 2,
+  "brief": "Wrap value in parentheses so it reads (value).",
+  "text": "value",
+  "cursor": [1, 2],
+  "solution": "ysiw)",
+  "expect": { "text": "(value)" },
+  "plugin_par": 4,
+  "why": "ysiw) surrounds the inner word with parentheses. The closing variant ) adds no spaces; the opening ( would."
+}
