@@ -3,8 +3,9 @@ import { pairAction } from './autopairs'
 import { openCommentLine, toggleLines } from './comment'
 import { feedJumpKey, initJumpState, type JumpState, type JumpTarget } from './jumpLabels'
 import { findSurround, pairFor } from './surround'
-import { argumentAt, callAt, quoteAt } from './textobjects'
-import type { Range } from './textobjects'
+import { argumentAt, callAt, quoteAt, treesitterObjectAt } from './textobjects'
+import type { Range, MLRange } from './textobjects'
+import type { TreesitterObjects } from '../core/types'
 
 /**
  * Connects the plugin imitations to the Vim editor: operators and motions go into its tables, and a few keys
@@ -35,6 +36,13 @@ export interface Cm {
 let filetype = 'text'
 export const setFiletype = (ft: string) => {
   filetype = ft
+}
+
+// ---------- treesitter objects ----------
+
+let tsObjects: TreesitterObjects | null = null
+export const setTreesitterObjects = (objs: TreesitterObjects | null) => {
+  tsObjects = objs
 }
 
 // ---------- jump motion ----------
@@ -137,6 +145,20 @@ export function applyShims(on: ReadonlySet<string>) {
       return from
     }) as never)
     Vim.defineMotion('arcObject', ((cm: Cm, head: Pos, args: { obj: string; textObjectInner?: boolean }) => {
+      // Check treesitter objects first when available
+      const tsKeyMap: Record<string, keyof TreesitterObjects> = { f: 'function', c: 'class', s: 'statement', p: 'parameter', b: 'block', t: 'tag' }
+      const tsKey = tsKeyMap[args.obj]
+      if (tsObjects && tsKey) {
+        const entries = tsObjects[tsKey]
+        if (entries && entries.length) {
+          const mlr = treesitterObjectAt(entries, head.line, head.ch, !!args.textObjectInner)
+          if (mlr) {
+            const visual = !!cm.state.vim?.visualMode
+            return [P(mlr[0], mlr[1]), P(mlr[2], visual ? mlr[3] - 1 : mlr[3])]
+          }
+        }
+      }
+      // Fall back to bracket-based single-line objects
       const r = OBJECTS[args.obj]?.(cm.getLine(head.line), head.ch, !!args.textObjectInner)
       if (!r) return null
       const visual = !!cm.state.vim?.visualMode
@@ -146,6 +168,16 @@ export function applyShims(on: ReadonlySet<string>) {
   if (on.has('comment')) Vim.mapCommand('gc', 'operator', 'arcComment', {}, { isEdit: true })
   if (on.has('textobjects')) {
     for (const [obj, keys] of [['a', 'a'], ['q', 'q'], ['f', 'f']] as const) {
+      for (const inner of [true, false]) {
+        for (const context of ['operatorPending', 'visual']) {
+          Vim.mapCommand(`${inner ? 'i' : 'a'}${keys}`, 'motion', 'arcObject', { obj, textObjectInner: inner }, { context })
+        }
+      }
+    }
+  }
+  if (on.has('treesitter')) {
+    // Register treesitter structural text objects: if/af, ic/ac, is/as, ip/ap, ib/ab, it/at
+    for (const [obj, keys] of [['f', 'f'], ['c', 'c'], ['s', 's'], ['p', 'p'], ['b', 'b'], ['t', 't']] as const) {
       for (const inner of [true, false]) {
         for (const context of ['operatorPending', 'visual']) {
           Vim.mapCommand(`${inner ? 'i' : 'a'}${keys}`, 'motion', 'arcObject', { obj, textObjectInner: inner }, { context })

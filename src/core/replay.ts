@@ -4,7 +4,8 @@
 import { tokens } from './keys'
 import { toggleLines } from '../plugins/comment'
 import { findSurround, pairFor } from '../plugins/surround'
-import type { Cursor, HarpoonConfig, JumpTargetData } from './types'
+import { treesitterObjectAt } from '../plugins/textobjects'
+import type { Cursor, HarpoonConfig, JumpTargetData, TreesitterObjects } from './types'
 
 export interface ReplayResult {
   text: string
@@ -29,7 +30,7 @@ interface Motion {
 const lit = (t: string): string => (t === '<Space>' ? ' ' : t === '<lt>' ? '<' : t)
 const cls = (ch: string): number => (/\s/.test(ch) ? 0 : /\w/.test(ch) ? 2 : 1)
 
-export function replay(text: string, cursor: Cursor, solution: string, forbid: string[] = [], ft: string = 'text', jumpTargets?: JumpTargetData[], harpoon?: HarpoonConfig): ReplayResult & { activeSlot?: string } {
+export function replay(text: string, cursor: Cursor, solution: string, forbid: string[] = [], ft: string = 'text', jumpTargets?: JumpTargetData[], harpoon?: HarpoonConfig, treesitterObjects?: TreesitterObjects): ReplayResult & { activeSlot?: string } {
   let lines = String(text).replace(/\r\n/g, '\n').split('\n')
   let r = Math.max(0, Math.min(lines.length, cursor[0] || 1) - 1)
   let c = cursor[1] || 0
@@ -190,6 +191,20 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
   }
 
   function textObject(kind: string, ch: string): [number, number] | null {
+    // Check treesitter objects first when available
+    if (treesitterObjects) {
+      const tsKeyMap: Record<string, keyof TreesitterObjects> = { f: 'function', c: 'class', s: 'statement', p: 'parameter', b: 'block', t: 'tag' }
+      const tsKey = tsKeyMap[ch]
+      if (tsKey) {
+        const entries = treesitterObjects[tsKey]
+        if (entries && entries.length) {
+          const mlr = treesitterObjectAt(entries, r, c, kind === 'i')
+          if (mlr) {
+            return [off(mlr[0], mlr[1]), off(mlr[2], mlr[3])]
+          }
+        }
+      }
+    }
     const f = flat()
     const o = off(r, c)
     const L = lines[r]
