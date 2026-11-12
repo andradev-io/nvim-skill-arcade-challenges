@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MazeGame } from './MazeGame'
+import { InputManager } from '../engine/InputManager'
 import type { GameConfig, GameColors } from '../engine/types'
 import type { MazeLevel } from './types'
 
@@ -184,7 +185,9 @@ describe('MazeGame', () => {
     let startCalled = false
     game.onRequestStart = () => { startCalled = true }
 
+    // Bind input so keydown events are received (start() normally does this)
     const container = config.canvas.parentElement ?? config.canvas
+    ;(game as unknown as { input: InputManager }).input.bind(container)
     container.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', key: 'Enter' }))
     expect(startCalled).toBe(true)
 
@@ -211,7 +214,9 @@ describe('MazeGame', () => {
     let backCalled = false
     game.onNavigateBack = () => { backCalled = true }
 
+    // Bind input so keydown events are received (start() normally does this)
     const container = config.canvas.parentElement ?? config.canvas
+    ;(game as unknown as { input: InputManager }).input.bind(container)
     container.dispatchEvent(new KeyboardEvent('keydown', { code: 'Backspace', key: 'Backspace' }))
     expect(backCalled).toBe(true)
 
