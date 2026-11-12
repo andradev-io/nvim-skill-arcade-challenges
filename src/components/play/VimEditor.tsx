@@ -1,4 +1,4 @@
-import { useEffect, useImperativeHandle, useRef } from 'react'
+import { useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { Ref } from 'react'
 import Box from '@mui/material/Box'
 import { history } from '@codemirror/commands'
@@ -10,8 +10,11 @@ import { pendingText } from '../../core/terminalUx'
 import type { VimInput } from '../../core/terminalUx'
 import type { Cursor } from '../../core/types'
 import { buildJumpDecorations, type JumpTarget } from '../../plugins/jumpLabels'
-import { applyShims, handleShimKey, setFiletype, setJumpTargets, getJumpState } from '../../plugins/vimGlue'
+import { applyShims, handleShimKey, setFiletype, setJumpTargets, getJumpState, isSurroundAwaiting } from '../../plugins/vimGlue'
 import type { Cm } from '../../plugins/vimGlue'
+import { whichKeyStep, buildWhichKeyFromMaps, buildWhichKeyFromChallenge, initialWhichKeyState } from '../../core/whichKey'
+import type { WhichKeyConfig, WhichKeyState } from '../../core/whichKey'
+import type { ChallengeWhichKey } from '../../core/types'
 import { installExCommands, stubNotes } from './exCommands'
 import { highlighting, loadLanguage } from './languages'
 
@@ -74,6 +77,8 @@ export interface VimEditorHandle {
   pending: () => string
   /** The register being recorded into, or null. */
   recording: () => string | null
+  /** Current which-key overlay state, or null when inactive. */
+  whichKeyState: () => WhichKeyState | null
 }
 
 interface VimInternals {
@@ -100,6 +105,8 @@ interface Props {
   filetype?: string
   /** Pre-computed jump targets for label-based motion simulation. */
   jumpTargets?: JumpTarget[]
+  /** Which-key overlay configuration (from challenge data or user keymaps). */
+  whichKeyConfig?: WhichKeyConfig | null
   ref: Ref<VimEditorHandle>
 }
 
@@ -178,7 +185,7 @@ const cmTheme = EditorView.theme({
 })
 
 /** Stock Vim emulation (CodeMirror 6 + @replit/codemirror-vim). Your own Neovim keybinds are not active here. */
-export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse = false, maps, plugins, filetype = 'text', size = 'play', ref }: Props) {
+export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse = false, maps, plugins, filetype = 'text', size = 'play', whichKeyConfig, ref }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const hooks = useRef({ onKey, onSync })
@@ -189,6 +196,10 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
   const jumpDeco = useRef(new Compartment())
   const pluginsRef = useRef<ReadonlySet<string>>(plugins ?? NO_PLUGINS)
   const jumpTargetsRef = useRef(jumpTargets)
+  const wkConfigRef = useRef<WhichKeyConfig | null>(whichKeyConfig ?? null)
+  const wkStateRef = useRef<WhichKeyState>(initialWhichKeyState())
+  const wkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [wkState, setWkState] = useState<WhichKeyState>(initialWhichKeyState())
   useEffect(() => {
     hooks.current = { onKey, onSync }
     lockMouse.current = noMouse
@@ -196,6 +207,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
     pluginsRef.current = plugins ?? NO_PLUGINS
     filetypeRef.current = filetype
     jumpTargetsRef.current = jumpTargets
+    wkConfigRef.current = whichKeyConfig ?? null
     setFiletype(filetype)
     setJumpTargets(jumpTargets ?? [])
     // mappings changed while this editor is the one in use: switch to them now
@@ -238,12 +250,42 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
       e.preventDefault()
       swallowed = false
     }
+    const dispatchWk = (action: import('../../core/whichKey').WhichKeyAction) => {
+      const cfg = wkConfigRef.current
+      if (!cfg) return
+      const next = whichKeyStep(cfg, wkStateRef.current, action)
+      wkStateRef.current = next
+      setWkState(next)
+    }
+    const clearWkTimer = () => {
+      if (wkTimerRef.current !== null) {
+        clearTimeout(wkTimerRef.current)
+        wkTimerRef.current = null
+      }
+    }
+    const startWkTimer = () => {
+      clearWkTimer()
+      const cfg = wkConfigRef.current
+      if (!cfg) return
+      wkTimerRef.current = setTimeout(() => {
+        dispatchWk({ type: 'timeout' })
+      }, cfg.timeoutMs)
+    }
     const onKeyDown = (e: KeyboardEvent) => {
       if (MODIFIERS.has(e.key)) return
       const vimState = cm?.state.vim
       const mode = !vimState ? 'normal' : vimState.insertMode ? 'insert' : vimState.visualMode ? 'visual' : 'normal'
+
+      // Non-interference: reset which-key in insert/visual mode or when shim states are active
+      if (mode !== 'normal' || isSurroundAwaiting() || getJumpState() !== null) {
+        dispatchWk({ type: 'reset' })
+        clearWkTimer()
+      }
+
       if (pluginsRef.current.size && cm && handleShimKey(e, cm as unknown as Cm, pluginsRef.current)) {
         // a key a plugin imitation took (gcc, ys, ds, auto pairs, jump motion ...)
+        dispatchWk({ type: 'reset' })
+        clearWkTimer()
         e.preventDefault()
         e.stopPropagation()
         swallowed = true
@@ -260,6 +302,25 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
         }, 50)
         return
       }
+
+      // Which-key processing: after shim handling, before onKey callback
+      if (mode === 'normal' && wkConfigRef.current && !isSurroundAwaiting() && !getJumpState()) {
+        const prevState = wkStateRef.current
+        dispatchWk({ type: 'keydown', key: e.key })
+        const nextState = wkStateRef.current
+        // If overlay was visible and key matched an entry, dismiss (key passes through to Vim)
+        if (prevState.visible && !nextState.visible) {
+          clearWkTimer()
+          // Key consumed by which-key match: let it fall through to Vim
+        } else if (nextState.node && !nextState.visible) {
+          // Prefix detected but not yet visible: start/reset timer
+          startWkTimer()
+        } else if (!nextState.node) {
+          // No prefix match: clear timer
+          clearWkTimer()
+        }
+      }
+
       if (hooks.current.onKey(e.key, mode)) {
         // a key family this track forbids: Vim never sees it
         e.preventDefault()
@@ -289,6 +350,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
     v.contentDOM.addEventListener('mousedown', onMouseDown, true)
     v.contentDOM.addEventListener('beforeinput', onBeforeInput, true)
     return () => {
+      clearWkTimer()
       v.contentDOM.removeEventListener('focus', onFocus)
       v.contentDOM.removeEventListener('beforeinput', onBeforeInput, true)
       v.contentDOM.removeEventListener('keydown', onKeyDown, true)
@@ -326,6 +388,10 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
     recording: () => {
       const m = ((view.current && getCM(view.current)?.state.vim) as VimInternals | undefined)?.macroModeState
       return m?.isRecording ? (m.latestRegister ?? '?') : null
+    },
+    whichKeyState: () => {
+      const s = wkStateRef.current
+      return s.node ? s : null
     },
   }))
 
