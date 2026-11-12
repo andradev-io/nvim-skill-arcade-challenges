@@ -74,6 +74,8 @@ export interface VimEditorHandle {
   pending: () => string
   /** The register being recorded into, or null. */
   recording: () => string | null
+  /** Named marks set via `m{a-z}`: mark name -> line number (1-based). */
+  marks: () => Record<string, number>
 }
 
 interface VimInternals {
@@ -326,6 +328,16 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
     recording: () => {
       const m = ((view.current && getCM(view.current)?.state.vim) as VimInternals | undefined)?.macroModeState
       return m?.isRecording ? (m.latestRegister ?? '?') : null
+    },
+    marks: () => {
+      const v = view.current && getCM(view.current)?.state.vim as (VimInternals & { marks?: Record<string, { line: number }> }) | undefined
+      const raw = v?.marks
+      if (!raw) return {}
+      const out: Record<string, number> = {}
+      for (const [k, pos] of Object.entries(raw)) {
+        if (/^[a-z]$/.test(k) && pos && typeof pos.line === 'number') out[k] = pos.line + 1
+      }
+      return out
     },
   }))
 

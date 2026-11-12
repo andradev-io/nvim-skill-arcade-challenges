@@ -12,8 +12,10 @@ export interface EditorSink {
   note?: (text: string) => void
   /** Tab / buffer navigation. */
   tab?: (action: TabAction) => void
-  /** Terminal page actions: `:retry`, `:hint`, `:nextchallenge`, `:palette`, or `picker:<type>`. */
+/** Terminal page actions: `:retry`, `:hint`, `:nextchallenge`, `:palette`, or `picker:<type>`. */
   action?: (name: 'retry' | 'hint' | 'next' | 'palette' | `picker:${string}`) => void
+  /** Harpoon slot operations: add current buffer to a slot, or jump to a saved slot. */
+  harpoon?: (action: 'add' | 'jump', slot: string) => void
 }
 
 let sink: EditorSink = {}
@@ -117,6 +119,13 @@ function install() {
   define('bNext', 'bN', () => sink.tab?.('prev'))
   define('bdelete', 'bd', () => sink.tab?.('close'))
   define('bwipeout', 'bw', () => sink.tab?.('close'))
+
+  define('archoon', 'archoon', (_cm, p) => {
+    const arg = (p.argString ?? '').trim()
+    const m = /^(add|jump)\s+([a-d])$/i.exec(arg)
+    if (!m) return say('Usage: :archoon add|jump {a-d}')
+    sink.harpoon?.(m[1].toLowerCase() as 'add' | 'jump', m[2].toLowerCase())
+  })
 
   define('move', 'm', (cm, p) => {
     const cursor = cm.getCursor().line + 1

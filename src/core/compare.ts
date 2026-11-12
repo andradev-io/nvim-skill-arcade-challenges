@@ -1,4 +1,4 @@
-import type { Expect, State } from './types'
+import type { Expect, HarpoonConfig, State } from './types'
 
 function trimLines(text: string, loose: boolean): string[] {
   const out = String(text)
@@ -20,7 +20,7 @@ export function linesEqual(a: string, b: string, loose = false): boolean {
 }
 
 export interface CheckPart {
-  name: 'text' | 'cursor' | 'picker_selected'
+name: 'text' | 'cursor' | 'picker_selected' | 'marks'
   ok: boolean
 }
 export interface CheckResult {
@@ -28,10 +28,10 @@ export interface CheckResult {
   parts: CheckPart[]
 }
 
-/** End-state check for the assertions the browser can judge (buffer text, cursor, picker selection). */
+/** End-state check for the assertions the browser can judge (buffer text, cursor, picker selection, marks). */
 export function check(
-  expect: Pick<Expect, 'text' | 'cursor'> & { picker_selected?: number | string },
-  state: State & { pickerSelection?: number | string | null },
+  expect: Pick<Expect, 'text' | 'cursor' | 'marks'> & { picker_selected?: number | string },
+  state: State & { pickerSelection?: number | string | null; marks?: Record<string, number> },
   loose = false,
 ): CheckResult {
   const parts: CheckPart[] = []
@@ -48,18 +48,27 @@ export function check(
     parts.push({ name: 'cursor', ok: c })
     ok = ok && c
   }
-  if (expect.picker_selected !== undefined) {
+if (expect.picker_selected !== undefined) {
     const sel = state.pickerSelection
     const p = sel !== null && sel !== undefined && sel === expect.picker_selected
     parts.push({ name: 'picker_selected', ok: p })
     ok = ok && p
   }
+  if (expect.marks) {
+    const sm = state.marks ?? {}
+    let mOk = true
+    for (const [k, v] of Object.entries(expect.marks)) {
+      if (sm[k] !== v) { mOk = false; break }
+    }
+    parts.push({ name: 'marks', ok: mOk })
+    ok = ok && mOk
+  }
   if (!parts.length) ok = false
   return { ok, parts }
 }
 
-/** The browser can judge only text, cursor and picker selection; the rest needs real Neovim. */
-export const BROWSER_KEYS = ['text', 'cursor', 'picker_selected'] as const
+/** The browser can judge text, cursor, picker selection and marks; the rest needs real Neovim. */
+export const BROWSER_KEYS = ['text', 'cursor', 'picker_selected', 'marks'] as const
 
 export function neovimOnlyKeys(expect: Expect): string[] {
   return Object.keys(expect).filter((k) => !(BROWSER_KEYS as readonly string[]).includes(k))
