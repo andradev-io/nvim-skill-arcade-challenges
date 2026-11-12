@@ -52,7 +52,7 @@ export class MazeGame implements GameEngine {
     this.onStateChange = config.onStateChange
     this.onGameOver = config.onGameOver
 
-    this.renderer = new MazeRenderer(this.ctx, CELL_SIZE)
+    this.renderer = new MazeRenderer(this.ctx, CELL_SIZE, config.colors)
     this.input = new InputManager()
     this.loop = new GameLoop(
       (dt) => this.update(dt),

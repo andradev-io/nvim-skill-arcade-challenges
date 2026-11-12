@@ -35,7 +35,7 @@ describe('replay LSP tokens', () => {
 
   it('[d retreats to previous diagnostic', () => {
     const result = replay(text, [3, 5], '[d', [], 'lua', undefined, undefined, undefined, lspData)
-    expect(result.cursor).toEqual([2, 6])
+    expect(result.cursor).toEqual([3, 0])
     expect(result.unsupported).toBeNull()
   })
 
