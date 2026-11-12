@@ -1,0 +1,21 @@
+{
+  "id": "test-harpoon-basic",
+  "title": "Harpoon: two-slot navigation",
+  "text": "placeholder\nbuffer",
+  "cursor": [1, 0],
+  "solution": ":archoon add a<Esc>:archoon jump b<Esc>",
+  "expect": {
+    "text": "second\nslot",
+    "cursor": [2, 0],
+    "active_slot": "b"
+  },
+  "harpoon": {
+    "slots": {
+      "a": { "text": "first\nslot", "cursor": [1, 0] },
+      "b": { "text": "second\nslot", "cursor": [2, 0] }
+    },
+    "sequence": ["a", "b"]
+  },
+  "tags": ["bookmarks"],
+  "difficulty": "easy"
+}

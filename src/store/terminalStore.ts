@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { BuiltinChallenge } from '../core/builtin'
-import type { Cursor } from '../core/types'
+import type { Cursor, HarpoonConfig } from '../core/types'
 
 export interface TerminalBuffer {
   name: string
@@ -51,6 +51,8 @@ interface TerminalStore {
   active: number
   /** Bumped when the editor must restart from the stored text (a buffer was loaded, reset or a tab switched). */
   run: number
+  /** Harpoon slot name -> tab index mapping for named-mark navigation. */
+  harpoonSlots: Record<string, number>
   /** Replace the current tab with a buffer (a challenge, an example). */
   open: (b: TerminalBuffer) => void
   /** Keep what the editor holds, without restarting it. */
@@ -61,6 +63,8 @@ interface TerminalStore {
   closeTab: (index?: number) => void
   goTab: (index: number) => void
   stepTab: (delta: number) => void
+  /** Open tabs from harpoon slots in alphabetical order and record the slot->tab mapping. */
+  openHarpoon: (config: HarpoonConfig) => void
 }
 
 /** What the Terminal page edits. Other pages hand a buffer over and open the page. */
@@ -68,6 +72,7 @@ export const useTerminalStore = create<TerminalStore>((set) => ({
   tabs: [tabOf(SAMPLE_BUFFER)],
   active: 0,
   run: 0,
+  harpoonSlots: {},
   open: (b) => set((s) => ({ tabs: s.tabs.map((t, i) => (i === s.active ? tabOf(b, b.challenge?.ft) : t)), run: s.run + 1 })),
   save: (text, cursor) => set((s) => ({ tabs: s.tabs.map((t, i) => (i === s.active ? { ...t, text, cursor } : t)) })),
   setFt: (ft) => set((s) => ({ tabs: s.tabs.map((t, i) => (i === s.active ? { ...t, ft } : t)) })),
@@ -93,4 +98,17 @@ export const useTerminalStore = create<TerminalStore>((set) => ({
   goTab: (index) => set((s) => (index === s.active || !s.tabs[index] ? s : { active: index, run: s.run + 1 })),
   stepTab: (delta) =>
     set((s) => (s.tabs.length < 2 ? s : { active: (s.active + delta + s.tabs.length) % s.tabs.length, run: s.run + 1 })),
+  openHarpoon: (config) =>
+    set((s) => {
+      const names = Object.keys(config.slots).sort()
+      const tabs = [...s.tabs]
+      const mapping: Record<string, number> = {}
+      for (const name of names) {
+        const slot = config.slots[name]
+        const idx = tabs.length
+        tabs.push(tabOf({ name: `[harpoon:${name}]`, text: slot.text, cursor: slot.cursor ?? [1, 0] }, slot.ft))
+        mapping[name] = idx
+      }
+      return { tabs, harpoonSlots: mapping, run: s.run + 1 }
+    }),
 }))

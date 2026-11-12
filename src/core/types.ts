@@ -6,6 +6,17 @@ export interface QuickfixExpect {
   all_contain?: string
 }
 
+export interface HarpoonSlot {
+  text: string
+  cursor?: Cursor
+  ft?: string
+}
+
+export interface HarpoonConfig {
+  slots: Record<string, HarpoonSlot>
+  sequence?: string[]
+}
+
 export interface Expect {
   text?: string
   cursor?: [number] | [number, number]
@@ -16,6 +27,7 @@ export interface Expect {
   float_text?: string
   alt_buffer?: boolean
   marks?: Record<string, number>
+  active_slot?: string
 }
 
 export type Forbid = 'hjkl' | 'arrows' | 'mouse'
@@ -56,6 +68,8 @@ export interface Challenge {
   loose?: boolean
   /** Pre-computed jump targets for label-based motion simulation. */
   jump_targets?: JumpTargetData[]
+  /** Harpoon slot configuration for named-mark navigation challenges. */
+  harpoon?: HarpoonConfig
   /** Daily/AI challenges: the day they are featured (YYYY-MM-DD), the model that wrote them and the prompt (file version and hash). */
   date?: string
   generated?: boolean
@@ -105,6 +119,9 @@ export interface DraftForm {
   forbidHjkl: boolean
   forbidArrows: boolean
   forbidMouse: boolean
+  /** Harpoon slots as "a=text|cursor|ft, b=..." and visit sequence as "a,b,c". */
+  harpoonSlots: string
+  harpoonSequence: string
 }
 
 export interface State {
