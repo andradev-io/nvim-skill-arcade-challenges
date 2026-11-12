@@ -16,7 +16,7 @@ describe('picker schema', () => {
         expect_selection: 0,
       }),
     })
-    const { challenge, errors } = buildChallenge(f)
+    const { data: challenge, errors } = buildChallenge(f)
     expect(errors).toEqual([])
     expect(challenge.picker).toBeDefined()
     expect(challenge.picker?.type).toBe('find_files')
@@ -34,7 +34,7 @@ describe('picker schema', () => {
 
   it('omits picker when pickerJson is empty', () => {
     const f = form({ pickerJson: '' })
-    const { challenge, errors } = buildChallenge(f)
+    const { data: challenge, errors } = buildChallenge(f)
     expect(errors).toEqual([])
     expect(challenge.picker).toBeUndefined()
   })
