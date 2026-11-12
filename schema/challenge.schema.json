@@ -6,6 +6,28 @@
   "additionalProperties": false,
   "required": ["id", "title", "area", "level", "brief", "text", "solution", "why"],
   "anyOf": [{ "required": ["expect"] }, { "required": ["track"] }],
+  "$defs": {
+    "tsObjRange": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 0 },
+      "minItems": 4,
+      "maxItems": 4,
+      "description": "[startLine (1-based), startCol (0-based), endLine (1-based), endCol (0-based exclusive)]"
+    },
+    "tsObjEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inner", "outer"],
+      "properties": {
+        "inner": { "$ref": "#/$defs/tsObjRange" },
+        "outer": { "$ref": "#/$defs/tsObjRange" }
+      }
+    },
+    "tsObjList": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/tsObjEntry" }
+    }
+  },
   "properties": {
     "track": {
       "type": "object",
@@ -145,6 +167,19 @@
           "items": { "type": "string", "pattern": "^[a-d]$" },
           "description": "Expected visit order of slot names for checkpoint judging."
         }
+      }
+    },
+    "treesitter_objects": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Pre-computed treesitter text objects for structural editing (function, class, statement, parameter, block, tag).",
+      "properties": {
+        "function": { "$ref": "#/$defs/tsObjList" },
+        "class": { "$ref": "#/$defs/tsObjList" },
+        "statement": { "$ref": "#/$defs/tsObjList" },
+        "parameter": { "$ref": "#/$defs/tsObjList" },
+        "block": { "$ref": "#/$defs/tsObjList" },
+        "tag": { "$ref": "#/$defs/tsObjList" }
       }
     },
     "helps": { "type": "object", "maxProperties": 13, "additionalProperties": { "type": "string", "maxLength": 200 } },

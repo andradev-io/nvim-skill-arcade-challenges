@@ -4,6 +4,43 @@
  */
 export type Range = [number, number]
 
+import type { TsObjectEntry } from '../core/types'
+
+/** Multi-line range: [startLine (0-based), startCol (0-based), endLine (0-based), endCol (0-based exclusive)]. */
+export type MLRange = [number, number, number, number]
+
+/**
+ * Find the innermost treesitter object containing (line, col).
+ * @param objects - pre-computed entries for one object kind
+ * @param line - 0-based cursor line
+ * @param col - 0-based cursor column
+ * @param inner - true for inner range, false for outer range
+ * @returns the matching MLRange in 0-based coordinates, or null if no entry contains the cursor
+ */
+export function treesitterObjectAt(objects: TsObjectEntry[], line: number, col: number, inner: boolean): MLRange | null {
+  // Filter entries whose outer range contains (line, col). Outer ranges are 1-based lines.
+  const matches = objects.filter((entry) => {
+    const [sL, sC, eL, eC] = entry.outer
+    const sLine0 = sL - 1
+    const eLine0 = eL - 1
+    if (line < sLine0 || line > eLine0) return false
+    if (line === sLine0 && col < sC) return false
+    if (line === eLine0 && col >= eC) return false
+    return true
+  })
+  if (!matches.length) return null
+  // Sort by span size (smallest = innermost). Use total character span as proxy.
+  matches.sort((a, b) => {
+    const spanA = (a.outer[2] - a.outer[0]) * 10000 + (a.outer[3] - a.outer[1])
+    const spanB = (b.outer[2] - b.outer[0]) * 10000 + (b.outer[3] - b.outer[1])
+    return spanA - spanB
+  })
+  const best = matches[0]
+  const r = inner ? best.inner : best.outer
+  // Convert 1-based lines to 0-based
+  return [r[0] - 1, r[1], r[2] - 1, r[3]]
+}
+
 const OPEN = '([{'
 const CLOSE = ')]}'
 const isQuote = (c: string) => c === '"' || c === "'" || c === '`'
