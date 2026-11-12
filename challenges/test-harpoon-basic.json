@@ -1,6 +1,9 @@
 {
   "id": "test-harpoon-basic",
   "title": "Harpoon: two-slot navigation",
+  "area": "plugins",
+  "level": 3,
+  "brief": "Add the current buffer to slot a, then jump to slot b.",
   "text": "placeholder\nbuffer",
   "cursor": [1, 0],
   "solution": ":archoon add a<Esc>:archoon jump b<Esc>",
@@ -16,6 +19,6 @@
     },
     "sequence": ["a", "b"]
   },
-  "tags": ["bookmarks"],
-  "difficulty": "easy"
+  "needs": "bookmarks",
+  "why": "Harpoon lets you mark frequently-used files and jump between them instantly with leader-key bindings."
 }
