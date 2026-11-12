@@ -57,10 +57,12 @@ export interface ChallengeBarProps {
   onNext: (() => void) | null
   /** Fewest keys this session for this challenge, if it was solved before. */
   best?: number
+  /** True when the last pass set a new personal best in localStorage. */
+  newBest?: boolean
 }
 
 /** The brief of a built-in challenge opened in the Terminal, its live key count, hints, a diff, and the result once it is solved. */
-export function ChallengeBar({ challenge, state, actual, hints, onHint, onRetry, onNext, best }: ChallengeBarProps) {
+export function ChallengeBar({ challenge, state, actual, hints, onHint, onRetry, onNext, best, newBest }: ChallengeBarProps) {
   const { save, error } = useSaveResult(challenge, state.passed)
   const status = useAuthStore((s) => s.status)
   const login = useAuthStore((s) => s.login)
@@ -139,6 +141,7 @@ export function ChallengeBar({ challenge, state, actual, hints, onHint, onRetry,
             {star > 0 && <Box component="span" aria-label={`${star} of 3 stars`} sx={{ ml: 1 }}>{'★'.repeat(star) + '☆'.repeat(3 - star)}</Box>}
             {par ? <Box component="span" sx={{ ml: 1, fontWeight: 400, opacity: 0.8 }}>{`${efficiency(p.keys, par)}% efficient`}</Box> : null}
             {hints > 0 && <Box component="span" sx={{ ml: 1, fontWeight: 400, opacity: 0.8 }}>{`${hints} hint${hints > 1 ? 's' : ''} used`}</Box>}
+            {newBest && <Box component="span" sx={{ ml: 1, px: 0.75, py: 0.25, bgcolor: '#d4a017', color: '#1a1a1a', borderRadius: 0.5, fontSize: 11, fontWeight: 700, verticalAlign: 'middle' }}>New best!</Box>}
           </Box>
           <Box sx={{ opacity: 0.8, mt: 0.25 }}>
             {save === 'saving' && 'Saving your result...'}
