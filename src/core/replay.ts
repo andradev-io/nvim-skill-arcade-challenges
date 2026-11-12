@@ -608,14 +608,14 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       const newIsSpaced = BRACKETS_OPEN.has(newCh)
       // Extract raw inner text between delimiters (excluding any padding already stripped by findSurround)
       let inner = f.slice(found.openAt + found.openLen, closeStart)
-      // Strip existing padding if old char was a spaced opener and inner has leading/trailing spaces
-      if (oldIsSpaced && inner.startsWith(' ') && inner.endsWith(' ') && inner.length >= 2) {
-        inner = inner.slice(1, -1)
+      // Strip existing padding: vim-surround treats '(' '[' '{' as always implying spacing semantics.
+      // Strip leading/trailing whitespace from inner when old char is a spaced opener,
+      // regardless of whether findSurround detected actual padding in the text.
+      if (oldIsSpaced) {
+        inner = inner.replace(/^\s+/, '').replace(/\s+$/, '')
       }
       // Add padding if new char is a spaced opener and inner is non-empty
       if (newIsSpaced && inner.length > 0) {
-        inner = ' ' + inner + ' '
-      } else if (!oldSpaced && newSpaced) {
         inner = ' ' + inner + ' '
       }
       const before = f.slice(0, found.openAt)

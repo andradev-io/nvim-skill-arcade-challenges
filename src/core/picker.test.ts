@@ -9,11 +9,11 @@ const form = (patch: Partial<DraftForm>): DraftForm => ({
   title: 'Test challenge',
   id: 'test-challenge',
   brief: 'A test challenge for picker schema validation.',
-  text: 'placeholder',
+  text: 'start buffer',
   why: 'Testing picker serialization.',
-  solution: 'gg',
-  expectText: 'placeholder',
-  expectCursor: '1:0',
+  solution: 'ggj',
+  expectText: 'changed buffer',
+  expectCursor: '2:0',
   ...patch,
 })
 
