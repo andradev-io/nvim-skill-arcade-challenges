@@ -142,8 +142,8 @@ describe('POST /api/event', () => {
     await worker.fetch(post({ type: 'play', challenge: 'only-this-window', done: true }), baseEnv(db))
     const binds = calls.filter((c) => c.sql.includes('INTO plays')).map((c) => c.binds.slice(1))
     expect(binds).toEqual([
-      ['only-this-window', 1, 0],
-      ['only-this-window', 0, 1],
+      ['only-this-window', 1, 0, 0, 0, null],
+      ['only-this-window', 0, 1, 0, 0, null],
     ])
   })
 

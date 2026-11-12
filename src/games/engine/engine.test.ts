@@ -17,6 +17,8 @@ describe('GameLoop', () => {
     vi.stubGlobal('cancelAnimationFrame', (_id: number) => {
       // no-op in tests; we control frame delivery
     })
+    // Stub performance.now so GameLoop.start() uses a controllable baseline
+    vi.stubGlobal('performance', { ...performance, now: () => 0 })
     vi.useFakeTimers()
   })
 

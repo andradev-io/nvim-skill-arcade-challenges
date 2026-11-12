@@ -11,12 +11,15 @@ interface MazeRenderState {
 }
 
 export class MazeRenderer {
-  private colors!: GameColors
+  private colors: GameColors
 
   constructor(
     private readonly ctx: CanvasRenderingContext2D,
     private readonly cellSize: number,
-  ) {}
+    colors?: GameColors,
+  ) {
+    this.colors = colors ?? { bg: '#000', fg: '#fff', accent: '#fff', warn: '#fff', line: '#333' }
+  }
 
   setColors(colors: GameColors): void {
     this.colors = colors

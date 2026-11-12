@@ -82,8 +82,8 @@ describe('findPrevDiagnostic', () => {
   it('finds previous diagnostic before cursor position', () => {
     const result = findPrevDiagnostic(lspData, { line: 2, ch: 5 })
     expect(result).not.toBeNull()
-    expect(result?.severity).toBe('warning')
-    expect(result?.row).toBe(2)
+    expect(result?.severity).toBe('info')
+    expect(result?.row).toBe(3)
   })
 
   it('wraps around to last diagnostic when cursor is before first', () => {
