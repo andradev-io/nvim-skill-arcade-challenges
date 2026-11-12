@@ -60,7 +60,7 @@
     "author": { "type": "string", "maxLength": 40 },
     "par_seconds": { "type": "integer", "minimum": 3, "maximum": 120 },
     "plugin_par": { "type": "integer", "minimum": 1, "maximum": 50 },
-    "needs": { "enum": ["jump", "surround", "textobjects", "comment", "picker", "keyhints", "files", "bookmarks", "trouble", "replace", "multicursor", "move", "treesitter", "whichkey"] },
+    "needs": { "enum": ["jump", "surround", "textobjects", "comment", "picker", "keyhints", "files", "bookmarks", "trouble", "replace", "multicursor", "move", "treesitter", "whichkey", "lsp"] },
     "which_key": {
       "type": "object",
       "additionalProperties": false,
