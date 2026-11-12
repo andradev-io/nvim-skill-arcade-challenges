@@ -126,6 +126,23 @@ export const EXAMPLES: Example[] = [
     },
   },
   {
+    label: 'Comment out the function',
+    note: 'gc{motion} toggles line comments, plays in the browser',
+    challenge: {
+      id: 'comment-out-the-function',
+      title: 'Comment out the function',
+      area: 'editing',
+      level: 2,
+      brief: 'Comment out both lines of this Python function.',
+      text: 'def greet():\n    print("hi")',
+      cursor: [1, 0],
+      ft: 'python',
+      expect: { text: '# def greet():\n#     print("hi")' },
+      solution: 'gcj',
+      why: 'gcj toggles line comments from the current line through the next one. gcc would toggle only the current line; gcG would go to the end of the buffer.',
+    },
+  },
+  {
     label: 'Bracket relay',
     note: 'Track: % between brackets, hjkl and arrows off',
     challenge: {
