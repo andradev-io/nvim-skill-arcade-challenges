@@ -4,7 +4,7 @@ import { replay } from './replay'
 import { buildChallenge, EMPTY_FORM } from './schema'
 import type { DraftForm } from './types'
 
-const form = (patch: Partial<DraftForm>): DraftForm => ({
+const BASE: DraftForm = {
   ...EMPTY_FORM,
   title: 'Test challenge',
   id: 'test-challenge',
@@ -15,8 +15,9 @@ const form = (patch: Partial<DraftForm>): DraftForm => ({
   etext: 'changed buffer',
   erow: '2',
   ecol: '0',
-  ...patch,
-})
+}
+
+const form = (patch: Partial<DraftForm>): DraftForm => ({ ...BASE, ...patch })
 
 describe('picker schema', () => {
   it('serializes and deserializes picker config', () => {
