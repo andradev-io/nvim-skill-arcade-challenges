@@ -602,22 +602,9 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       const newPair = pairFor(newCh)
       if (!newPair) { unsupported('cs' + oldCh + newCh); return true }
       const closeStart = found.closeAt - (found.closeLen - 1)
-      // Determine spacing by checking if old/new chars are opening brackets (SPACED set)
-      const BRACKETS_OPEN = new Set(['(', '[', '{'])
-      const oldIsSpaced = BRACKETS_OPEN.has(oldCh)
-      const newIsSpaced = BRACKETS_OPEN.has(newCh)
-      // Extract raw inner text between delimiters (excluding any padding already stripped by findSurround)
-      let inner = f.slice(found.openAt + found.openLen, closeStart)
-      // Strip existing padding: vim-surround treats '(' '[' '{' as always implying spacing semantics.
-      // Strip leading/trailing whitespace from inner when old char is a spaced opener,
-      // regardless of whether findSurround detected actual padding in the text.
-      if (oldIsSpaced) {
-        inner = inner.replace(/^\s+/, '').replace(/\s+$/, '')
-      }
-      // Add padding if new char is a spaced opener and inner is non-empty
-      if (newIsSpaced && inner.length > 0) {
-        inner = ' ' + inner + ' '
-      }
+      // Match surroundSwap in vimGlue.ts: simply replace old delimiters with new pair,
+      // preserving inner text exactly as-is (no padding manipulation).
+      const inner = f.slice(found.openAt + found.openLen, closeStart)
       const before = f.slice(0, found.openAt)
       const after = f.slice(found.closeAt + 1)
       setFlat(before + newPair.open + inner + newPair.close + after)
