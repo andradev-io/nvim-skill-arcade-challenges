@@ -5,10 +5,12 @@ import { InputManager } from './InputManager'
 describe('GameLoop', () => {
   let rafCallbacks: Array<(time: number) => void>
   let rafIdCounter = 0
+  let simulatedNow = 0
 
   beforeEach(() => {
     rafCallbacks = []
     rafIdCounter = 0
+    simulatedNow = 0
     vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback): number => {
       const id = ++rafIdCounter
       rafCallbacks.push(cb as (time: number) => void)
@@ -17,8 +19,7 @@ describe('GameLoop', () => {
     vi.stubGlobal('cancelAnimationFrame', (_id: number) => {
       // no-op in tests; we control frame delivery
     })
-    // Stub performance.now so GameLoop.start() uses a controllable baseline
-    vi.stubGlobal('performance', { ...performance, now: () => 0 })
+    vi.stubGlobal('performance', { ...performance, now: () => simulatedNow })
     vi.useFakeTimers()
   })
 
@@ -28,6 +29,7 @@ describe('GameLoop', () => {
   })
 
   function deliverFrame(time: number): void {
+    simulatedNow = time
     const cb = rafCallbacks.shift()
     cb?.(time)
   }
