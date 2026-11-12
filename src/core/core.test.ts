@@ -55,6 +55,67 @@ describe('replay', () => {
   })
 })
 
+describe('replay surround', () => {
+  it('ysiw) adds brackets around word', () => {
+    const r = replay('value', [1, 2], 'ysiw)')
+    expect(r.text).toBe('(value)')
+    expect(r.unsupported).toBeNull()
+  })
+  it('ysiw( adds spaced brackets', () => {
+    const r = replay('value', [1, 2], 'ysiw(')
+    expect(r.text).toBe('( value )')
+    expect(r.unsupported).toBeNull()
+  })
+  it('ysiw" adds quotes', () => {
+    const r = replay('value', [1, 2], 'ysiw"')
+    expect(r.text).toBe('"value"')
+    expect(r.unsupported).toBeNull()
+  })
+  it('ysa)" surrounds including outer parens', () => {
+    const r = replay('(value)', [1, 3], 'ysa)"')
+    expect(r.text).toBe('"(value)"')
+    expect(r.unsupported).toBeNull()
+  })
+  it('ds( deletes surrounding brackets', () => {
+    const r = replay('(hello)', [1, 3], 'ds(')
+    expect(r.text).toBe('hello')
+    expect(r.unsupported).toBeNull()
+  })
+  it('ds" deletes surrounding quotes', () => {
+    const r = replay('"hello"', [1, 3], 'ds"')
+    expect(r.text).toBe('hello')
+    expect(r.unsupported).toBeNull()
+  })
+  it('cs([ changes brackets to square brackets', () => {
+    const r = replay('(hello)', [1, 3], 'cs([')
+    expect(r.text).toBe('[hello]')
+    expect(r.unsupported).toBeNull()
+  })
+  it('cs()" changes spaced parens to quotes', () => {
+    const r = replay('( hello )', [1, 4], 'cs()"')
+    expect(r.text).toBe('"hello"')
+    expect(r.unsupported).toBeNull()
+  })
+  it('yss) whole-line surround', () => {
+    const r = replay('  hello', [1, 2], 'yss)')
+    expect(r.text).toBe('  (hello)')
+    expect(r.unsupported).toBeNull()
+  })
+  it('unsupported char reports unsupported', () => {
+    const r = replay('value', [1, 2], 'ysiwt')
+    expect(r.unsupported).toBeTruthy()
+  })
+  it('missing pair for ds reports unsupported', () => {
+    const r = replay('hello', [1, 2], 'ds(')
+    expect(r.unsupported).toBeTruthy()
+  })
+  it('count prefix on ys (ys2w))', () => {
+    const r = replay('one two three', [1, 0], 'ys2w)')
+    expect(r.text).toBe('(one two) three')
+    expect(r.unsupported).toBeNull()
+  })
+})
+
 describe('room code', () => {
   it('round trips a draft', () => {
     const { data, errors } = buildChallenge(
