@@ -1,7 +1,7 @@
 // Mirrors lua/skill_arcade/schema.lua so authors get instant feedback.
 // The real gate is CI (schema + replay in Neovim).
 import { tokens } from './keys'
-import type { Challenge, Cursor, DraftForm, Expect, Forbid, Track } from './types'
+import type { Challenge, Cursor, DraftForm, Expect, Forbid, HarpoonConfig, Track } from './types'
 
 export const REPO = 'andradev-io/nvim-skill-arcade-challenges'
 export const AREAS = ['motions', 'textobjects', 'editing', 'search', 'macros', 'registers', 'marks', 'windows', 'quickfix', 'diagnostics', 'track', 'refactor', 'plugins']
@@ -19,6 +19,7 @@ export const EMPTY_FORM: DraftForm = {
   marks: '', altBuffer: false, preset: '', presetRows: '', solution: '', why: '', hint: '', author: '',
   hgroup: '', htip: '', pluginPar: '', needs: '', jumpTargets: '', pickerJson: '',
   goalRow: '', goalCol: '', checkpoints: '', forbidHjkl: false, forbidArrows: false, forbidMouse: false,
+  harpoonSlots: '', harpoonSequence: '',
 }
 
 /** Inverse of buildChallenge: fills the form from a challenge (an example or a published one). */
@@ -61,7 +62,13 @@ export function challengeToForm(c: Partial<Challenge>): DraftForm {
     pluginPar: num(c.plugin_par),
     needs: c.needs ?? '',
     jumpTargets: (c.jump_targets ?? []).map((t) => `${t.label}:${t.row}:${t.col}`).join(', '),
-    pickerJson: c.picker ? JSON.stringify(c.picker, null, 2) : '',
+pickerJson: c.picker ? JSON.stringify(c.picker, null, 2) : '',
+    harpoonSlots: Object.entries(c.harpoon?.slots ?? {}).map(([k, s]) => {
+      const cur = s.cursor ? `|${s.cursor.join(':')}` : ''
+      const ft = s.ft ? `|${s.ft}` : ''
+      return `${k}=${s.text.replace(/\|/g, '\\|')}${cur}${ft}`
+    }).join(', '),
+    harpoonSequence: (c.harpoon?.sequence ?? []).join(','),
     goalRow: num(c.track?.goal[0]),
     goalCol: num(c.track?.goal[1]),
     checkpoints: formatCheckpoints(c.track?.checkpoints),
@@ -281,6 +288,38 @@ export function buildChallenge(f: DraftForm): BuildResult {
   if (f.hgroup) {
     if (!f.htip.trim()) errors.push('add a tip for the plugin group')
     c.helps = { [f.hgroup]: f.htip.trim() }
+  }
+  if (f.harpoonSlots.trim()) {
+    const slots: Record<string, import('./types').HarpoonSlot> = {}
+    for (const raw of f.harpoonSlots.split(',')) {
+      const part = raw.trim()
+      if (!part) continue
+      const eq = part.indexOf('=')
+      if (eq < 0) { errors.push(`harpoon slot missing '=': ${part}`); continue }
+      const name = part.slice(0, eq).trim()
+      if (!/^[a-d]$/.test(name)) { errors.push(`harpoon slot name must be a-d: ${name}`); continue }
+      const rest = part.slice(eq + 1)
+      // split on unescaped |
+      const segs: string[] = []
+      let cur = ''
+      for (let k = 0; k < rest.length; k++) {
+        if (rest[k] === '|' && rest[k - 1] !== '\\') { segs.push(cur); cur = ''; continue }
+        cur += rest[k]
+      }
+      segs.push(cur)
+      const text = segs[0].replace(/\\\|/g, '|') ?? ''
+      const slot: import('./types').HarpoonSlot = { text }
+      if (segs[1]) {
+        const cp = segs[1].split(':').map(Number)
+        if (cp.every((n) => Number.isInteger(n))) slot.cursor = cp as Cursor
+      }
+      if (segs[2]) slot.ft = segs[2]
+      slots[name] = slot
+    }
+    if (Object.keys(slots).length) {
+      const seq = f.harpoonSequence.trim() ? f.harpoonSequence.split(',').map((s) => s.trim()).filter((s) => /^[a-d]$/.test(s)) : undefined
+      c.harpoon = { slots, sequence: seq?.length ? seq : undefined }
+    }
   }
 
   if (!c.title) errors.push('title is required')

@@ -4,7 +4,7 @@
 import { tokens } from './keys'
 import { toggleLines } from '../plugins/comment'
 import { findSurround, pairFor } from '../plugins/surround'
-import type { Cursor, JumpTargetData } from './types'
+import type { Cursor, HarpoonConfig, JumpTargetData } from './types'
 
 export interface ReplayResult {
   text: string
@@ -29,7 +29,7 @@ interface Motion {
 const lit = (t: string): string => (t === '<Space>' ? ' ' : t === '<lt>' ? '<' : t)
 const cls = (ch: string): number => (/\s/.test(ch) ? 0 : /\w/.test(ch) ? 2 : 1)
 
-export function replay(text: string, cursor: Cursor, solution: string, forbid: string[] = [], ft: string = 'text', jumpTargets?: JumpTargetData[]): ReplayResult {
+export function replay(text: string, cursor: Cursor, solution: string, forbid: string[] = [], ft: string = 'text', jumpTargets?: JumpTargetData[], harpoon?: HarpoonConfig): ReplayResult & { activeSlot?: string } {
   let lines = String(text).replace(/\r\n/g, '\n').split('\n')
   let r = Math.max(0, Math.min(lines.length, cursor[0] || 1) - 1)
   let c = cursor[1] || 0
@@ -42,6 +42,14 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
   let blocked: string | null = null
   const visited: Cursor[] = [[r + 1, c]]
   const marks: Record<string, Cursor> = {}
+  /** Harpoon virtual slots: saved buffer snapshots keyed by slot name (a-d). */
+  const hSlots: Record<string, { text: string; cursor: Cursor; ft?: string }> = {}
+  let activeSlot: string | undefined
+  if (harpoon) {
+    for (const [name, slot] of Object.entries(harpoon.slots)) {
+      hSlots[name] = { text: slot.text, cursor: slot.cursor ?? [1, 0], ft: slot.ft }
+    }
+  }
   const isForbidden = (k: string | undefined): boolean => {
     if (!k) return false
     if (forbid.includes('hjkl') && 'hjkl'.includes(k) && k.length === 1) return true
@@ -409,8 +417,29 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       return
     }
     if (s === 'noh' || s === 'nohlsearch') return
-    // :Telescope is UI-only; the browser picker handles selection separately, so skip without error.
+// :Telescope is UI-only; the browser picker handles selection separately, so skip without error.
     if (/^Telescope\b/i.test(s)) return
+    // :archoon add {name} — save current buffer state to a harpoon slot
+    const hAdd = s.match(/^archoon\s+add\s+([a-d])$/i)
+    if (hAdd) {
+      const name = hAdd[1].toLowerCase()
+      hSlots[name] = { text: flat(), cursor: [r + 1, c], ft }
+      activeSlot = name
+      return
+    }
+    // :archoon jump {name} — restore saved slot state
+    const hJump = s.match(/^archoon\s+jump\s+([a-d])$/i)
+    if (hJump) {
+      const name = hJump[1].toLowerCase()
+      const saved = hSlots[name]
+      if (!saved) return unsupported(':' + s)
+      setFlat(saved.text)
+      r = Math.max(0, Math.min(lines.length - 1, (saved.cursor[0] || 1) - 1))
+      c = saved.cursor[1] || 0
+      clamp()
+      activeSlot = name
+      return
+    }
     unsupported(':' + s)
   }
 
@@ -818,5 +847,5 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       visited.push([r + 1, c])
     }
   }
-  return { text: lines.join('\n'), cursor: [r + 1, c], unsupported: fail, visited, blocked }
+  return { text: lines.join('\n'), cursor: [r + 1, c], unsupported: fail, visited, blocked, activeSlot }
 }
