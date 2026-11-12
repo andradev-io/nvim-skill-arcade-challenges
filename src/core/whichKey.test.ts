@@ -5,7 +5,7 @@ import {
   buildWhichKeyFromChallenge,
   initialWhichKeyState,
 } from './whichKey'
-import type { WhichKeyConfig, WhichKeyState } from './whichKey'
+import type { WhichKeyConfig } from './whichKey'
 import type { Keymap } from './keymaps'
 
 // ---------- Helpers ----------

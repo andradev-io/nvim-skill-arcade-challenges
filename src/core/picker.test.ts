@@ -101,7 +101,7 @@ describe('picker replay', () => {
   })
 
   it('skips :Tel abbreviation without error', () => {
-    const r = replay('-- placeholder', [1, 0], ':Tel buffers<CR>')
+    const _r = replay('-- placeholder', [1, 0], ':Tel buffers<CR>')
     // :Tel won't match /^Telescope\b/i so it will be unsupported — that's expected
     // Only full :Telescope is skipped gracefully
   })

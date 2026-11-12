@@ -128,7 +128,7 @@ export function whichKeyStep(config: WhichKeyConfig, state: WhichKeyState, actio
 // ---------- Tree builders ----------
 
 /** Build a WhichKeyConfig from parsed keymaps (user's Neovim config). */
-export function buildWhichKeyFromMaps(maps: Keymap[], leader: string, timeoutMs = 800): WhichKeyConfig {
+export function buildWhichKeyFromMaps(maps: Keymap[], _leader: string, timeoutMs = 800): WhichKeyConfig {
   const roots = new Map<string, WhichKeyNode>()
 
   for (const map of maps) {
@@ -199,17 +199,17 @@ export function buildWhichKeyFromChallenge(data: ChallengeWhichKey): WhichKeyCon
     // Navigate to the right depth for multi-char triggers
     for (let i = 1; i < tokens.length; i++) {
       const token = tokens[i]
-      let child = node.children.get(token)
+      let child: WhichKeyNode | undefined = node!.children.get(token)
       if (!child) {
         child = { prefix: tokens.slice(0, i + 1).join(''), entries: [], children: new Map() }
-        node.children.set(token, child)
+        node!.children.set(token, child)
       }
       node = child
     }
 
     // Add entries at this level
     for (const entry of prefix.entries) {
-      node.entries.push({ key: entry.key, label: entry.label, group: entry.group })
+      node!.entries.push({ key: entry.key, label: entry.label, group: entry.group })
     }
 
     // Recursively add children

@@ -1,7 +1,7 @@
 // Mirrors lua/skill_arcade/schema.lua so authors get instant feedback.
 // The real gate is CI (schema + replay in Neovim).
 import { tokens } from './keys'
-import type { Challenge, Cursor, DraftForm, Expect, Forbid, HarpoonConfig, Track } from './types'
+import type { Challenge, Cursor, DraftForm, Expect, Forbid, Track } from './types'
 
 export const REPO = 'andradev-io/nvim-skill-arcade-challenges'
 export const AREAS = ['motions', 'textobjects', 'editing', 'search', 'macros', 'registers', 'marks', 'windows', 'quickfix', 'diagnostics', 'track', 'refactor', 'plugins']

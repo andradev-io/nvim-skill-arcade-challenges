@@ -1,4 +1,4 @@
-import type { Expect, HarpoonConfig, State } from './types'
+import type { Expect, State } from './types'
 
 function trimLines(text: string, loose: boolean): string[] {
   const out = String(text)
