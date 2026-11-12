@@ -2,6 +2,7 @@
 // reaches the expected state. It is not Neovim: unsupported keys are reported, never guessed.
 // The CI replay in real Neovim stays the authority.
 import { tokens } from './keys'
+import { toggleLines } from '../plugins/comment'
 import type { Cursor } from './types'
 
 export interface ReplayResult {
@@ -27,7 +28,7 @@ interface Motion {
 const lit = (t: string): string => (t === '<Space>' ? ' ' : t === '<lt>' ? '<' : t)
 const cls = (ch: string): number => (/\s/.test(ch) ? 0 : /\w/.test(ch) ? 2 : 1)
 
-export function replay(text: string, cursor: Cursor, solution: string, forbid: string[] = []): ReplayResult {
+export function replay(text: string, cursor: Cursor, solution: string, forbid: string[] = [], ft: string = 'text'): ReplayResult {
   let lines = String(text).replace(/\r\n/g, '\n').split('\n')
   let r = Math.max(0, Math.min(lines.length, cursor[0] || 1) - 1)
   let c = cursor[1] || 0
@@ -574,14 +575,66 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       case ':':
         exCommand()
         break
-      case 'g':
-        if (toks[i] === 'g') {
-          i++
+      case 'g': {
+        // NOTE: Visual mode gc is not supported in replay. Authors should use normal-mode gc{motion} or gcc.
+        const gk = toks[i++]
+        if (gk === 'g') {
           r = count ? Math.min(lines.length, count) - 1 : 0
           c = firstNonBlank(r)
           clamp()
-        } else unsupported('g' + (toks[i] || ''))
+        } else if (gk === 'c') {
+          const next = toks[i]
+          if (next === 'c') {
+            // gcc: toggle current line (or {n}gcc for n lines)
+            i++
+            const cnt2 = readCount()
+            const total = cnt * (cnt2 || 1)
+            const last = Math.min(lines.length - 1, r + total - 1)
+            const range = lines.slice(r, last + 1)
+            const toggled = toggleLines(range, ft)
+            lines.splice(r, last - r + 1, ...toggled)
+            c = firstNonBlank(r)
+            clamp()
+          } else {
+            // gc{motion}: consume motion tokens like operator() does
+            let arg: string | null = null
+            const mk = next
+            i++
+            if (mk === 'f' || mk === 't' || mk === 'F' || mk === 'T') arg = lit(toks[i++])
+            if (mk === 'G') arg = count ? 'n' : 'none'
+            let wk = mk
+            const mo = motion(wk, cnt, arg)
+            if (!mo) {
+              unsupported('gc' + (mk || ''))
+              break
+            }
+            let startLine: number
+            let endLine: number
+            if (mo.line !== undefined) {
+              startLine = Math.min(r, mo.line)
+              endLine = Math.max(r, mo.line)
+            } else {
+              const [er, ec] = pos(mo.o as number)
+              startLine = Math.min(r, er)
+              endLine = Math.max(r, er)
+              // If motion ends at column 0 of a later line, exclude that line
+              if (er > r && ec === 0) endLine = er - 1
+              if (r > er && ec === 0) startLine = er + 1
+            }
+            if (startLine <= endLine) {
+              const range = lines.slice(startLine, endLine + 1)
+              const toggled = toggleLines(range, ft)
+              lines.splice(startLine, endLine - startLine + 1, ...toggled)
+            }
+            r = startLine
+            c = firstNonBlank(r)
+            clamp()
+          }
+        } else {
+          unsupported('g' + (gk || ''))
+        }
         break
+      }
       case 'm': {
         const name = toks[i++]
         if (name && /^[a-zA-Z]$/.test(name)) marks[name] = [r, c]
