@@ -571,7 +571,13 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       const pair = pairFor(ch)
       if (!pair) { unsupported('ys' + k + ch); return true }
       const f = flat()
-      setFlat(f.slice(0, range[0]) + pair.open + f.slice(range[0], range[1]) + pair.close + f.slice(range[1]))
+      // Trim trailing whitespace from range when surround char is unspaced (e.g. ')' not '(')
+      let [rs, re] = range
+      const isSpaced = pair.open.length > 1 || pair.close.length > 1
+      if (!isSpaced && re > rs) {
+        while (re > rs && /\s/.test(f[re - 1])) re--
+      }
+      setFlat(f.slice(0, rs) + pair.open + f.slice(rs, re) + pair.close + f.slice(re))
       putCursor(range[0])
       return true
     }
@@ -596,12 +602,19 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       const newPair = pairFor(newCh)
       if (!newPair) { unsupported('cs' + oldCh + newCh); return true }
       const closeStart = found.closeAt - (found.closeLen - 1)
-      // Strip padding from inner text when changing between spaced/unspaced pairs
+      // Determine spacing by checking if old/new chars are opening brackets (SPACED set)
+      const BRACKETS_OPEN = new Set(['(', '[', '{'])
+      const oldIsSpaced = BRACKETS_OPEN.has(oldCh)
+      const newIsSpaced = BRACKETS_OPEN.has(newCh)
+      // Extract raw inner text between delimiters (excluding any padding already stripped by findSurround)
       let inner = f.slice(found.openAt + found.openLen, closeStart)
-      const oldSpaced = found.openLen > 1 || found.closeLen > 1
-      const newSpaced = newPair.open.length > 1 || newPair.close.length > 1
-      if (oldSpaced && !newSpaced) {
-        inner = inner.replace(/^\s+/, '').replace(/\s+$/, '')
+      // Strip existing padding if old char was a spaced opener and inner has leading/trailing spaces
+      if (oldIsSpaced && inner.startsWith(' ') && inner.endsWith(' ') && inner.length >= 2) {
+        inner = inner.slice(1, -1)
+      }
+      // Add padding if new char is a spaced opener and inner is non-empty
+      if (newIsSpaced && inner.length > 0) {
+        inner = ' ' + inner + ' '
       } else if (!oldSpaced && newSpaced) {
         inner = ' ' + inner + ' '
       }
@@ -662,7 +675,7 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
             i++
             const match = jumpTargets.find((t) => t.label === label)
             if (match) {
-              r = match.row
+              r = match.row - 1 // row is 1-based in schema, r is 0-based internally
               c = match.col
               clamp()
               break

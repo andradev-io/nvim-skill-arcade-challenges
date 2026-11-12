@@ -56,7 +56,9 @@ describe('replay with treesitter objects', () => {
 
   it('dif deletes inner function body', () => {
     const r = replay(text, [2, 5], 'dif', [], 'python', undefined, undefined, tsObjs)
-    expect(r.text).toBe('def greet(name):\n\nx = 1')
+    // Inner range [2,4,3,16] deletes from col 4 of line 2 to col 16 of line 3,
+    // leaving the 4-space indentation on line 2 intact.
+    expect(r.text).toBe('def greet(name):\n    \nx = 1')
     expect(r.unsupported).toBeNull()
   })
 
