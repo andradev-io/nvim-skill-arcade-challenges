@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import LinearProgress from '@mui/material/LinearProgress'
 import Stack from '@mui/material/Stack'
 import type { PlayState } from '../../hooks/usePlay'
+import { useClipboard } from '../../hooks/useClipboard'
 import type { BuiltinChallenge } from '../../core/builtin'
 import { scoreIdOf } from '../../core/builtin'
+import { efficiency, hintSteps, lineDiff, resultText, stars } from '../../core/terminalUx'
 import { submitScore } from '../../auth/api'
 import { accessToken, useAuthStore } from '../../auth/authStore'
 import { authConfig } from '../../auth/config'
@@ -39,15 +42,41 @@ function useSaveResult(challenge: BuiltinChallenge, passed: PlayState['passed'])
 }
 
 const fmt = (secs: number) => `${secs.toFixed(1)}s`
+const SITE = 'https://arcade.nvim.andradev.io/#/terminal'
 
-/** The brief of a built-in challenge opened in the Terminal, its live key count, and the result once it is solved. */
-export function ChallengeBar({ challenge, state, onRetry }: { challenge: BuiltinChallenge; state: PlayState; onRetry: () => void }) {
+export interface ChallengeBarProps {
+  challenge: BuiltinChallenge
+  state: PlayState
+  /** The text the buffer holds now (for the diff). */
+  actual: string
+  /** How many hints are showing (0-3). */
+  hints: number
+  onHint: () => void
+  onRetry: () => void
+  /** Null when there is no next challenge. */
+  onNext: (() => void) | null
+  /** Fewest keys this session for this challenge, if it was solved before. */
+  best?: number
+}
+
+/** The brief of a built-in challenge opened in the Terminal, its live key count, hints, a diff, and the result once it is solved. */
+export function ChallengeBar({ challenge, state, actual, hints, onHint, onRetry, onNext, best }: ChallengeBarProps) {
   const { save, error } = useSaveResult(challenge, state.passed)
   const status = useAuthStore((s) => s.status)
   const login = useAuthStore((s) => s.login)
+  const { copy, copied } = useClipboard()
   const par = challenge.par_keys
   const [showWhy, setShowWhy] = useState(false)
+  const [showDiff, setShowDiff] = useState(false)
   const p = state.passed
+  const steps = useMemo(() => hintSteps(challenge), [challenge])
+  const expected = challenge.expect?.text
+  const diff = useMemo(() => (showDiff && expected !== undefined ? lineDiff(actual, expected, !!challenge.loose) : []), [showDiff, actual, expected, challenge.loose])
+  const stuck = !p && state.keys > 0 && state.miss.length > 0 && state.mode === 'normal'
+  const over = !!par && state.keys > par
+  const star = p ? stars(p.keys, par) : 0
+  const atPar = !!p && !!par && p.keys <= par
+
   return (
     <Box sx={{ px: 2, py: 1, bgcolor: 'var(--t-side)', borderBottom: '1px solid var(--t-line, rgba(255,255,255,0.12))', fontSize: 13 }}>
       <Stack direction="row" sx={{ gap: 2, alignItems: 'baseline', flexWrap: 'wrap' }}>
@@ -57,19 +86,59 @@ export function ChallengeBar({ challenge, state, onRetry }: { challenge: Builtin
         </Box>
         <Box sx={{ flex: 1, minWidth: 200, opacity: 0.85 }}>{challenge.brief}</Box>
         <Box sx={{ opacity: 0.85, whiteSpace: 'nowrap' }}>
-          {`${state.keys} keys${par ? ` · par ${par}` : ''} · ${fmt(p ? p.secs : state.elapsed)}`}
+          {`${state.keys} keys${par ? ` · par ${par}` : ''} · ${fmt(p ? p.secs : state.elapsed)}${best ? ` · best ${best}` : ''}`}
         </Box>
-        <Button size="small" color="inherit" onClick={onRetry} sx={{ opacity: 0.7 }}>
+        {!p && hints < steps.length && (
+          <Button size="small" color="inherit" onClick={onHint} sx={{ opacity: 0.7 }} title="Reveal a hint (:hint)">
+            {hints ? 'More hint' : 'Hint'}
+          </Button>
+        )}
+        {!p && expected !== undefined && (
+          <Button size="small" color="inherit" onClick={() => setShowDiff((v) => !v)} sx={{ opacity: 0.7 }} aria-pressed={showDiff}>
+            {showDiff ? 'Hide diff' : 'Diff'}
+          </Button>
+        )}
+        <Button size="small" color="inherit" onClick={onRetry} sx={{ opacity: p && !atPar ? 1 : 0.7 }} title="Start this challenge again (:retry)">
           Retry
         </Button>
       </Stack>
-      {!p && state.keys > 0 && state.miss.length > 0 && state.mode === 'normal' && (
-        <Box sx={{ mt: 0.5, opacity: 0.6 }}>{`Not there yet: the ${state.miss.join(' and ')} differs. Finish in normal mode.`}</Box>
+      {par ? (
+        <LinearProgress
+          variant="determinate"
+          value={Math.min(100, (state.keys / par) * 100)}
+          aria-label={`Keys used against par ${par}`}
+          sx={{ mt: 0.75, height: 3, bgcolor: 'var(--t-line)', '& .MuiLinearProgress-bar': { bgcolor: over ? 'var(--t-warn)' : 'var(--t-accent)' } }}
+        />
+      ) : null}
+      {hints > 0 && !p && (
+        <Box role="note" sx={{ mt: 0.75, opacity: 0.85 }}>
+          {steps.slice(0, hints).map((h, i) => (
+            <Box key={i}>{`Hint ${i + 1}: ${h}`}</Box>
+          ))}
+        </Box>
       )}
+      {stuck && <Box sx={{ mt: 0.5, opacity: 0.6 }}>{`Not there yet: the ${state.miss.join(' and ')} differs. Finish in normal mode.`}</Box>}
+      {diff.length > 0 && !p && (
+        <Box
+          component="pre"
+          aria-label="Your buffer against the expected end state"
+          sx={{ m: 0, mt: 0.75, p: 1, maxHeight: 160, overflow: 'auto', bgcolor: 'var(--t-bg)', border: '1px solid var(--t-line)', fontFamily: 'inherit', fontSize: 12.5 }}
+        >
+          {diff.map((r, i) => (
+            <Box key={i} component="div" sx={{ color: r.kind === 'del' ? 'var(--t-warn)' : r.kind === 'add' ? 'var(--t-accent)' : 'inherit', opacity: r.kind === 'same' ? 0.6 : 1, whiteSpace: 'pre-wrap' }}>
+              {`${r.kind === 'del' ? '- ' : r.kind === 'add' ? '+ ' : '  '}${r.text}`}
+            </Box>
+          ))}
+        </Box>
+      )}
+      {showDiff && !p && expected !== undefined && diff.every((r) => r.kind === 'same') && <Box sx={{ mt: 0.5, opacity: 0.6 }}>Text matches. Check the cursor and finish in normal mode.</Box>}
       {p && (
         <Box sx={{ mt: 1 }}>
           <Box sx={{ color: 'var(--t-accent)', fontWeight: 700 }}>
-            {`Solved in ${p.keys} keys, ${fmt(p.secs)}${par ? (p.keys <= par ? ` (at or under par ${par})` : ` (par ${par})`) : ''}`}
+            {`Solved in ${p.keys} keys, ${fmt(p.secs)}${par ? (atPar ? ` (at or under par ${par})` : ` (par ${par})`) : ''}`}
+            {star > 0 && <Box component="span" aria-label={`${star} of 3 stars`} sx={{ ml: 1 }}>{'★'.repeat(star) + '☆'.repeat(3 - star)}</Box>}
+            {par ? <Box component="span" sx={{ ml: 1, fontWeight: 400, opacity: 0.8 }}>{`${efficiency(p.keys, par)}% efficient`}</Box> : null}
+            {hints > 0 && <Box component="span" sx={{ ml: 1, fontWeight: 400, opacity: 0.8 }}>{`${hints} hint${hints > 1 ? 's' : ''} used`}</Box>}
           </Box>
           <Box sx={{ opacity: 0.8, mt: 0.25 }}>
             {save === 'saving' && 'Saving your result...'}
@@ -85,6 +154,19 @@ export function ChallengeBar({ challenge, state, onRetry }: { challenge: Builtin
               </>
             )}
           </Box>
+          <Stack direction="row" sx={{ mt: 0.75, gap: 1, flexWrap: 'wrap' }}>
+            {onNext && (
+              <Button size="small" variant="contained" onClick={onNext} title="Open the next challenge (:nextchallenge)">
+                Next challenge
+              </Button>
+            )}
+            <Button size="small" variant={onNext ? 'outlined' : 'contained'} color="inherit" onClick={onRetry}>
+              {par && !atPar ? `Try again for par ${par}` : 'Play again'}
+            </Button>
+            <Button size="small" variant="outlined" color="inherit" onClick={() => void copy(resultText(challenge, p.keys, p.secs, par, hints, SITE))}>
+              {copied ? 'Copied' : 'Copy result'}
+            </Button>
+          </Stack>
           {(challenge.why || challenge.solution) && (
             <Box sx={{ mt: 0.5 }}>
               <Button size="small" color="inherit" onClick={() => setShowWhy((v) => !v)} sx={{ p: 0, minWidth: 0, opacity: 0.8 }}>
