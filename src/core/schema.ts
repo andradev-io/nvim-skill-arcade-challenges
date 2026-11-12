@@ -1,7 +1,7 @@
 // Mirrors lua/skill_arcade/schema.lua so authors get instant feedback.
 // The real gate is CI (schema + replay in Neovim).
 import { tokens } from './keys'
-import type { Challenge, Cursor, DraftForm, Expect, Forbid, Track } from './types'
+import type { Challenge, Cursor, DraftForm, Expect, Forbid, LspConfig, Track } from './types'
 
 export const REPO = 'andradev-io/nvim-skill-arcade-challenges'
 export const AREAS = ['motions', 'textobjects', 'editing', 'search', 'macros', 'registers', 'marks', 'windows', 'quickfix', 'diagnostics', 'track', 'refactor', 'plugins']
@@ -19,7 +19,7 @@ export const EMPTY_FORM: DraftForm = {
   marks: '', altBuffer: false, preset: '', presetRows: '', solution: '', why: '', hint: '', author: '',
   hgroup: '', htip: '', pluginPar: '', needs: '', jumpTargets: '', pickerJson: '',
   goalRow: '', goalCol: '', checkpoints: '', forbidHjkl: false, forbidArrows: false, forbidMouse: false,
-harpoonSlots: '', harpoonSequence: '', whichKeyJson: '', treesitterObjectsJson: '',
+harpoonSlots: '', harpoonSequence: '', whichKeyJson: '', treesitterObjectsJson: '', lspJson: '',
 }
 
 /** Inverse of buildChallenge: fills the form from a challenge (an example or a published one). */
@@ -76,7 +76,8 @@ pickerJson: c.picker ? JSON.stringify(c.picker, null, 2) : '',
     forbidArrows: !!c.track?.forbid?.includes('arrows'),
     forbidMouse: !!c.track?.forbid?.includes('mouse'),
     whichKeyJson: c.which_key ? JSON.stringify(c.which_key, null, 2) : '',
-    treesitterObjectsJson: c.treesitter_objects ? JSON.stringify(c.treesitter_objects, null, 2) : '',
+treesitterObjectsJson: c.treesitter_objects ? JSON.stringify(c.treesitter_objects, null, 2) : '',
+    lspJson: c.lsp ? JSON.stringify(c.lsp, null, 2) : '',
   }
 }
 
@@ -353,13 +354,22 @@ export function buildChallenge(f: DraftForm): BuildResult {
       errors.push('which_key is not valid JSON')
     }
   }
-  if (f.treesitterObjectsJson.trim()) {
+if (f.treesitterObjectsJson.trim()) {
     try {
       const parsed = JSON.parse(f.treesitterObjectsJson) as import('./types').TreesitterObjects
       if (parsed && typeof parsed === 'object') c.treesitter_objects = parsed
       else errors.push('treesitter_objects must be an object')
     } catch {
       errors.push('treesitter_objects is not valid JSON')
+    }
+  }
+  if (f.lspJson.trim()) {
+    try {
+      const parsed = JSON.parse(f.lspJson) as LspConfig
+      if (parsed && typeof parsed === 'object') c.lsp = parsed
+      else errors.push('lsp config must be an object')
+    } catch {
+      errors.push('lsp config is not valid JSON')
     }
   }
   return { data: c, errors }

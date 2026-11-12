@@ -10,8 +10,11 @@ import { pendingText } from '../../core/terminalUx'
 import type { VimInput } from '../../core/terminalUx'
 import type { Cursor } from '../../core/types'
 import { buildJumpDecorations, type JumpTarget } from '../../plugins/jumpLabels'
-import { applyShims, handleShimKey, setFiletype, setJumpTargets, getJumpState, isSurroundAwaiting } from '../../plugins/vimGlue'
+import { applyShims, handleShimKey, setFiletype, setJumpTargets, getJumpState, isSurroundAwaiting, setLspData, setLspHoverCallbacks } from '../../plugins/vimGlue'
 import type { Cm } from '../../plugins/vimGlue'
+import { hoverField, dispatchHover, clearHover } from '../../plugins/lsp/hoverTooltip'
+import { buildDiagnosticDecorations } from '../../plugins/lsp/diagnostics'
+import type { LspConfig } from '../../core/types'
 import { whichKeyStep, initialWhichKeyState } from '../../core/whichKey'
 import type { WhichKeyConfig, WhichKeyState } from '../../core/whichKey'
 import { installExCommands, stubNotes } from './exCommands'
@@ -109,6 +112,8 @@ interface Props {
   jumpTargets?: JumpTarget[]
   /** Which-key overlay configuration (from challenge data or user keymaps). */
   whichKeyConfig?: WhichKeyConfig | null
+  /** LSP simulation configuration (hover, go-to-definition, diagnostics). */
+  lspConfig?: LspConfig
   ref: Ref<VimEditorHandle>
 }
 
@@ -187,7 +192,7 @@ const cmTheme = EditorView.theme({
 })
 
 /** Stock Vim emulation (CodeMirror 6 + @replit/codemirror-vim). Your own Neovim keybinds are not active here. */
-export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse = false, maps, plugins, filetype = 'text', size = 'play', jumpTargets, whichKeyConfig, ref }: Props) {
+export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse = false, maps, plugins, filetype = 'text', size = 'play', jumpTargets, whichKeyConfig, lspConfig, ref }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const hooks = useRef({ onKey, onSync })
@@ -196,8 +201,10 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
   const filetypeRef = useRef(filetype)
   const lang = useRef(new Compartment())
   const jumpDeco = useRef(new Compartment())
+  const lspDeco = useRef(new Compartment())
   const pluginsRef = useRef<ReadonlySet<string>>(plugins ?? NO_PLUGINS)
   const jumpTargetsRef = useRef(jumpTargets)
+  const lspConfigRef = useRef<LspConfig | undefined>(undefined)
   const wkConfigRef = useRef<WhichKeyConfig | null>(whichKeyConfig ?? null)
   const wkStateRef = useRef<WhichKeyState>(initialWhichKeyState())
   const wkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -210,8 +217,10 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
     filetypeRef.current = filetype
     jumpTargetsRef.current = jumpTargets
     wkConfigRef.current = whichKeyConfig ?? null
+    lspConfigRef.current = lspConfig
     setFiletype(filetype)
     setJumpTargets(jumpTargets ?? [])
+    setLspData(lspConfig)
     // mappings changed while this editor is the one in use: switch to them now
     if (view.current?.hasFocus) applyMaps(maps, pluginsRef.current)
   })
@@ -228,6 +237,8 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
           highlighting,
           lang.current.of([]),
           jumpDeco.current.of([]),
+          lspDeco.current.of([]),
+          hoverField,
           vim({ status: false }),
           lineNumbers(),
           cmTheme,
@@ -245,6 +256,11 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
       cm.setCursor(row - 1, Math.max(0, Math.min(Math.max(0, len - 1), initialCursor[1] || 0)))
       cm.on('vim-mode-change', () => hooks.current.onSync())
     }
+    // Wire LSP hover callbacks so handleShimKey can dispatch tooltips via the view
+    setLspHoverCallbacks(
+      (pos: number, text: string) => dispatchHover(v, pos, text),
+      () => clearHover(v),
+    )
     // some input paths (IME, automation) insert the character even after keydown was cancelled: drop it too
     let swallowed = false
     const onBeforeInput = (e: InputEvent) => {
@@ -374,6 +390,18 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
       live = false
     }
   }, [filetype])
+
+  // LSP diagnostic decorations update when lspConfig changes
+  useEffect(() => {
+    const v = view.current
+    if (!v) return
+    const diags = lspConfig?.diagnostics
+    if (diags && diags.length > 0) {
+      v.dispatch({ effects: lspDeco.current.reconfigure(buildDiagnosticDecorations(v, diags) as unknown as Extension) })
+    } else {
+      v.dispatch({ effects: lspDeco.current.reconfigure([]) })
+    }
+  }, [lspConfig])
 
   useImperativeHandle(ref, () => ({
     mode: () => {
