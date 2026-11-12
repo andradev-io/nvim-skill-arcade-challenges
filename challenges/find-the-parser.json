@@ -1,0 +1,23 @@
+{
+  "id": "find-the-parser",
+  "title": "Find the parser module",
+  "area": "plugins",
+  "level": 3,
+  "brief": "Use Telescope to find and open the parser module.",
+  "text": "-- placeholder",
+  "cursor": [1, 0],
+  "needs": "picker",
+  "picker": {
+    "type": "find_files",
+    "prompt": "Find Files",
+    "items": [
+      { "label": "src/utils/format.ts", "line": 1 },
+      { "label": "src/core/parser.ts", "line": 42 },
+      { "label": "tests/parser.test.ts", "line": 7 }
+    ],
+    "expect_selection": 1
+  },
+  "solution": ":Telescope find_files<CR>parser<CR>",
+  "expect": { "cursor": [42, 0] },
+  "why": "Telescope find_files with fuzzy matching locates files faster than :e or :find."
+}

@@ -17,7 +17,7 @@ export const EMPTY_FORM: DraftForm = {
   title: '', id: '', idTouched: false, area: 'motions', level: '2', brief: '', text: '', crow: '1', ccol: '0', ft: 'text',
   etext: '', erow: '', ecol: '', windows: '', layout: '', extraTabs: '', qidx: '', qsize: '', qall: '', floatText: '',
   marks: '', altBuffer: false, preset: '', presetRows: '', solution: '', why: '', hint: '', author: '',
-  hgroup: '', htip: '', pluginPar: '', needs: '', jumpTargets: '',
+  hgroup: '', htip: '', pluginPar: '', needs: '', jumpTargets: '', pickerJson: '',
   goalRow: '', goalCol: '', checkpoints: '', forbidHjkl: false, forbidArrows: false, forbidMouse: false,
 }
 
@@ -61,6 +61,7 @@ export function challengeToForm(c: Partial<Challenge>): DraftForm {
     pluginPar: num(c.plugin_par),
     needs: c.needs ?? '',
     jumpTargets: (c.jump_targets ?? []).map((t) => `${t.label}:${t.row}:${t.col}`).join(', '),
+    pickerJson: c.picker ? JSON.stringify(c.picker, null, 2) : '',
     goalRow: num(c.track?.goal[0]),
     goalCol: num(c.track?.goal[1]),
     checkpoints: formatCheckpoints(c.track?.checkpoints),
@@ -268,6 +269,14 @@ export function buildChallenge(f: DraftForm): BuildResult {
       if (m) jt.push({ label: m[1], row: Number(m[2]), col: Number(m[3]) })
     }
     if (jt.length) c.jump_targets = jt
+  }
+  if (f.pickerJson.trim()) {
+    try {
+      const parsed = JSON.parse(f.pickerJson) as import('./types').PickerConfig
+      if (parsed && Array.isArray(parsed.items) && parsed.items.length) c.picker = parsed
+    } catch {
+      errors.push('picker config is not valid JSON')
+    }
   }
   if (f.hgroup) {
     if (!f.htip.trim()) errors.push('add a tip for the plugin group')

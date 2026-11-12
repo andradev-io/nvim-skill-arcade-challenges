@@ -409,6 +409,8 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       return
     }
     if (s === 'noh' || s === 'nohlsearch') return
+    // :Telescope is UI-only; the browser picker handles selection separately, so skip without error.
+    if (/^Telescope\b/i.test(s)) return
     unsupported(':' + s)
   }
 
