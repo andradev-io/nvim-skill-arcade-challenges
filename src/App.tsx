@@ -18,6 +18,7 @@ import { SupportPage } from './pages/SupportPage'
 
 // The terminal pulls in the Vim editor (CodeMirror): load it in its own chunk.
 const TerminalPage = lazy(() => import('./pages/TerminalPage').then((m) => ({ default: m.TerminalPage })))
+const ArcadePage = lazy(() => import('./pages/ArcadePage').then((m) => ({ default: m.ArcadePage })))
 
 const TITLES: Record<Route, string> = {
   home: 'arcade.nvim: train your Neovim with your own keybinds',
@@ -29,6 +30,7 @@ const TITLES: Record<Route, string> = {
   account: 'Account | arcade.nvim',
   admin: 'Admin | arcade.nvim',
   stats: 'Stats | arcade.nvim',
+  arcade: 'Arcade | arcade.nvim',
 }
 
 export default function App() {
@@ -49,13 +51,24 @@ export default function App() {
     if (route !== 'terminal') window.scrollTo({ top: 0 })
   }, [route])
 
-  // the terminal fills the screen under the header; every other page scrolls normally
+  // the terminal and arcade fill the screen under the header; every other page scrolls normally
   if (route === 'terminal') {
     return (
       <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
         <TopBar fluid />
         <Suspense fallback={null}>
           <TerminalPage />
+        </Suspense>
+      </Box>
+    )
+  }
+
+  if (route === 'arcade') {
+    return (
+      <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
+        <TopBar fluid />
+        <Suspense fallback={null}>
+          <ArcadePage />
         </Suspense>
       </Box>
     )
