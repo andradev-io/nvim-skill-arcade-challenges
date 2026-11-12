@@ -30,6 +30,7 @@ import { InfoDialog } from '../components/terminal/InfoDialog'
 import type { InfoTab } from '../components/terminal/InfoDialog'
 import { Statusline } from '../components/terminal/Statusline'
 import type { Snap } from '../components/terminal/Statusline'
+import { WhichKeyOverlay } from '../components/terminal/WhichKeyOverlay'
 import { setEditorSink } from '../components/play/exCommands'
 import { useCommunity } from '../hooks/useCommunity'
 import { useBuiltin } from '../hooks/useBuiltin'
@@ -48,6 +49,8 @@ import { enabledShims, usePluginStore } from '../store/pluginStore'
 import { useTerminalStore } from '../store/terminalStore'
 import { useTerminalLayout } from '../store/terminalLayoutStore'
 import type { TerminalBuffer } from '../store/terminalStore'
+import { buildWhichKeyFromChallenge } from '../core/whichKey'
+import type { WhichKeyConfig } from '../core/whichKey'
 
 const BG = 'var(--t-bg)'
 const LINE = '1px solid var(--t-line)'
@@ -126,6 +129,10 @@ export function TerminalPage() {
 
   const next = useMemo(() => (buffer.challenge ? nextChallenge(builtin, buffer.challenge.id) : null), [builtin, buffer.challenge])
   const dirty = buffer.text !== buffer.orig.text
+  const whichKeyCfg = useMemo<WhichKeyConfig | null>(() => {
+    if (!judged?.which_key) return null
+    return buildWhichKeyFromChallenge(judged.which_key)
+  }, [judged])
 
   const toBuffer = (c: (typeof builtin)[number]): TerminalBuffer => ({ name: shortName(c), text: c.text, cursor: c.cursor, challenge: c })
   const load = (b: TerminalBuffer) => {
@@ -218,10 +225,11 @@ export function TerminalPage() {
     const mode = ed.mode()
     const pending = ed.pending()
     const recording = ed.recording()
+    const whichKey = ed.whichKeyState()
     setSnap((p) =>
-      p.mode === mode && p.row === c[0] && p.col === c[1] && (p.pending ?? '') === pending && (p.recording ?? null) === recording
+      p.mode === mode && p.row === c[0] && p.col === c[1] && (p.pending ?? '') === pending && (p.recording ?? null) === recording && p.whichKey === whichKey
         ? p
-        : { mode, row: c[0], col: c[1], pending, recording },
+        : { mode, row: c[0], col: c[1], pending, recording, whichKey },
     )
     // the store always holds the live text: leaving the page or switching tab never loses it
     useTerminalStore.getState().save(ed.text(), c)
@@ -476,8 +484,10 @@ export function TerminalPage() {
             plugins={shims}
             filetype={buffer.ft}
             size="fill"
+            whichKeyConfig={whichKeyCfg}
           />
         </Box>
+        <WhichKeyOverlay state={snap.whichKey} />
         <Statusline snap={snap} name={buffer.name} keys={keys} maps={active.filter((m) => !m.note).length} note={note} />
       </Box>
       <InfoDialog tab={info} onTab={setInfo} onClose={() => setInfo(null)} />

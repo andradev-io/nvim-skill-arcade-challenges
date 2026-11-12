@@ -6,7 +6,7 @@ import type { Challenge, Cursor, DraftForm, Expect, Forbid, HarpoonConfig, Track
 export const REPO = 'andradev-io/nvim-skill-arcade-challenges'
 export const AREAS = ['motions', 'textobjects', 'editing', 'search', 'macros', 'registers', 'marks', 'windows', 'quickfix', 'diagnostics', 'track', 'refactor', 'plugins']
 export const FILETYPES = ['text', 'lua', 'python', 'javascript', 'typescript', 'go', 'cs', 'markdown', 'json', 'html']
-export const GROUPS = ['jump', 'surround', 'textobjects', 'comment', 'picker', 'keyhints', 'files', 'bookmarks', 'trouble', 'replace', 'multicursor', 'move', 'treesitter']
+export const GROUPS = ['jump', 'surround', 'textobjects', 'comment', 'picker', 'keyhints', 'files', 'bookmarks', 'trouble', 'replace', 'multicursor', 'move', 'treesitter', 'whichkey']
 export const PRESETS = ['', 'diagnostics', 'splits', 'alt_buffer', 'quickfix_hits']
 
 const EX_ALLOWED = new Set(
@@ -19,7 +19,7 @@ export const EMPTY_FORM: DraftForm = {
   marks: '', altBuffer: false, preset: '', presetRows: '', solution: '', why: '', hint: '', author: '',
   hgroup: '', htip: '', pluginPar: '', needs: '', jumpTargets: '', pickerJson: '',
   goalRow: '', goalCol: '', checkpoints: '', forbidHjkl: false, forbidArrows: false, forbidMouse: false,
-  harpoonSlots: '', harpoonSequence: '',
+harpoonSlots: '', harpoonSequence: '', whichKeyJson: '',
 }
 
 /** Inverse of buildChallenge: fills the form from a challenge (an example or a published one). */
@@ -75,6 +75,7 @@ pickerJson: c.picker ? JSON.stringify(c.picker, null, 2) : '',
     forbidHjkl: !!c.track?.forbid?.includes('hjkl'),
     forbidArrows: !!c.track?.forbid?.includes('arrows'),
     forbidMouse: !!c.track?.forbid?.includes('mouse'),
+    whichKeyJson: c.which_key ? JSON.stringify(c.which_key, null, 2) : '',
   }
 }
 
@@ -342,6 +343,15 @@ export function buildChallenge(f: DraftForm): BuildResult {
     if (row > Math.max(1, lineCount)) errors.push(`preset line ${row} is outside the text`)
   }
   if (c.preset === 'quickfix_hits' && !c.preset_rows) errors.push('quickfix_hits needs preset lines')
+  if (f.whichKeyJson.trim()) {
+    try {
+      const parsed = JSON.parse(f.whichKeyJson) as import('./types').ChallengeWhichKey
+      if (parsed.prefixes && Array.isArray(parsed.prefixes)) c.which_key = parsed
+      else errors.push('which_key must have a prefixes array')
+    } catch {
+      errors.push('which_key is not valid JSON')
+    }
+  }
   return { data: c, errors }
 }
 

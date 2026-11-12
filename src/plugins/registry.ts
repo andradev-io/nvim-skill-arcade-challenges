@@ -54,8 +54,16 @@ export const PLUGINS: PluginInfo[] = [
   { id: 'git', name: 'Git', repos: ['kdheepak/lazygit.nvim', 'tpope/vim-fugitive', 'lewis6991/gitsigns.nvim', 'sindrets/diffview.nvim', 'nvim-telescope/telescope-advanced-git-search.nvim'], status: 'unsupported', note: 'There is no repository here.' },
   { id: 'treesitter', name: 'Treesitter', repos: ['nvim-treesitter/nvim-treesitter'], status: 'unsupported', note: 'Syntax-tree motions and highlighting are not available; text objects fall back to brackets.' },
   { id: 'motion', name: 'Jump motions', repos: ['folke/flash.nvim', 'smoka7/hop.nvim', 'ggandor/leap.nvim', 'easymotion/vim-easymotion'], status: 'partial', note: 'Label-based jumping with "s" trigger when jump_targets are provided. Labels appear over word starts; type the label to jump. Only active when motion plugin is enabled and targets exist.', keys: 's (jump mode)' },
-  { id: 'bookmarks', name: 'Harpoon / named marks', repos: ['theprimeagen/harpoon', 'stevearc/aerial.nvim'], status: 'partial', note: 'Slot-based buffer navigation: save buffers to named slots (a-d) and jump between them. Uses :archoon add/jump ex commands for replay simulation.', keys: ':archoon add {a-d}  :archoon jump {a-d}' },
-  { id: 'ui', name: 'UI plugins', repos: ['folke/noice.nvim', 'folke/which-key.nvim', 'nvim-lualine/lualine.nvim', 'akinsho/bufferline.nvim', 'rcarriga/nvim-notify', 'folke/trouble.nvim', 'folke/todo-comments.nvim'], status: 'unsupported', note: 'Visual or helper layers; the terminal has its own statusline and tabs.' },
+{ id: 'bookmarks', name: 'Harpoon / named marks', repos: ['theprimeagen/harpoon', 'stevearc/aerial.nvim'], status: 'partial', note: 'Slot-based buffer navigation: save buffers to named slots (a-d) and jump between them. Uses :archoon add/jump ex commands for replay simulation.', keys: ':archoon add {a-d}  :archoon jump {a-d}' },
+  {
+    id: 'whichkey',
+    name: 'Which-key',
+    repos: ['folke/which-key.nvim'],
+    status: 'supported',
+    note: 'Prefix hint overlay: after typing a leader or prefix key, available bindings appear in a floating panel above the statusline.',
+    keys: '<leader>... (any configured prefix)',
+  },
+  { id: 'ui', name: 'UI plugins', repos: ['folke/noice.nvim', 'nvim-lualine/lualine.nvim', 'akinsho/bufferline.nvim', 'rcarriga/nvim-notify', 'folke/trouble.nvim', 'folke/todo-comments.nvim'], status: 'unsupported', note: 'Visual or helper layers; the terminal has its own statusline and tabs.' },
   { id: 'session', name: 'Sessions and terminals', repos: ['rmagatti/auto-session', 'folke/persistence.nvim', 'akinsho/toggleterm.nvim'], status: 'unsupported', note: 'Needs a file system or a shell.' },
 ]
 

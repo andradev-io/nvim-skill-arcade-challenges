@@ -50,6 +50,7 @@ export const getJumpState = () => jumpState
 export const clearJumpMode = () => {
   jumpState = null
 }
+export const isSurroundAwaiting = (): boolean => awaiting !== null
 
 const P = (line: number, ch: number): Pos => ({ line, ch })
 const before = (a: Pos, b: Pos) => a.line < b.line || (a.line === b.line && a.ch <= b.ch)
