@@ -237,7 +237,7 @@ function addChildPrefixes(parent: WhichKeyNode, children: ChallengeWhichKeyPrefi
     // Navigate deeper if trigger has multiple tokens
     for (let i = 1; i < tokens.length; i++) {
       const token = tokens[i]
-      let next = node.children.get(token)
+      let next: WhichKeyNode | undefined = node.children.get(token)
       if (!next) {
         next = { prefix: node.prefix + token, entries: [], children: new Map() }
         node.children.set(token, next)
@@ -246,11 +246,11 @@ function addChildPrefixes(parent: WhichKeyNode, children: ChallengeWhichKeyPrefi
     }
 
     for (const entry of child.entries) {
-      node.entries.push({ key: entry.key, label: entry.label, group: entry.group })
+      node!.entries.push({ key: entry.key, label: entry.label, group: entry.group })
     }
 
     if (child.children) {
-      addChildPrefixes(node, child.children)
+      addChildPrefixes(node!, child.children)
     }
   }
 }

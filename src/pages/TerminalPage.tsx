@@ -97,7 +97,7 @@ export function TerminalPage() {
   const [palette, setPalette] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerConfig, setPickerConfig] = useState<PickerConfig | null>(null)
-  const [pickerSelection, setPickerSelection] = useState<number | string | null>(null)
+  const [, setPickerSelection] = useState<number | string | null>(null)
   const [confirmReset, setConfirmReset] = useState(false)
   const [settings, setSettings] = useState<HTMLElement | null>(null)
   // hints belong to one attempt: a retry, another buffer or tab starts again from none

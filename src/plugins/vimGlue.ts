@@ -4,7 +4,7 @@ import { openCommentLine, toggleLines } from './comment'
 import { feedJumpKey, initJumpState, type JumpState, type JumpTarget } from './jumpLabels'
 import { findSurround, pairFor } from './surround'
 import { argumentAt, callAt, quoteAt, treesitterObjectAt } from './textobjects'
-import type { Range, MLRange } from './textobjects'
+import type { Range } from './textobjects'
 import type { TreesitterObjects } from '../core/types'
 
 /**
