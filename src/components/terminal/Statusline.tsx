@@ -9,6 +9,8 @@ export interface Snap {
   pending?: string
   /** Register of the macro being recorded. */
   recording?: string | null
+  /** Which-key overlay state for prefix hints. */
+  whichKey?: import('../../core/whichKey').WhichKeyState | null
 }
 
 const MODE: Record<string, { label: string; bg: string }> = {

@@ -58,6 +58,26 @@ export interface PickerConfig {
   expect_selection?: number | string
 }
 
+/** A single entry in a which-key prefix group. */
+export interface WhichKeyEntryData {
+  key: string
+  label: string
+  group?: string
+}
+
+/** A prefix trigger with its entries and optional nested children. */
+export interface WhichKeyPrefixData {
+  trigger: string
+  entries: WhichKeyEntryData[]
+  children?: WhichKeyPrefixData[]
+}
+
+/** Which-key overlay configuration embedded in a challenge. */
+export interface ChallengeWhichKey {
+  prefixes: WhichKeyPrefixData[]
+  timeout_ms?: number
+}
+
 export interface Challenge {
   id: string
   title: string
@@ -81,10 +101,12 @@ export interface Challenge {
   loose?: boolean
   /** Pre-computed jump targets for label-based motion simulation. */
   jump_targets?: JumpTargetData[]
-  /** Picker simulation config (Telescope/fzf). */
+/** Picker simulation config (Telescope/fzf). */
   picker?: PickerConfig
   /** Harpoon slot configuration for named-mark navigation challenges. */
   harpoon?: HarpoonConfig
+  /** Which-key prefix hint overlay configuration for this challenge. */
+  which_key?: ChallengeWhichKey
   /** Daily/AI challenges: the day they are featured (YYYY-MM-DD), the model that wrote them and the prompt (file version and hash). */
   date?: string
   generated?: boolean
@@ -135,9 +157,10 @@ export interface DraftForm {
   forbidHjkl: boolean
   forbidArrows: boolean
   forbidMouse: boolean
-  /** Harpoon slots as "a=text|cursor|ft, b=..." and visit sequence as "a,b,c". */
+/** Harpoon slots as "a=text|cursor|ft, b=..." and visit sequence as "a,b,c". */
   harpoonSlots: string
   harpoonSequence: string
+  whichKeyJson: string
 }
 
 export interface State {
