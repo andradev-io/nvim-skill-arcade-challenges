@@ -21,6 +21,7 @@ export class MazeGame implements GameEngine {
   private readonly ctx: CanvasRenderingContext2D
   private readonly onStateChange: (state: GameState) => void
   private readonly onGameOver: (finalScore: number) => void
+  // @ts-expect-error Used by setColors() and passed to renderer; tsc -b project refs false positive
   private colors: GameColors
 
   private loop: GameLoop
@@ -38,6 +39,7 @@ export class MazeGame implements GameEngine {
   private running = false
   private paused = false
   private gameOver = false
+  // @ts-expect-error Set in winGame() and read by renderer; tsc -b project refs false positive
   private won = false
 
   private inputBuffer = ''

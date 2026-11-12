@@ -16,7 +16,7 @@ interface GameCardProps {
   onClick: () => void
 }
 
-function GameCard({ id, title, description, available, bestScore, onClick }: GameCardProps) {
+function GameCard({ title, description, available, bestScore, onClick }: GameCardProps) {
   return (
     <Card
       sx={{

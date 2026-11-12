@@ -76,13 +76,13 @@ let flushTimer: ReturnType<typeof setInterval> | null = null
 let unloadRegistered = false
 
 /** Strip any field that could accidentally carry PII. Defense in depth alongside the Worker check. */
-function sanitize(e: Record<string, unknown>): BatchEvent {
-  const clean: Record<string, unknown> = {}
+function sanitize(e: BatchEvent): BatchEvent {
+  const clean = {} as Record<string, unknown>
   const allowed = new Set(['type', 'ts', 'sid', 'path', 'challenge', 'done', 'area', 'level', 'keys', 'par', 'duration_ms'])
-  for (const k of Object.keys(e)) {
-    if (allowed.has(k)) clean[k] = e[k]
+  for (const [k, v] of Object.entries(e)) {
+    if (allowed.has(k)) clean[k] = v
   }
-  return clean as BatchEvent
+  return clean as unknown as BatchEvent
 }
 
 function enqueue(e: BatchEvent): void {

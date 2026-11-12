@@ -118,11 +118,11 @@ export const useScoringStore = create<ScoringState>((set, get) => ({
     const hasToday = currentData.activeDays.includes(today)
     const newActiveDays = hasToday ? currentData.activeDays : [today, ...currentData.activeDays]
 
-    const newData: StoredData = { bests: newBests, totalCompleted: newTotal, activeDays: newActiveDays }
+    const newData: StoredData = { bests: newBests as Record<string, PersonalBest>, totalCompleted: newTotal, activeDays: newActiveDays }
     persist(newData)
 
     set({
-      bests: newBests,
+      bests: newBests as Record<string, PersonalBest>,
       totalCompleted: newTotal,
       streak: computeStreak(newActiveDays),
     })
