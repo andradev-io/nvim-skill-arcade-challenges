@@ -20,12 +20,10 @@ describe('GameLoop', () => {
       // no-op in tests; we control frame delivery
     })
     vi.stubGlobal('performance', { ...performance, now: () => simulatedNow })
-    vi.useFakeTimers()
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
-    vi.useRealTimers()
   })
 
   function deliverFrame(time: number): void {
