@@ -9,7 +9,8 @@ import type { Keymap } from '../../core/keymaps'
 import { pendingText } from '../../core/terminalUx'
 import type { VimInput } from '../../core/terminalUx'
 import type { Cursor } from '../../core/types'
-import { applyShims, handleShimKey, setFiletype } from '../../plugins/vimGlue'
+import { buildJumpDecorations, type JumpTarget } from '../../plugins/jumpLabels'
+import { applyShims, handleShimKey, setFiletype, setJumpTargets, getJumpState } from '../../plugins/vimGlue'
 import type { Cm } from '../../plugins/vimGlue'
 import { installExCommands, stubNotes } from './exCommands'
 import { highlighting, loadLanguage } from './languages'
@@ -97,6 +98,8 @@ interface Props {
   plugins?: ReadonlySet<string>
   /** Filetype, for the comment plugin. */
   filetype?: string
+  /** Pre-computed jump targets for label-based motion simulation. */
+  jumpTargets?: JumpTarget[]
   ref: Ref<VimEditorHandle>
 }
 
@@ -155,6 +158,23 @@ const cmTheme = EditorView.theme({
     fontFamily: 'inherit',
     width: '80%',
   },
+  '.cm-jump-target': { position: 'relative' },
+  '.cm-jump-target::after': {
+    content: 'attr(data-jump-label)',
+    position: 'absolute',
+    left: '0',
+    top: '-0.2em',
+    background: '#e65100',
+    color: '#fff',
+    fontSize: '0.75em',
+    fontWeight: 'bold',
+    padding: '0 2px',
+    borderRadius: '2px',
+    lineHeight: '1.2',
+    zIndex: '10',
+    pointerEvents: 'none',
+  },
+  '&.dark .cm-jump-target::after': { background: '#ff6d00' },
 })
 
 /** Stock Vim emulation (CodeMirror 6 + @replit/codemirror-vim). Your own Neovim keybinds are not active here. */
@@ -166,14 +186,18 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
   const mapsRef = useRef(maps)
   const filetypeRef = useRef(filetype)
   const lang = useRef(new Compartment())
+  const jumpDeco = useRef(new Compartment())
   const pluginsRef = useRef<ReadonlySet<string>>(plugins ?? NO_PLUGINS)
+  const jumpTargetsRef = useRef(jumpTargets)
   useEffect(() => {
     hooks.current = { onKey, onSync }
     lockMouse.current = noMouse
     mapsRef.current = maps
     pluginsRef.current = plugins ?? NO_PLUGINS
     filetypeRef.current = filetype
+    jumpTargetsRef.current = jumpTargets
     setFiletype(filetype)
+    setJumpTargets(jumpTargets ?? [])
     // mappings changed while this editor is the one in use: switch to them now
     if (view.current?.hasFocus) applyMaps(maps, pluginsRef.current)
   })
@@ -189,6 +213,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
           history(),
           highlighting,
           lang.current.of([]),
+          jumpDeco.current.of([]),
           vim({ status: false }),
           lineNumbers(),
           cmTheme,
@@ -218,10 +243,17 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
       const vimState = cm?.state.vim
       const mode = !vimState ? 'normal' : vimState.insertMode ? 'insert' : vimState.visualMode ? 'visual' : 'normal'
       if (pluginsRef.current.size && cm && handleShimKey(e, cm as unknown as Cm, pluginsRef.current)) {
-        // a key a plugin imitation took (gcc, ys, ds, auto pairs ...)
+        // a key a plugin imitation took (gcc, ys, ds, auto pairs, jump motion ...)
         e.preventDefault()
         e.stopPropagation()
         swallowed = true
+        // refresh jump decorations if jump state is active
+        const js = getJumpState()
+        if (js && v) {
+          v.dispatch({ effects: jumpDeco.current.reconfigure(buildJumpDecorations(v, jumpTargetsRef.current ?? [], js.typed)) })
+        } else if (v) {
+          v.dispatch({ effects: jumpDeco.current.reconfigure([]) })
+        }
         setTimeout(() => {
           swallowed = false
           hooks.current.onSync()
