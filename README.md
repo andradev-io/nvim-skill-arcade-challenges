@@ -12,6 +12,11 @@ static website where anyone can design and submit one.
 * **Pages:** *Home* explains the project, *Create* is the challenge builder (Describe, Play, Check, Neovim, Submit),
   *Terminal* is a full-screen sandbox and *Challenges* lists what is published (open one in the terminal or use it
   as a template). Pages are hash routes (`#/create`), so the static host needs no rewrite rules.
+* **Terminal conveniences:** `Ctrl+K` (or the search button) opens a command palette for challenges, themes, tabs and
+  actions. Built-in challenges have a live par bar, a three-step *Hint* (area, kind of key, first key), a *Diff*
+  against the expected end state, *Retry* (also `:retry`), *Next challenge* (`:nextchallenge`), stars and *Copy result*
+  once solved. The status line shows pending keys (`"a2d`) and macro recording. *Reset buffer* asks first when you
+  have typed something.
 * **Terminal (your own keymaps):** the *Terminal* page is a full-screen, unscored sandbox with a side menu. Give it a GitHub user, `user/repo`
   or a link to a file and it reads your Neovim config straight from GitHub (public repos, no token, nothing
   executed), keeps plain `vim.keymap.set` / `nvim_set_keymap` / `nmap` mappings and applies them to the browser
