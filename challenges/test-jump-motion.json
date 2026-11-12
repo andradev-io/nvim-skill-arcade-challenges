@@ -1,7 +1,7 @@
 {
   "id": "test-jump-motion",
   "title": "Jump to a word",
-  "area": "motion",
+  "area": "motions",
   "level": 1,
   "brief": "Use label-based jumping to move the cursor to the word 'target'.",
   "text": "hello world foo bar target baz",

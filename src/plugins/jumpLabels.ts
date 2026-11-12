@@ -22,8 +22,8 @@ export type JumpFeedResult =
   | { type: 'jump'; target: JumpTarget }
   | { type: 'cancel' }
 
-// Home-row-first charset: asdfjkl;ghqwertyuiopzxcvbnm
-const CHARSET = 'asdfjkl;ghqwertyuiopzxcvbnm'
+// Home-row-first charset: asdfghjklqwertyuiopzxcvbnm
+const CHARSET = 'asdfghjklqwertyuiopzxcvbnm'
 
 /**
  * Compute jump targets by scanning word starts in the visible lines.
