@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { pickSpecs } from '../core/github'
 import { pairAction } from './autopairs'
 import { openCommentLine, toggleLines } from './comment'
+import { computeJumpTargets, feedJumpKey, initJumpState, validateJumpTargets } from './jumpLabels'
 import { detectPlugins } from './registry'
 import { findSurround, pairFor } from './surround'
 import { argumentAt, callAt, quoteAt } from './textobjects'
@@ -88,6 +89,52 @@ describe('plugin detection', () => {
   it('picks plugin spec files', () => {
     const paths = ['init.lua', 'lua/plugins/comment.lua', 'lua/plugins/init.lua', 'lua/config/keymaps.lua', 'README.md', 'lua/tests/plugins/x.lua']
     expect(pickSpecs(paths, null, ['lua/config/keymaps.lua'])).toEqual(['lua/plugins/init.lua', 'lua/plugins/comment.lua'])
+  })
+})
+
+describe('jump labels', () => {
+  it('computes targets sorted by distance from cursor', () => {
+    const lines = ['hello world', 'foo bar baz']
+    const targets = computeJumpTargets(lines, 0, 0)
+    expect(targets.length).toBeGreaterThan(0)
+    // First target should be closest word start (col 0 of line 0 is cursor, so next is col 6 "world")
+    expect(targets[0].label).toBeTruthy()
+    expect(targets.every((t) => t.row >= 0 && t.col >= 0)).toBe(true)
+  })
+  it('assigns unique labels', () => {
+    const lines = ['alpha beta gamma delta epsilon zeta eta theta iota kappa']
+    const targets = computeJumpTargets(lines, 0, 0)
+    const labels = new Set(targets.map((t) => t.label))
+    expect(labels.size).toBe(targets.length)
+  })
+  it('validates targets within bounds', () => {
+    const valid = [{ label: 'a', row: 0, col: 0 }]
+    expect(validateJumpTargets(valid, 1, () => 5)).toBe(true)
+    const outOfBounds = [{ label: 'a', row: 5, col: 0 }]
+    expect(validateJumpTargets(outOfBounds, 1, () => 5)).toBe(false)
+    const dupes = [{ label: 'a', row: 0, col: 0 }, { label: 'a', row: 0, col: 1 }]
+    expect(validateJumpTargets(dupes, 1, () => 5)).toBe(false)
+  })
+  it('feeds keys through the state machine', () => {
+    const targets = [
+      { label: 'a', row: 0, col: 0 },
+      { label: 'ab', row: 0, col: 5 },
+      { label: 'b', row: 1, col: 0 },
+    ]
+    let state = initJumpState(targets)
+    const r1 = feedJumpKey(state, 'a')
+    expect(r1.type).toBe('continue')
+    if (r1.type === 'continue') {
+      state = r1.state
+      const r2 = feedJumpKey(state, 'b')
+      expect(r2.type).toBe('jump')
+      if (r2.type === 'jump') expect(r2.target.col).toBe(5)
+    }
+  })
+  it('cancels on Escape or no match', () => {
+    const state = initJumpState([{ label: 'a', row: 0, col: 0 }])
+    expect(feedJumpKey(state, 'Escape').type).toBe('cancel')
+    expect(feedJumpKey(state, 'z').type).toBe('cancel')
   })
 })
 

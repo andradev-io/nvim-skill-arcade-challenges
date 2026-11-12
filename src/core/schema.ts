@@ -17,7 +17,7 @@ export const EMPTY_FORM: DraftForm = {
   title: '', id: '', idTouched: false, area: 'motions', level: '2', brief: '', text: '', crow: '1', ccol: '0', ft: 'text',
   etext: '', erow: '', ecol: '', windows: '', layout: '', extraTabs: '', qidx: '', qsize: '', qall: '', floatText: '',
   marks: '', altBuffer: false, preset: '', presetRows: '', solution: '', why: '', hint: '', author: '',
-  hgroup: '', htip: '', pluginPar: '', needs: '',
+  hgroup: '', htip: '', pluginPar: '', needs: '', jumpTargets: '',
   goalRow: '', goalCol: '', checkpoints: '', forbidHjkl: false, forbidArrows: false, forbidMouse: false,
 }
 
@@ -60,6 +60,7 @@ export function challengeToForm(c: Partial<Challenge>): DraftForm {
     htip,
     pluginPar: num(c.plugin_par),
     needs: c.needs ?? '',
+    jumpTargets: (c.jump_targets ?? []).map((t) => `${t.label}:${t.row}:${t.col}`).join(', '),
     goalRow: num(c.track?.goal[0]),
     goalCol: num(c.track?.goal[1]),
     checkpoints: formatCheckpoints(c.track?.checkpoints),
@@ -258,6 +259,16 @@ export function buildChallenge(f: DraftForm): BuildResult {
   const pp = intOrNull(f.pluginPar)
   if (pp !== null) c.plugin_par = pp
   if (f.needs) c.needs = f.needs
+  if (f.jumpTargets.trim()) {
+    const jt: import('./types').JumpTargetData[] = []
+    for (const raw of f.jumpTargets.split(',')) {
+      const part = raw.trim()
+      if (!part) continue
+      const m = part.match(/^([a-z]{1,2}):(\d+):(\d+)$/)
+      if (m) jt.push({ label: m[1], row: Number(m[2]), col: Number(m[3]) })
+    }
+    if (jt.length) c.jump_targets = jt
+  }
   if (f.hgroup) {
     if (!f.htip.trim()) errors.push('add a tip for the plugin group')
     c.helps = { [f.hgroup]: f.htip.trim() }

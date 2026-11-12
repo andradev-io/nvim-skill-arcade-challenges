@@ -1,6 +1,7 @@
 import { Vim } from '@replit/codemirror-vim'
 import { pairAction } from './autopairs'
 import { openCommentLine, toggleLines } from './comment'
+import { feedJumpKey, initJumpState, type JumpState, type JumpTarget } from './jumpLabels'
 import { findSurround, pairFor } from './surround'
 import { argumentAt, callAt, quoteAt } from './textobjects'
 import type { Range } from './textobjects'
@@ -34,6 +35,20 @@ export interface Cm {
 let filetype = 'text'
 export const setFiletype = (ft: string) => {
   filetype = ft
+}
+
+// ---------- jump motion ----------
+
+let jumpTargets: JumpTarget[] = []
+let jumpState: JumpState | null = null
+
+export const setJumpTargets = (targets: JumpTarget[]) => {
+  jumpTargets = targets
+  jumpState = null
+}
+export const getJumpState = () => jumpState
+export const clearJumpMode = () => {
+  jumpState = null
 }
 
 const P = (line: number, ch: number): Pos => ({ line, ch })
@@ -149,6 +164,34 @@ export function handleShimKey(e: KeyboardEvent, cm: Cm, on: ReadonlySet<string>)
   if (!vim) return false
   const key = e.key
   const esc = () => Vim.handleKey(cm as never, '<Esc>', 'user')
+
+  // jump motion state machine (active when targets exist and 's' was pressed in normal mode)
+  if (jumpState) {
+    const result = feedJumpKey(jumpState, key)
+    if (result.type === 'cancel') {
+      jumpState = null
+      return true
+    }
+    if (result.type === 'jump') {
+      jumpState = null
+      cm.setCursor(P(result.target.row, result.target.col))
+      return true
+    }
+    // continue: update state, caller will refresh decorations
+    jumpState = result.state
+    return true
+  }
+
+  // initiate jump mode: 's' in normal mode when motion plugin is active and targets exist
+  if (!vim.insertMode && !vim.visualMode && key === 's' && on.has('motion') && jumpTargets.length > 0) {
+    jumpState = initJumpState(jumpTargets)
+    return true
+  }
+
+  // clear jump state on mode transitions
+  if (vim.insertMode || vim.visualMode) {
+    jumpState = null
+  }
 
   // a surround waiting for its character
   if (awaiting) {
