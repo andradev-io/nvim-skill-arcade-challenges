@@ -13,7 +13,7 @@ describe('harpoon replay', () => {
   }
 
   it('add saves current buffer state and jump restores it', () => {
-    const sol = ':archoon add a<Esc>:archoon jump b<Esc>'
+    const sol = ':archoon add a<CR>:archoon jump b<CR>'
     const res = replay('start\nline', [1, 0], sol, [], 'text', undefined, config)
     expect(res.text).toBe('gamma\ndelta')
     expect(res.cursor).toEqual([2, 0])
@@ -21,13 +21,13 @@ describe('harpoon replay', () => {
   })
 
   it('jump to unsaved slot is unsupported', () => {
-    const sol = ':archoon jump c<Esc>'
+    const sol = ':archoon jump c<CR>'
     const res = replay('x', [1, 0], sol, [], 'text', undefined, config)
     expect(res.unsupported.length).toBeGreaterThan(0)
   })
 
   it('round-trip add then jump returns to saved state', () => {
-    const sol = 'ddiNEW<Esc>:archoon add a<Esc>u:archoon jump a<Esc>'
+    const sol = 'ddiNEW<Esc>:archoon add a<CR>:archoon jump a<CR>'
     const res = replay('original', [1, 0], sol, [], 'text', undefined, config)
     expect(res.text).toBe('NEW')
     expect(res.activeSlot).toBe('a')

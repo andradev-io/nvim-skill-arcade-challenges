@@ -4,7 +4,17 @@ import { replay } from './replay'
 import { buildChallenge, EMPTY_FORM } from './schema'
 import type { DraftForm } from './types'
 
-const form = (patch: Partial<DraftForm>): DraftForm => ({ ...EMPTY_FORM, ...patch })
+const form = (patch: Partial<DraftForm>): DraftForm => ({
+  ...EMPTY_FORM,
+  title: 'Test challenge',
+  id: 'test-challenge',
+  brief: 'A test challenge for picker schema validation.',
+  text: 'placeholder',
+  why: 'Testing picker serialization.',
+  solution: ':Telescope find_files<CR>',
+  expectText: 'placeholder',
+  ...patch,
+})
 
 describe('picker schema', () => {
   it('serializes and deserializes picker config', () => {
