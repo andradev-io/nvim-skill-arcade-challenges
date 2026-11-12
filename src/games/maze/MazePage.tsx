@@ -89,7 +89,6 @@ export function MazePage() {
   }
 
   const currentLevel = MAZE_LEVELS[levelIndex]
-  const seconds = (gameState.score > 0 ? 0 : 0).toFixed(1) // elapsed shown in canvas HUD
 
   return (
     <Stack sx={{ height: '100%', p: 2 }} spacing={2}>

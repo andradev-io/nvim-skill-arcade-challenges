@@ -11,7 +11,7 @@ interface MazeRenderState {
 }
 
 export class MazeRenderer {
-  private colors: GameColors
+  private colors!: GameColors
 
   constructor(
     private readonly ctx: CanvasRenderingContext2D,

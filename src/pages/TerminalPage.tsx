@@ -564,7 +564,7 @@ export function TerminalPage() {
           </Button>
         </DialogActions>
       </Dialog>
-      <Drawer anchor="right" open={statsOpen} onClose={() => setStatsOpen(false)} className="dark" PaperProps={{ sx: { bgcolor: 'var(--t-side)', color: 'var(--t-fg)', borderLeft: LINE } }}>
+      <Drawer anchor="right" open={statsOpen} onClose={() => setStatsOpen(false)} className="dark" slotProps={{ paper: { sx: { bgcolor: 'var(--t-side)', color: 'var(--t-fg)', borderLeft: LINE } } }}>
         <StatsPanel />
       </Drawer>
     </Box>
