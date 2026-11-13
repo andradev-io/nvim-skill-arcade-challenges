@@ -57,6 +57,8 @@ export function ArcadeMenuPage() {
   const getBest = useArcadeStore((s) => s.getBest)
 
   const mazeBest = getBest('maze', 1) ?? getBest('maze', 2) ?? getBest('maze', 3)
+  const rhythmBest = getBest('rhythm', 1) ?? getBest('rhythm', 2) ?? getBest('rhythm', 3)
+  const defenderBest = getBest('defender', 1) ?? getBest('defender', 2) ?? getBest('defender', 3) ?? getBest('defender', 4) ?? getBest('defender', 5)
 
   return (
     <Stack sx={{ py: 4, px: 2 }} spacing={4}>
@@ -83,21 +85,21 @@ export function ArcadeMenuPage() {
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <GameCard
             id="rhythm"
-            title="Rhythm Buffer"
-            description="Type vim commands in rhythm with the beat. Chain combos for multiplier bonuses."
-            available={false}
-            bestScore={null}
-            onClick={() => {}}
+            title="Vim Rhythm"
+            description="Hit h/j/k/l keys when notes reach the line. Build combos for score multipliers in this rhythm-based muscle memory trainer."
+            available
+            bestScore={rhythmBest}
+            onClick={() => { window.location.hash = '#/arcade/rhythm' }}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <GameCard
             id="defender"
-            title="Buffer Defender"
-            description="Protect your buffer from corruption. Delete incoming threats with precise vim operators."
-            available={false}
-            bestScore={null}
-            onClick={() => {}}
+            title="Vim Defender"
+            description="Defend your buffer from incoming threats. Type vim commands to destroy enemies before they reach your base."
+            available
+            bestScore={defenderBest}
+            onClick={() => { window.location.hash = '#/arcade/defender' }}
           />
         </Grid>
       </Grid>
