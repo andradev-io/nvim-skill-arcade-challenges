@@ -24,14 +24,18 @@ installExCommands()
 
 const CTX = { n: 'normal', v: 'visual', x: 'visual', i: 'insert' } as const
 
-let spaceRemoved = false
-
 /**
  * The editor answers as soon as a key matches a full command, where Vim would wait for the rest of a longer
  * mapping. So a leader of Space (built-in: move right) or comma (built-in: repeat f/t backwards) would swallow
  * every <leader> mapping. When the mappings use one of them as a prefix, the built-in is taken out of the table.
  * Space is put back for stock Vim; comma cannot be rebuilt from outside, so it stays off until the page reloads.
+ *
+ * `spaceRemoved` tracks whether we have unmapped Space globally. It lives at module scope because
+ * Vim's mapping table is global — there is only one table regardless of how many VimEditor instances exist.
+ * Each instance calls freeLeader on focus; the flag prevents redundant unmap/map calls.
  */
+let spaceRemoved = false
+
 function freeLeader(list: Keymap[]) {
   const claims = (tok: string) => list.some((m) => m.lhs.length > tok.length && m.lhs.startsWith(tok))
   if (claims('<Space>')) {
@@ -209,6 +213,11 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
   const wkStateRef = useRef<WhichKeyState>(initialWhichKeyState())
   const wkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [_wkState, setWkState] = useState<WhichKeyState>(initialWhichKeyState())
+  // Runs on every render (no dependency array) by design: this effect keeps refs in sync
+  // with the latest props so that event handlers attached once in the mount-only effect below
+  // always call the current callbacks. Adding a dependency array would defeat the purpose —
+  // we need the refs updated even when only a callback identity changes. The side effects
+  // here (setFiletype, setJumpTargets, setLspData, applyMaps) are idempotent and cheap.
   useEffect(() => {
     hooks.current = { onKey, onSync }
     lockMouse.current = noMouse
@@ -223,7 +232,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
     setLspData(lspConfig)
     // mappings changed while this editor is the one in use: switch to them now
     if (view.current?.hasFocus) applyMaps(maps, pluginsRef.current)
-  })
+  }) // eslint-disable-line react-hooks/exhaustive-deps -- intentional: runs every render to sync refs
 
   useEffect(() => {
     const parent = host.current
@@ -310,6 +319,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
         // refresh jump decorations if jump state is active
         const js = getJumpState()
         if (js && v) {
+          // DecorationSet is not assignable to Extension in CodeMirror's type system, but Compartment.reconfigure accepts it at runtime.
           v.dispatch({ effects: jumpDeco.current.reconfigure(buildJumpDecorations(v, jumpTargetsRef.current ?? [], js.typed) as unknown as Extension) })
         } else if (v) {
           v.dispatch({ effects: jumpDeco.current.reconfigure([]) })
@@ -397,6 +407,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
     if (!v) return
     const diags = lspConfig?.diagnostics
     if (diags && diags.length > 0) {
+      // DecorationSet is not assignable to Extension in CodeMirror's type system, but Compartment.reconfigure accepts it at runtime.
       v.dispatch({ effects: lspDeco.current.reconfigure(buildDiagnosticDecorations(v, diags) as unknown as Extension) })
     } else {
       v.dispatch({ effects: lspDeco.current.reconfigure([]) })

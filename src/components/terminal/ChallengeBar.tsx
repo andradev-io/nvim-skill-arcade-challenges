@@ -34,6 +34,8 @@ function useSaveResult(challenge: BuiltinChallenge, passed: PlayState['passed'])
     return () => {
       live = false
     }
+    // authConfig is a module-level constant imported from auth/config; it never changes at runtime,
+    // so including it in the dependency array would add noise without affecting behavior.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passed, status, challenge.id])
   if (!passed) return { save: 'idle', error: '' }

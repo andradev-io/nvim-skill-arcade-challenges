@@ -1,25 +1,19 @@
-import AddIcon from '@mui/icons-material/Add'
-import CloseIcon from '@mui/icons-material/Close'
 import MenuIcon from '@mui/icons-material/Menu'
 import SearchIcon from '@mui/icons-material/Search'
-import TuneIcon from '@mui/icons-material/Tune'
+import BarChartIcon from '@mui/icons-material/BarChart'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import ButtonBase from '@mui/material/ButtonBase'
 import Collapse from '@mui/material/Collapse'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogContentText from '@mui/material/DialogContentText'
 import DialogTitle from '@mui/material/DialogTitle'
+import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
-import MenuItem from '@mui/material/MenuItem'
-import Popover from '@mui/material/Popover'
-import Select from '@mui/material/Select'
 import Stack from '@mui/material/Stack'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { KeyboardEvent } from 'react'
 import { VimEditor } from '../components/play/VimEditor'
 import type { VimEditorHandle } from '../components/play/VimEditor'
 import { CommandPalette } from '../components/terminal/CommandPalette'
@@ -31,7 +25,8 @@ import type { InfoTab } from '../components/terminal/InfoDialog'
 import { Statusline } from '../components/terminal/Statusline'
 import type { Snap } from '../components/terminal/Statusline'
 import { WhichKeyOverlay } from '../components/terminal/WhichKeyOverlay'
-import { setEditorSink } from '../components/play/exCommands'
+import { TabBar } from '../components/terminal/TabBar'
+import { ControlsPopover, ControlsInline } from '../components/terminal/ControlsPopover'
 import { useCommunity } from '../hooks/useCommunity'
 import { useBuiltin } from '../hooks/useBuiltin'
 import { shortName, toChallenge } from '../core/builtin'
@@ -43,8 +38,6 @@ import { trackAbandon } from '../analytics/track'
 import { ChallengeBar } from '../components/terminal/ChallengeBar'
 import { SideContent, SideResizer } from '../components/terminal/TerminalSide'
 import { StatsPanel } from '../components/stats/StatsPanel'
-import Drawer from '@mui/material/Drawer'
-import BarChartIcon from '@mui/icons-material/BarChart'
 import { useDraft } from '../hooks/useDraft'
 import { THEMES, themeById, themeVars } from '../components/terminal/themes'
 import { useThemeStore } from '../store/themeStore'
@@ -56,6 +49,8 @@ import { useTerminalLayout } from '../store/terminalLayoutStore'
 import type { TerminalBuffer } from '../store/terminalStore'
 import { buildWhichKeyFromChallenge } from '../core/whichKey'
 import type { WhichKeyConfig } from '../core/whichKey'
+import { useBestScoreTracking } from '../hooks/useBestScoreTracking'
+import { useEditorSink } from '../hooks/useEditorSink'
 
 const BG = 'var(--t-bg)'
 const LINE = '1px solid var(--t-line)'
@@ -110,14 +105,11 @@ export function TerminalPage() {
   const [pickerConfig, setPickerConfig] = useState<PickerConfig | null>(null)
   const [, setPickerSelection] = useState<number | string | null>(null)
   const [confirmReset, setConfirmReset] = useState(false)
-  const [settings, setSettings] = useState<HTMLElement | null>(null)
   const [statsOpen, setStatsOpen] = useState(false)
   // hints belong to one attempt: a retry, another buffer or tab starts again from none
   const attempt = `${run}|${buffer.id}`
   const [hintState, setHintState] = useState({ attempt, n: 0 })
   const hints = hintState.attempt === attempt ? hintState.n : 0
-  const [bests, setBests] = useState<Record<string, number>>({})
-  const [counted, setCounted] = useState<unknown>(null)
   const side = useTerminalLayout((s) => s.side)
   const sideWidth = useTerminalLayout((s) => s.width)
   const sideOpen = useTerminalLayout((s) => s.open)
@@ -131,18 +123,12 @@ export function TerminalPage() {
     resetPlay()
   }, [run, buffer.id, resetPlay])
 
-  // the fewest keys this session for each challenge, so a retry has something to beat (each solve counted once)
-  const passed = play.state.passed
-  const challengeId = buffer.challenge?.id
-  useEffect(() => {
-    if (passed && passed !== counted) {
-      setCounted(passed)
-      if (challengeId && !(bests[challengeId] && bests[challengeId] <= passed.keys)) setBests({ ...bests, [challengeId]: passed.keys })
-    }
-  }, [passed, counted, challengeId, bests])
+  // best score tracking extracted to its own hook
+  const bests = useBestScoreTracking(play.state.passed, buffer.challenge?.id)
 
   // fire abandon when the user switches away from a started-but-not-completed challenge
   const prevChallengeRef = useRef<string | null>(null)
+  const challengeId = buffer.challenge?.id
   useEffect(() => {
     const prev = prevChallengeRef.current
     if (prev && prev !== challengeId && !play.state.passed && play.state.t0 !== null) {
@@ -196,40 +182,16 @@ export function TerminalPage() {
     actions.current = { say, revealHint, retry, goNext }
   })
 
-  // commands the editor cannot do itself (tabs, buffers, messages) come back to this page
-  useEffect(() => {
-    const t = useTerminalStore.getState
-    setEditorSink({
-      note: (text) => actions.current.say(text),
-      tab: (action) => {
-        // keep the text of the tab we are leaving
-        const ed = editor.current
-        if (ed) t().save(ed.text(), ed.cursor())
-        if (action === 'new') t().newTab()
-        else if (action === 'close') t().closeTab()
-        else t().stepTab(action === 'next' ? 1 : -1)
-      },
-      action: (name) => {
-        if (name === 'retry') actions.current.retry()
-        // (retry, hint and next judge the buffer open right now)
-        else if (name === 'hint') actions.current.revealHint()
-        else if (name === 'next') actions.current.goNext()
-        else if (name.startsWith('picker:')) {
-          const cfg = judged?.picker
-          if (cfg) {
-            setPickerConfig(cfg)
-            setPickerOpen(true)
-          } else {
-            actions.current.say('No picker configured for this challenge')
-          }
-        } else setPalette(true)
-      },
-    })
-    return () => {
-      setEditorSink({})
-      clearTimeout(noteTimer.current)
-    }
-  }, [])
+  // editor sink wiring extracted to its own hook
+  useEditorSink({
+    editor,
+    actions,
+    judged,
+    setPickerConfig,
+    setPickerOpen,
+    setPalette,
+    noteTimer,
+  })
 
   // Ctrl+K opens the palette from anywhere on the page (Vim does not use it in normal mode)
   useEffect(() => {
@@ -288,61 +250,6 @@ export function TerminalPage() {
     ...orderedBuiltin(builtin).map((c) => ({ id: `ch-${c.id}`, group: 'Challenge', label: `${c.area}: ${c.title}`, hint: `level ${c.level}`, run: () => load(toBuffer(c)) })),
   ]
 
-  const tabKey = (e: KeyboardEvent<HTMLElement>, i: number) => {
-    const to = e.key === 'ArrowRight' ? (i + 1) % tabs.length : e.key === 'ArrowLeft' ? (i - 1 + tabs.length) % tabs.length : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1
-    if (to < 0) return
-    e.preventDefault()
-    goTab(to)
-  }
-
-  const controls = (
-    <>
-      <Select
-        size="small"
-        variant="standard"
-        disableUnderline
-        value={theme.id}
-        onChange={(e) => setTheme(e.target.value)}
-        aria-label="Color theme"
-        title="Color theme"
-        sx={{ fontSize: 12.5, color: 'var(--t-fg)', mr: 1.5 }}
-      >
-        {THEMES.map((t) => (
-          <MenuItem key={t.id} value={t.id} dense>
-            {t.name}
-          </MenuItem>
-        ))}
-      </Select>
-      <Select
-        size="small"
-        variant="standard"
-        disableUnderline
-        value={buffer.ft}
-        onChange={(e) => setFt(e.target.value)}
-        aria-label="Filetype"
-        title="Filetype (comment characters)"
-        sx={{ fontSize: 12.5, color: 'var(--t-fg)', mr: 1 }}
-      >
-        {(FILETYPE_CHOICES.includes(buffer.ft) ? FILETYPE_CHOICES : [buffer.ft, ...FILETYPE_CHOICES]).map((f) => (
-          <MenuItem key={f} value={f} dense>
-            {f}
-          </MenuItem>
-        ))}
-      </Select>
-      <Button
-        size="small"
-        color="inherit"
-        onClick={() => {
-          setSettings(null)
-          askReset()
-        }}
-        sx={{ opacity: 0.7, mr: 1, whiteSpace: 'nowrap' }}
-      >
-        Reset buffer
-      </Button>
-    </>
-  )
-
   return (
     <Box
       className="dark"
@@ -398,42 +305,7 @@ export function TerminalPage() {
               <MenuIcon fontSize="small" />
             </IconButton>
           )}
-          <Stack direction="row" role="tablist" aria-label="Buffers" sx={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
-            {tabs.map((t, i) => (
-              <Stack
-                key={t.id}
-                direction="row"
-                sx={{
-                  alignItems: 'center',
-                  fontSize: 13,
-                  whiteSpace: 'nowrap',
-                  bgcolor: i === activeTab ? BG : 'transparent',
-                  opacity: i === activeTab ? 1 : 0.6,
-                  borderRight: LINE,
-                  borderTop: `2px solid ${i === activeTab ? 'var(--t-accent)' : 'transparent'}`,
-                }}
-              >
-                <ButtonBase
-                  role="tab"
-                  aria-selected={i === activeTab}
-                  tabIndex={i === activeTab ? 0 : -1}
-                  onClick={() => i !== activeTab && goTab(i)}
-                  onKeyDown={(e) => tabKey(e, i)}
-                  sx={{ pl: 1.5, pr: tabs.length > 1 ? 0.5 : 1.5, py: 0.75, fontSize: 13, fontFamily: 'inherit', color: 'inherit' }}
-                >
-                  {t.name}
-                </ButtonBase>
-                {tabs.length > 1 && (
-                  <IconButton size="small" aria-label={`Close ${t.name}`} onClick={() => closeTab(i)} sx={{ color: 'inherit', p: 0.25, mr: 0.5 }}>
-                    <CloseIcon sx={{ fontSize: 14 }} />
-                  </IconButton>
-                )}
-              </Stack>
-            ))}
-            <IconButton size="small" aria-label="New tab" onClick={() => newTab()} sx={{ color: 'var(--t-fg)', mx: 0.5 }}>
-              <AddIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Stack>
+          <TabBar tabs={tabs} activeTab={activeTab} onGoTab={goTab} onCloseTab={closeTab} onNewTab={newTab} />
           <IconButton size="small" aria-label="Your stats" title="Personal stats" onClick={() => setStatsOpen(true)} sx={{ color: 'var(--t-fg)', mx: 0.5 }}>
             <BarChartIcon sx={{ fontSize: 18 }} />
           </IconButton>
@@ -441,23 +313,9 @@ export function TerminalPage() {
             <SearchIcon sx={{ fontSize: 18 }} />
           </IconButton>
           {roomy ? (
-            controls
+            <ControlsInline themeId={theme.id} onThemeChange={setTheme} filetype={buffer.ft} onFiletypeChange={setFt} onReset={askReset} />
           ) : (
-            <>
-              <IconButton size="small" aria-label="Terminal settings" title="Theme, filetype, reset" onClick={(e) => setSettings(e.currentTarget)} sx={{ color: 'var(--t-fg)', mx: 0.5 }}>
-                <TuneIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-              <Popover
-                open={!!settings}
-                anchorEl={settings}
-                onClose={() => setSettings(null)}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                className="dark"
-              >
-                <Stack sx={{ p: 1.5, gap: 1, alignItems: 'flex-start' }}>{controls}</Stack>
-              </Popover>
-            </>
+            <ControlsPopover themeId={theme.id} onThemeChange={setTheme} filetype={buffer.ft} onFiletypeChange={setFt} onReset={askReset} />
           )}
           {!sideOpen && side === 'right' && (
             <IconButton
