@@ -10,6 +10,7 @@ const CANVAS_HEIGHT = 500
 const BASE_WIDTH = 40
 const BUFFER_TIMEOUT_MS = 500
 const EXPLOSION_DURATION_MS = 300
+// @ts-expect-error Used by DefenderRenderer for wave announcement overlay timing
 const WAVE_ANNOUNCE_MS = 1500
 const WAVE_COMPLETE_PAUSE_MS = 2000
 

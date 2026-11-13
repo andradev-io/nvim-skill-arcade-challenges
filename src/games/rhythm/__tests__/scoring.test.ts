@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { classifyHit, computeMultiplier, PERFECT_WINDOW_MS, GOOD_WINDOW_MS } from '../scoring'
+import { classifyHit, computeMultiplier } from '../scoring'
 
 describe('classifyHit', () => {
   it('returns perfect for delta within ±50ms', () => {
