@@ -1,13 +1,24 @@
 import type { GameColors } from '../engine/types'
-import type { CellType, DoorSpec } from './types'
+import type { CellType, DoorSpec, MotionTrail } from './types'
+
+interface ParsedMotion {
+  count: number
+  motion: string
+  arg?: string
+  result: 'moved' | 'blocked' | 'no-target'
+  description: string
+}
 
 interface MazeRenderState {
   elapsedMs: number
   collectiblesLeft: number
-  inputBuffer: string
   score: number
   isGameOver: boolean
   isPaused: boolean
+  motionCount: number
+  lastMotion: ParsedMotion | null
+  parserCountStr: string
+  parserPending: string
 }
 
 export class MazeRenderer {
@@ -28,6 +39,8 @@ export class MazeRenderer {
   draw(
     grid: CellType[][],
     doors: DoorSpec[],
+    markers: Record<string, string>,
+    trails: MotionTrail[],
     playerRow: number,
     playerCol: number,
     state: MazeRenderState,
@@ -39,6 +52,20 @@ export class MazeRenderer {
     // Clear background
     ctx.fillStyle = colors.bg
     ctx.fillRect(0, 0, width * cellSize, height * cellSize + 48)
+
+    // Draw motion trails
+    const now = performance.now()
+    for (const trail of trails) {
+      const age = now - trail.timestamp
+      if (age >= 300) continue
+      const opacity = 1 - age / 300
+      const x = trail.col * cellSize
+      const y = trail.row * cellSize
+      ctx.fillStyle = colors.accent
+      ctx.globalAlpha = opacity * 0.3
+      ctx.fillRect(x + 4, y + 4, cellSize - 8, cellSize - 8)
+      ctx.globalAlpha = 1
+    }
 
     // Draw grid
     for (let r = 0; r < height; r++) {
@@ -57,32 +84,45 @@ export class MazeRenderer {
           ctx.globalAlpha = 0.3
           ctx.fillRect(x + 2, y + 2, cellSize - 4, cellSize - 4)
           ctx.globalAlpha = 1
-          // Draw "G" label
           ctx.fillStyle = colors.accent
           ctx.font = `bold ${cellSize * 0.5}px monospace`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'middle'
           ctx.fillText('G', x + cellSize / 2, y + cellSize / 2)
         } else if (cell === 'door') {
-          // Find matching door spec
           const door = doors.find((d) => d.row === r && d.col === c)
           ctx.fillStyle = colors.warn
           ctx.fillRect(x + 4, y + cellSize * 0.3, cellSize - 8, cellSize * 0.4)
           if (door) {
             ctx.fillStyle = colors.bg
-            ctx.font = `${cellSize * 0.35}px monospace`
+            ctx.font = `${cellSize * 0.3}px monospace`
             ctx.textAlign = 'center'
             ctx.textBaseline = 'middle'
-            ctx.fillText(door.command, x + cellSize / 2, y + cellSize / 2)
+            ctx.fillText(door.requiredMotion, x + cellSize / 2, y + cellSize / 2)
+          }
+        } else if (cell === 'marker') {
+          const key = `${r},${c}`
+          const label = markers[key]
+          if (label) {
+            ctx.fillStyle = colors.accent
+            ctx.globalAlpha = 0.2
+            ctx.fillRect(x + 2, y + 2, cellSize - 4, cellSize - 4)
+            ctx.globalAlpha = 1
+            ctx.fillStyle = colors.accent
+            ctx.font = `bold ${cellSize * 0.5}px monospace`
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
+            ctx.fillText(label, x + cellSize / 2, y + cellSize / 2)
           }
         }
       }
     }
 
-    // Draw player
+    // Draw player — flash warn color on blocked/no-target
     const px = playerCol * cellSize + 4
     const py = playerRow * cellSize + 4
-    ctx.fillStyle = colors.accent
+    const isBadResult = state.lastMotion?.result === 'blocked' || state.lastMotion?.result === 'no-target'
+    ctx.fillStyle = isBadResult ? colors.warn : colors.accent
     ctx.fillRect(px, py, cellSize - 8, cellSize - 8)
 
     // Draw HUD below the grid
@@ -95,11 +135,32 @@ export class MazeRenderer {
     const seconds = (state.elapsedMs / 1000).toFixed(1)
     ctx.fillText(`Time: ${seconds}s`, 8, hudY)
     ctx.fillText(`Score: ${state.score}`, 8, hudY + 18)
-    ctx.fillText(`Items: ${state.collectiblesLeft}`, 160, hudY)
+    ctx.fillText(`Motions: ${state.motionCount}`, 160, hudY)
 
-    if (state.inputBuffer) {
+    // Parser state display
+    let parserDisplay = ''
+    if (state.parserPending) {
+      parserDisplay = `${state.parserCountStr}${state.parserPending}?`
+    } else if (state.parserCountStr) {
+      parserDisplay = state.parserCountStr
+    }
+
+    if (parserDisplay) {
       ctx.fillStyle = colors.warn
-      ctx.fillText(`Keys: ${state.inputBuffer}`, 160, hudY + 18)
+      ctx.fillText(`Keys: ${parserDisplay}`, 160, hudY + 18)
+    }
+
+    // Last motion result with color coding
+    if (state.lastMotion) {
+      const lm = state.lastMotion
+      let motionColor = colors.fg
+      if (lm.result === 'blocked') motionColor = colors.warn
+      else if (lm.result === 'no-target') motionColor = colors.warn
+      else if ('wbeft'.includes(lm.motion)) motionColor = colors.accent
+
+      ctx.fillStyle = motionColor
+      const resultLabel = lm.result === 'moved' ? '' : ` [${lm.result}]`
+      ctx.fillText(`${lm.description}${resultLabel}`, 300, hudY + 18)
     }
 
     // Overlay for pause/game-over
