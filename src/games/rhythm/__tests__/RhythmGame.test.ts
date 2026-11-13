@@ -31,8 +31,8 @@ describe('RhythmGame', () => {
   let onGameOver: (finalScore: number) => void
 
   beforeEach(() => {
-    onStateChange = vi.fn<(state: GameState) => void>()
-    onGameOver = vi.fn<(finalScore: number) => void>()
+    onStateChange = vi.fn() as unknown as (state: GameState) => void
+    onGameOver = vi.fn() as unknown as (finalScore: number) => void
     game = new RhythmGame({
       canvas: createCanvas(),
       colors: COLORS,

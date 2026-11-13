@@ -5,7 +5,7 @@ import type { Enemy } from './types'
  * Maps a KeyboardEvent.code and key to the character the user intended.
  * Returns null for non-printable keys (Escape, Enter, etc.).
  */
-export function codeToChar(code: string, key: string): string | null {
+export function codeToChar(_code: string, key: string): string | null {
   // Use event.key directly — it already accounts for Shift, CapsLock, layout
   if (key.length === 1) return key
   // Handle special named keys that produce characters
