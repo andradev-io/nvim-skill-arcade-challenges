@@ -124,8 +124,13 @@ export function wordBackward(
     idx--
   }
 
-  if (idx <= 0 && !isWordCell(grid, 0, 0)) return null
-  if (idx < 0) return null
+  if (idx <= 0) {
+    // At or before the beginning: only return a result if we actually moved backward
+    // from the original position to a different word start
+    const origIdx = toIndex(width, row, col)
+    if (idx === origIdx || idx < 0) return null
+    return fromIndex(width, idx)
+  }
   return fromIndex(width, idx)
 }
 
