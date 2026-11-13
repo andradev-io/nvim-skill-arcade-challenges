@@ -1,0 +1,23 @@
+{
+  "id": "d20261113-bump-the-score",
+  "title": "Bump the score",
+  "area": "editing",
+  "level": 1,
+  "brief": "Change the score from 99 to 100.",
+  "text": "Score: 99 points",
+  "solution": "2s100<Esc>",
+  "expect": {
+    "text": "Score: 100 points"
+  },
+  "why": "The s command substitutes characters inline; 2s deletes two characters and enters insert mode.",
+  "author": "claude (daily)",
+  "date": "2026-11-13",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:f44c853b708f",
+  "cursor": [
+    1,
+    7
+  ],
+  "par_seconds": 5
+}
