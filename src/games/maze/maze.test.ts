@@ -61,7 +61,7 @@ const DOOR_LEVEL: MazeLevel = {
   doors: [{ row: 0, col: 3, requiredMotion: 'w' }],
   markers: {},
   grid: [
-    ['start', 'open', 'open', 'door', 'goal'],
+    ['start', 'open', 'wall', 'door', 'goal'],
     ['wall', 'wall', 'wall', 'wall', 'wall'],
   ],
 }

@@ -268,6 +268,19 @@ export class MazeGame implements GameEngine {
 
     // --- Active gameplay ---
 
+    // Cancel pending f/t before handling pause/reset so the parser state is clean
+    if (this.parser.pendingMotion && (code === 'Escape' || code === 'KeyR')) {
+      this.parser.pendingMotion = ''
+      this.parser.countStr = ''
+      this.lastInputTime = performance.now()
+      if (code === 'Escape') {
+        this.pause()
+      } else {
+        this.onRequestReset?.()
+      }
+      return
+    }
+
     if (code === 'Escape') {
       this.pause()
       return
