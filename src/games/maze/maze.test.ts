@@ -226,7 +226,7 @@ describe('MazeGame', () => {
     dispatchKey(container, 'KeyW')
 
     const state = game.getMazeState()
-    expect(state.playerCol).toBe(3) // moved onto opened door
+    expect(state.playerCol).toBe(4) // w jumped over wall at col 3 to door at col 4
     expect(state.lastMotion?.description).toBe('w')
 
     game.stop()
