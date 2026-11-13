@@ -1,0 +1,25 @@
+{
+  "id": "d20261113-strip-the-cipher-prefix",
+  "title": "Strip the cipher prefix",
+  "area": "editing",
+  "level": 1,
+  "brief": "A spy intercepted coded messages where each line starts with a 3-letter station ID and a dash. Remove every prefix to reveal the plaintext.",
+  "text": "XQ7-Hide the gold\nB2R-Meet at dawn\nF91-Trust no one",
+  "solution": ":%s/^...-//<CR>",
+  "expect": {
+    "text": "Hide the gold\nMeet at dawn\nTrust no one"
+  },
+  "why": "The substitute command with ^...- matches exactly three characters and a dash at the start of every line, stripping the station IDs in one pass.",
+  "author": "claude (daily)",
+  "date": "2026-11-13",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:f44c853b708f",
+  "ft": "text",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 8,
+  "hint": "Use :%s to substitute across all lines."
+}
