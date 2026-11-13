@@ -14,7 +14,6 @@ const COLORS: GameColors = {
 
 function makeCanvas(): HTMLCanvasElement {
   const canvas = document.createElement('canvas')
-  // Mock getContext to avoid headless canvas issues
   const ctx = {
     fillRect: vi.fn(),
     clearRect: vi.fn(),
@@ -42,7 +41,9 @@ const SIMPLE_LEVEL: MazeLevel = {
   width: 4,
   height: 3,
   parSeconds: 30,
+  parMotions: 5,
   doors: [],
+  markers: {},
   grid: [
     ['start', 'open', 'collectible', 'wall'],
     ['wall', 'wall', 'open', 'wall'],
@@ -53,14 +54,34 @@ const SIMPLE_LEVEL: MazeLevel = {
 const DOOR_LEVEL: MazeLevel = {
   id: 'test-door',
   name: 'Door Test',
-  width: 4,
+  width: 5,
   height: 2,
   parSeconds: 30,
-  doors: [{ row: 0, col: 2, command: 'w', direction: 'h' }],
+  parMotions: 5,
+  doors: [{ row: 0, col: 3, requiredMotion: 'w' }],
+  markers: {},
   grid: [
-    ['start', 'open', 'door', 'goal'],
-    ['wall', 'wall', 'wall', 'wall'],
+    ['start', 'open', 'open', 'door', 'goal'],
+    ['wall', 'wall', 'wall', 'wall', 'wall'],
   ],
+}
+
+const MARKER_LEVEL: MazeLevel = {
+  id: 'test-marker',
+  name: 'Marker Test',
+  width: 6,
+  height: 1,
+  parSeconds: 30,
+  parMotions: 3,
+  doors: [],
+  markers: { '0,4': 'x' },
+  grid: [
+    ['start', 'open', 'open', 'open', 'marker', 'goal'],
+  ],
+}
+
+function dispatchKey(container: HTMLElement | HTMLCanvasElement, code: string): void {
+  container.dispatchEvent(new KeyboardEvent('keydown', { code, key: code.replace('Key', '').toLowerCase() }))
 }
 
 describe('MazeGame', () => {
@@ -93,13 +114,13 @@ describe('MazeGame', () => {
     game.loadLevel(SIMPLE_LEVEL)
     game.start()
 
-    // Try moving up from start (row 0) — should stay put
     const container = config.canvas.parentElement ?? config.canvas
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyK', key: 'k' }))
+    dispatchKey(container, 'KeyK') // try moving up from row 0
 
     const state = game.getMazeState()
     expect(state.playerRow).toBe(0)
     expect(state.playerCol).toBe(0)
+    expect(state.lastMotion?.result).toBe('blocked')
 
     game.stop()
   })
@@ -110,12 +131,12 @@ describe('MazeGame', () => {
     game.start()
 
     const container = config.canvas.parentElement ?? config.canvas
-    // Move right (l)
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyL', key: 'l' }))
+    dispatchKey(container, 'KeyL')
 
     const state = game.getMazeState()
     expect(state.playerRow).toBe(0)
     expect(state.playerCol).toBe(1)
+    expect(state.motionCount).toBe(1)
 
     game.stop()
   })
@@ -126,55 +147,202 @@ describe('MazeGame', () => {
     game.start()
 
     const container = config.canvas.parentElement ?? config.canvas
-    // Move right twice to reach collectible at (0,2)
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyL', key: 'l' }))
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyL', key: 'l' }))
+    dispatchKey(container, 'KeyL')
+    dispatchKey(container, 'KeyL')
 
     const state = game.getMazeState()
     expect(state.collectiblesLeft).toBe(0)
+    // Score is calculated at win time now, but collectible pickup still adds 50 during play
     expect(state.score).toBe(50)
 
     game.stop()
   })
 
-  it('opens doors when non-movement key matches command', () => {
+  it('count prefix moves multiple cells', () => {
+    const level: MazeLevel = {
+      id: 'count-test',
+      name: 'Count',
+      width: 6,
+      height: 1,
+      parSeconds: 30,
+      parMotions: 2,
+      doors: [],
+      markers: {},
+      grid: [['start', 'open', 'open', 'open', 'open', 'goal']],
+    }
+
+    const game = new MazeGame(config)
+    game.loadLevel(level)
+    game.start()
+
+    const container = config.canvas.parentElement ?? config.canvas
+    dispatchKey(container, 'Digit3')
+    dispatchKey(container, 'KeyL')
+
+    const state = game.getMazeState()
+    expect(state.playerCol).toBe(3)
+    expect(state.motionCount).toBe(1)
+
+    game.stop()
+  })
+
+  it('count prefix stops at boundary with partial movement', () => {
+    const level: MazeLevel = {
+      id: 'partial-test',
+      name: 'Partial',
+      width: 4,
+      height: 1,
+      parSeconds: 30,
+      parMotions: 2,
+      doors: [],
+      markers: {},
+      grid: [['start', 'open', 'open', 'wall']],
+    }
+
+    const game = new MazeGame(config)
+    game.loadLevel(level)
+    game.start()
+
+    const container = config.canvas.parentElement ?? config.canvas
+    dispatchKey(container, 'Digit5')
+    dispatchKey(container, 'KeyL')
+
+    const state = game.getMazeState()
+    expect(state.playerCol).toBe(2) // stopped at wall, partial movement
+    expect(state.lastMotion?.result).toBe('moved')
+
+    game.stop()
+  })
+
+  it('opens door when landing on it with correct motion', () => {
     const game = new MazeGame(config)
     game.loadLevel(DOOR_LEVEL)
     game.start()
 
     const container = config.canvas.parentElement ?? config.canvas
-    // Move right to (0,1)
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyL', key: 'l' }))
-    let state = game.getMazeState()
-    expect(state.playerCol).toBe(1)
+    // Move right twice to (0,2), then use w to land on door at (0,3)
+    dispatchKey(container, 'KeyL')
+    dispatchKey(container, 'KeyL')
+    dispatchKey(container, 'KeyW')
 
-    // Type 'w' (non-movement key) to open door at (0,2)
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', key: 'w' }))
-    state = game.getMazeState()
-    expect(state.inputBuffer).toBe('') // buffer cleared after door opened
-
-    // Now move right into the opened door cell (now 'open')
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyL', key: 'l' }))
-    state = game.getMazeState()
-    expect(state.playerCol).toBe(2) // moved through opened door
+    const state = game.getMazeState()
+    expect(state.playerCol).toBe(3) // moved onto opened door
+    expect(state.lastMotion?.description).toBe('w')
 
     game.stop()
   })
 
-  it('accumulates digit and letter keys in input buffer without moving', () => {
+  it('does not open door with wrong motion', () => {
+    const game = new MazeGame(config)
+    game.loadLevel(DOOR_LEVEL)
+    game.start()
+
+    const container = config.canvas.parentElement ?? config.canvas
+    dispatchKey(container, 'KeyL')
+    dispatchKey(container, 'KeyL')
+    // Try l to hit door — should be blocked since door requires 'w'
+    dispatchKey(container, 'KeyL')
+
+    const state = game.getMazeState()
+    expect(state.playerCol).toBe(2) // stayed put
+    expect(state.lastMotion?.result).toBe('blocked')
+
+    game.stop()
+  })
+
+  it('f{char} jumps to marker cell', () => {
+    const game = new MazeGame(config)
+    game.loadLevel(MARKER_LEVEL)
+    game.start()
+
+    const container = config.canvas.parentElement ?? config.canvas
+    dispatchKey(container, 'KeyF')
+    dispatchKey(container, 'KeyX')
+
+    const state = game.getMazeState()
+    expect(state.playerCol).toBe(4) // jumped to marker at col 4
+    expect(state.lastMotion?.description).toBe('fx')
+    expect(state.lastMotion?.result).toBe('moved')
+
+    game.stop()
+  })
+
+  it('t{char} stops one cell before marker', () => {
+    const game = new MazeGame(config)
+    game.loadLevel(MARKER_LEVEL)
+    game.start()
+
+    const container = config.canvas.parentElement ?? config.canvas
+    dispatchKey(container, 'KeyT')
+    dispatchKey(container, 'KeyX')
+
+    const state = game.getMazeState()
+    expect(state.playerCol).toBe(3) // one before marker at col 4
+    expect(state.lastMotion?.description).toBe('tx')
+
+    game.stop()
+  })
+
+  it('f with no matching marker reports no-target', () => {
+    const game = new MazeGame(config)
+    game.loadLevel(MARKER_LEVEL)
+    game.start()
+
+    const container = config.canvas.parentElement ?? config.canvas
+    dispatchKey(container, 'KeyF')
+    dispatchKey(container, 'KeyZ') // no marker 'z'
+
+    const state = game.getMazeState()
+    expect(state.playerCol).toBe(0) // didn't move
+    expect(state.lastMotion?.result).toBe('no-target')
+
+    game.stop()
+  })
+
+  it('parser accumulates digits up to 4', () => {
     const game = new MazeGame(config)
     game.loadLevel(SIMPLE_LEVEL)
     game.start()
 
     const container = config.canvas.parentElement ?? config.canvas
-    // Type '3' then 'w' — neither should move the player
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit3', key: '3' }))
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', key: 'w' }))
+    dispatchKey(container, 'Digit1')
+    dispatchKey(container, 'Digit2')
+    dispatchKey(container, 'Digit3')
+    dispatchKey(container, 'Digit4')
+    dispatchKey(container, 'Digit5') // should be ignored (max 4)
 
     const state = game.getMazeState()
-    expect(state.playerRow).toBe(0)
-    expect(state.playerCol).toBe(0)
-    expect(state.inputBuffer).toBe('3w')
+    expect(state.parserCountStr).toBe('1234')
+
+    game.stop()
+  })
+
+  it('parser shows pending state for f/t', () => {
+    const game = new MazeGame(config)
+    game.loadLevel(MARKER_LEVEL)
+    game.start()
+
+    const container = config.canvas.parentElement ?? config.canvas
+    dispatchKey(container, 'KeyF')
+
+    const state = game.getMazeState()
+    expect(state.parserPending).toBe('f')
+
+    game.stop()
+  })
+
+  it('non-letter cancels pending f/t', () => {
+    const game = new MazeGame(config)
+    game.loadLevel(MARKER_LEVEL)
+    game.start()
+
+    const container = config.canvas.parentElement ?? config.canvas
+    dispatchKey(container, 'KeyF')
+    dispatchKey(container, 'Escape') // should cancel pending and pause
+
+    expect(game.getState().isPaused).toBe(true)
+    const state = game.getMazeState()
+    expect(state.parserPending).toBe('')
 
     game.stop()
   })
@@ -185,10 +353,9 @@ describe('MazeGame', () => {
     let startCalled = false
     game.onRequestStart = () => { startCalled = true }
 
-    // Bind input so keydown events are received (start() normally does this)
     const container = config.canvas.parentElement ?? config.canvas
     ;(game as unknown as { input: InputManager }).input.bind(container)
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', key: 'Enter' }))
+    dispatchKey(container, 'Enter')
     expect(startCalled).toBe(true)
 
     game.stop()
@@ -202,7 +369,7 @@ describe('MazeGame', () => {
     game.onRequestReset = () => { resetCalled = true }
 
     const container = config.canvas.parentElement ?? config.canvas
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', key: 'r' }))
+    dispatchKey(container, 'KeyR')
     expect(resetCalled).toBe(true)
 
     game.stop()
@@ -214,24 +381,24 @@ describe('MazeGame', () => {
     let backCalled = false
     game.onNavigateBack = () => { backCalled = true }
 
-    // Bind input so keydown events are received (start() normally does this)
     const container = config.canvas.parentElement ?? config.canvas
     ;(game as unknown as { input: InputManager }).input.bind(container)
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'Backspace', key: 'Backspace' }))
+    dispatchKey(container, 'Backspace')
     expect(backCalled).toBe(true)
 
     game.stop()
   })
 
   it('wins when reaching goal cell', () => {
-    // Create a minimal level where goal is adjacent to start
     const quickLevel: MazeLevel = {
       id: 'quick',
       name: 'Quick',
       width: 2,
       height: 1,
       parSeconds: 30,
+      parMotions: 5,
       doors: [],
+      markers: {},
       grid: [['start', 'goal']],
     }
 
@@ -240,7 +407,7 @@ describe('MazeGame', () => {
     game.start()
 
     const container = config.canvas.parentElement ?? config.canvas
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyL', key: 'l' }))
+    dispatchKey(container, 'KeyL')
 
     expect(gameOverScore).not.toBeNull()
     expect(game.getState().isGameOver).toBe(true)
@@ -254,11 +421,38 @@ describe('MazeGame', () => {
     game.start()
 
     const container = config.canvas.parentElement ?? config.canvas
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape' }))
+    dispatchKey(container, 'Escape')
     expect(game.getState().isPaused).toBe(true)
 
-    container.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape' }))
+    dispatchKey(container, 'Escape')
     expect(game.getState().isPaused).toBe(false)
+
+    game.stop()
+  })
+
+  it('scoring includes motion efficiency bonus', () => {
+    const quickLevel: MazeLevel = {
+      id: 'score-test',
+      name: 'Score',
+      width: 2,
+      height: 1,
+      parSeconds: 30,
+      parMotions: 5,
+      doors: [],
+      markers: {},
+      grid: [['start', 'goal']],
+    }
+
+    const game = new MazeGame(config)
+    game.loadLevel(quickLevel)
+    game.start()
+
+    const container = config.canvas.parentElement ?? config.canvas
+    dispatchKey(container, 'KeyL')
+
+    // parMotions=5, used 1 motion -> bonus = (5-1)*20 = 80
+    // No collectibles, no advanced motions, time bonus > 0
+    expect(gameOverScore).toBeGreaterThan(80)
 
     game.stop()
   })

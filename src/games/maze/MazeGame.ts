@@ -2,18 +2,37 @@ import type { GameColors, GameConfig, GameEngine, GameState } from '../engine/ty
 import { GameLoop } from '../engine/GameLoop'
 import { InputManager } from '../engine/InputManager'
 import { MazeRenderer } from './MazeRenderer'
-import type { CellType, DoorSpec, MazeLevel } from './types'
+import type { CellType, DoorSpec, MazeLevel, MotionTrail } from './types'
+import { moveDirectional, wordForward, wordBackward, wordEnd, repeatWordMotion, findChar } from './motions'
 
 const CELL_SIZE = 32
-const INPUT_BUFFER_TIMEOUT_MS = 1500
+const PARSER_TIMEOUT_MS = 1500
+const TRAIL_DURATION_MS = 300
+
+interface ParsedMotion {
+  count: number
+  motion: string
+  arg?: string
+  result: 'moved' | 'blocked' | 'no-target'
+  description: string
+}
+
+interface MotionParserState {
+  countStr: string
+  pendingMotion: string // 'f' or 't' waiting for argument
+  lastMotion: ParsedMotion | null
+}
 
 interface MazeState extends GameState {
   playerRow: number
   playerCol: number
   collectiblesLeft: number
   elapsedMs: number
-  inputBuffer: string
   levelId: string
+  motionCount: number
+  lastMotion: ParsedMotion | null
+  parserCountStr: string
+  parserPending: string
 }
 
 export class MazeGame implements GameEngine {
@@ -31,6 +50,7 @@ export class MazeGame implements GameEngine {
   private level: MazeLevel | null = null
   private grid: CellType[][] = []
   private doors: DoorSpec[] = []
+  private markers: Record<string, string> = {}
   private playerRow = 0
   private playerCol = 0
   private score = 0
@@ -42,7 +62,17 @@ export class MazeGame implements GameEngine {
   // @ts-expect-error Set in winGame() and read by renderer; tsc -b project refs false positive
   private won = false
 
-  private inputBuffer = ''
+  // Motion tracking
+  private motionCount = 0
+  private motionsUsed: string[] = []
+  private trails: MotionTrail[] = []
+
+  // Parser state
+  private parser: MotionParserState = {
+    countStr: '',
+    pendingMotion: '',
+    lastMotion: null,
+  }
   private lastInputTime = 0
 
   constructor(config: GameConfig) {
@@ -67,6 +97,7 @@ export class MazeGame implements GameEngine {
     // Deep copy grid so mutations don't affect the level definition
     this.grid = level.grid.map((row) => [...row])
     this.doors = [...level.doors]
+    this.markers = { ...level.markers }
     this.collectiblesLeft = 0
 
     // Find start position and count collectibles
@@ -86,7 +117,10 @@ export class MazeGame implements GameEngine {
     this.gameOver = false
     this.won = false
     this.paused = false
-    this.inputBuffer = ''
+    this.motionCount = 0
+    this.motionsUsed = []
+    this.trails = []
+    this.parser = { countStr: '', pendingMotion: '', lastMotion: null }
     this.lastInputTime = 0
 
     // Size canvas to fit the level
@@ -142,8 +176,11 @@ export class MazeGame implements GameEngine {
       playerCol: this.playerCol,
       collectiblesLeft: this.collectiblesLeft,
       elapsedMs: this.elapsedMs,
-      inputBuffer: this.inputBuffer,
       levelId: this.level?.id ?? '',
+      motionCount: this.motionCount,
+      lastMotion: this.parser.lastMotion,
+      parserCountStr: this.parser.countStr,
+      parserPending: this.parser.pendingMotion,
     }
   }
 
@@ -157,17 +194,32 @@ export class MazeGame implements GameEngine {
 
     this.elapsedMs += dt
 
-    // Clear input buffer after timeout
-    if (this.inputBuffer.length > 0 && performance.now() - this.lastInputTime > INPUT_BUFFER_TIMEOUT_MS) {
-      this.inputBuffer = ''
+    // Clear parser state after timeout
+    const now = performance.now()
+    if (now - this.lastInputTime > PARSER_TIMEOUT_MS) {
+      if (this.parser.countStr.length > 0 || this.parser.pendingMotion.length > 0) {
+        this.parser.countStr = ''
+        this.parser.pendingMotion = ''
+      }
     }
+
+    // Expire old trail entries
+    this.trails = this.trails.filter((t) => now - t.timestamp < TRAIL_DURATION_MS)
 
     this.emitState()
   }
 
   private render(): void {
     if (!this.level) return
-    this.renderer.draw(this.grid, this.doors, this.playerRow, this.playerCol, this.getMazeState())
+    this.renderer.draw(
+      this.grid,
+      this.doors,
+      this.markers,
+      this.trails,
+      this.playerRow,
+      this.playerCol,
+      this.getMazeState(),
+    )
   }
 
   /** Callback invoked when Backspace is pressed outside active gameplay. */
@@ -182,7 +234,6 @@ export class MazeGame implements GameEngine {
   private handleKey(code: string): void {
     // --- Global shortcuts that work in any state ---
 
-    // Backspace: navigate back when not actively playing
     if (code === 'Backspace') {
       if (!this.running || this.gameOver) {
         this.onNavigateBack?.()
@@ -227,95 +278,237 @@ export class MazeGame implements GameEngine {
       return
     }
 
-    // Determine if this key contributes to the input buffer
-    const isLetter = code.startsWith('Key') && code.length === 4
-    const isDigit = code.startsWith('Digit') && code.length === 6
-
-    if (!isLetter && !isDigit) return
-
-    // Map code to the character for the input buffer
-    const char = isLetter
-      ? code.charAt(3).toLowerCase()
-      : code.charAt(5)
-
-    // Add to input buffer for door matching
-    this.inputBuffer += char
     this.lastInputTime = performance.now()
 
-    // Check door commands before moving
-    const doorOpened = this.checkDoors()
-    if (doorOpened) {
-      this.emitState()
+    // If waiting for f/t argument character
+    if (this.parser.pendingMotion) {
+      const isLetter = code.startsWith('Key') && code.length === 4
+      if (isLetter) {
+        const char = code.charAt(3).toLowerCase()
+        this.executeMotion(this.parser.pendingMotion, char)
+        this.parser.pendingMotion = ''
+        this.parser.countStr = ''
+      } else {
+        // Non-letter cancels pending motion
+        this.parser.pendingMotion = ''
+        this.parser.countStr = ''
+      }
       return
     }
 
-    // Movement only for h/j/k/l
-    let dr = 0
-    let dc = 0
+    // Digit accumulation (max 4 digits)
+    const isDigit = code.startsWith('Digit') && code.length === 6
+    if (isDigit) {
+      if (this.parser.countStr.length < 4) {
+        this.parser.countStr += code.charAt(5)
+      }
+      return
+    }
 
-    switch (code) {
-      case 'KeyH': dr = 0; dc = -1; break
-      case 'KeyJ': dr = 1; dc = 0; break
-      case 'KeyK': dr = -1; dc = 0; break
-      case 'KeyL': dr = 0; dc = 1; break
+    // Motion keys
+    const isLetter = code.startsWith('Key') && code.length === 4
+    if (!isLetter) {
+      // Unknown key resets parser
+      this.parser.countStr = ''
+      return
+    }
+
+    const char = code.charAt(3).toLowerCase()
+
+    switch (char) {
+      case 'h':
+      case 'j':
+      case 'k':
+      case 'l':
+        this.executeMotion(char)
+        this.parser.countStr = ''
+        break
+      case 'w':
+      case 'b':
+      case 'e':
+        this.executeMotion(char)
+        this.parser.countStr = ''
+        break
+      case 'f':
+      case 't':
+        this.parser.pendingMotion = char
+        break
       default:
-        // Non-movement key added to buffer; no movement
-        this.emitState()
+        // Unknown letter resets parser
+        this.parser.countStr = ''
+        break
+    }
+  }
+
+  private executeMotion(motion: string, arg?: string): void {
+    if (!this.level) return
+
+    const count = Math.max(1, parseInt(this.parser.countStr, 10) || 1)
+    const prevRow = this.playerRow
+    const prevCol = this.playerCol
+    let newRow = prevRow
+    let newCol = prevCol
+    let result: ParsedMotion['result'] = 'moved'
+    let description = ''
+
+    switch (motion) {
+      case 'h': {
+        const dest = moveDirectional(this.grid, prevRow, prevCol, 0, -1, count)
+        newRow = dest.row
+        newCol = dest.col
+        result = newRow === prevRow && newCol === prevCol ? 'blocked' : 'moved'
+        description = `${count > 1 ? count : ''}h`
+        break
+      }
+      case 'j': {
+        const dest = moveDirectional(this.grid, prevRow, prevCol, 1, 0, count)
+        newRow = dest.row
+        newCol = dest.col
+        result = newRow === prevRow && newCol === prevCol ? 'blocked' : 'moved'
+        description = `${count > 1 ? count : ''}j`
+        break
+      }
+      case 'k': {
+        const dest = moveDirectional(this.grid, prevRow, prevCol, -1, 0, count)
+        newRow = dest.row
+        newCol = dest.col
+        result = newRow === prevRow && newCol === prevCol ? 'blocked' : 'moved'
+        description = `${count > 1 ? count : ''}k`
+        break
+      }
+      case 'l': {
+        const dest = moveDirectional(this.grid, prevRow, prevCol, 0, 1, count)
+        newRow = dest.row
+        newCol = dest.col
+        result = newRow === prevRow && newCol === prevCol ? 'blocked' : 'moved'
+        description = `${count > 1 ? count : ''}l`
+        break
+      }
+      case 'w': {
+        const dest = repeatWordMotion(wordForward, this.grid, prevRow, prevCol, count)
+        if (dest) {
+          newRow = dest.row
+          newCol = dest.col
+        } else {
+          result = 'blocked'
+        }
+        description = `${count > 1 ? count : ''}w`
+        break
+      }
+      case 'b': {
+        const dest = repeatWordMotion(wordBackward, this.grid, prevRow, prevCol, count)
+        if (dest) {
+          newRow = dest.row
+          newCol = dest.col
+        } else {
+          result = 'blocked'
+        }
+        description = `${count > 1 ? count : ''}b`
+        break
+      }
+      case 'e': {
+        const dest = repeatWordMotion(wordEnd, this.grid, prevRow, prevCol, count)
+        if (dest) {
+          newRow = dest.row
+          newCol = dest.col
+        } else {
+          result = 'blocked'
+        }
+        description = `${count > 1 ? count : ''}e`
+        break
+      }
+      case 'f': {
+        if (!arg) return
+        const dest = findChar(this.grid, this.markers, prevRow, prevCol, arg, false)
+        if (dest) {
+          newRow = dest.row
+          newCol = dest.col
+        } else {
+          result = 'no-target'
+        }
+        description = `f${arg}`
+        break
+      }
+      case 't': {
+        if (!arg) return
+        const dest = findChar(this.grid, this.markers, prevRow, prevCol, arg, true)
+        if (dest) {
+          newRow = dest.row
+          newCol = dest.col
+        } else {
+          result = 'no-target'
+        }
+        description = `t${arg}`
+        break
+      }
+      default:
         return
     }
 
-    // Attempt movement
-    const newRow = this.playerRow + dr
-    const newCol = this.playerCol + dc
+    // Check if destination is a door — only open if requiredMotion matches
+    const targetCell = this.grid[newRow]?.[newCol]
+    if (targetCell === 'door') {
+      const doorIdx = this.doors.findIndex((d) => d.row === newRow && d.col === newCol)
+      if (doorIdx >= 0) {
+        const door = this.doors[doorIdx]
+        if (door.requiredMotion === description) {
+          // Open the door
+          this.grid[newRow][newCol] = 'open'
+          this.doors.splice(doorIdx, 1)
+        } else {
+          // Wrong motion for this door — treat as blocked
+          result = 'blocked'
+          newRow = prevRow
+          newCol = prevCol
+        }
+      }
+    }
 
-    if (!this.isValidMove(newRow, newCol)) return
-
-    const targetCell = this.grid[newRow][newCol]
+    // Record trail for multi-cell motions
+    if (newRow !== prevRow || newCol !== prevCol) {
+      const now = performance.now()
+      // Add intermediate positions for directional moves
+      if ('hjkl'.includes(motion) && count > 1) {
+        const dr = motion === 'j' ? 1 : motion === 'k' ? -1 : 0
+        const dc = motion === 'l' ? 1 : motion === 'h' ? -1 : 0
+        let tr = prevRow
+        let tc = prevCol
+        while (tr !== newRow || tc !== newCol) {
+          tr += dr
+          tc += dc
+          this.trails.push({ row: tr, col: tc, timestamp: now })
+        }
+      } else {
+        this.trails.push({ row: newRow, col: newCol, timestamp: now })
+      }
+    }
 
     // Handle collectible pickup
-    if (targetCell === 'collectible') {
+    if (this.grid[newRow]?.[newCol] === 'collectible') {
       this.grid[newRow][newCol] = 'open'
       this.collectiblesLeft--
       this.score += 50
     }
 
     // Handle goal
-    if (targetCell === 'goal') {
+    if (this.grid[newRow]?.[newCol] === 'goal') {
       this.playerRow = newRow
       this.playerCol = newCol
+      this.motionCount++
+      this.motionsUsed.push(motion)
+      this.parser.lastMotion = { count, motion, arg, result, description }
       this.winGame()
       return
     }
 
+    // Move player
     this.playerRow = newRow
     this.playerCol = newCol
+    this.motionCount++
+    this.motionsUsed.push(motion)
+    this.parser.lastMotion = { count, motion, arg, result, description }
+
     this.emitState()
-  }
-
-  private isValidMove(row: number, col: number): boolean {
-    if (!this.level) return false
-    if (row < 0 || row >= this.level.height || col < 0 || col >= this.level.width) return false
-    const cell = this.grid[row][col]
-    return cell !== 'wall' && cell !== 'door'
-  }
-
-  private checkDoors(): boolean {
-    const now = performance.now()
-    let opened = false
-
-    for (let i = this.doors.length - 1; i >= 0; i--) {
-      const door = this.doors[i]
-      if (this.inputBuffer.endsWith(door.command)) {
-        // Open the door: change cell from 'door' to 'open'
-        this.grid[door.row][door.col] = 'open'
-        this.doors.splice(i, 1)
-        this.inputBuffer = ''
-        this.lastInputTime = now
-        opened = true
-      }
-    }
-
-    return opened
   }
 
   private winGame(): void {
@@ -323,10 +516,16 @@ export class MazeGame implements GameEngine {
     this.gameOver = true
     this.loop.stop()
 
-    // Score: (parSeconds - elapsed) * 10 + collectibles * 50
+    // Scoring: collectibles + motion efficiency + advanced motion variety + time
+    const collectedCount = (this.level?.grid.flat().filter((c) => c === 'collectible').length ?? 0) - this.collectiblesLeft
+    const collectibleScore = 50 * collectedCount
+    const parMotions = this.level?.parMotions ?? 10
+    const motionBonus = Math.max(0, (parMotions - this.motionCount) * 20)
+    const advancedTypes = new Set(this.motionsUsed.filter((m) => 'wbeft'.includes(m)))
+    const advancedBonus = advancedTypes.size * 10
     const parMs = (this.level?.parSeconds ?? 60) * 1000
     const timeBonus = Math.max(0, Math.round((parMs - this.elapsedMs) / 100)) * 10
-    this.score += timeBonus
+    this.score = collectibleScore + motionBonus + advancedBonus + timeBonus
 
     this.emitState()
     this.onGameOver(this.score)
