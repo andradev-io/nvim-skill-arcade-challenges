@@ -3,8 +3,8 @@ import type { Ref } from 'react'
 import Box from '@mui/material/Box'
 import { history } from '@codemirror/commands'
 import { Compartment, EditorState, type Extension } from '@codemirror/state'
-import { EditorView, gutter, GutterMarker } from '@codemirror/view'
-import { RangeSetBuilder } from '@codemirror/state'
+import { EditorView, gutter, GutterMarker, ViewPlugin, type ViewUpdate } from '@codemirror/view'
+import { RangeSetBuilder, StateEffect } from '@codemirror/state'
 import { getCM, Vim, vim } from '@replit/codemirror-vim'
 import type { Keymap } from '../../core/keymaps'
 import { pendingText } from '../../core/terminalUx'
@@ -31,6 +31,19 @@ class RelativeLineMarker extends GutterMarker {
   }
   eq(other: RelativeLineMarker) { return this.text === other.text }
 }
+
+/** StateEffect used to signal that relative line numbers need re-rendering. */
+const relLineNumUpdate = StateEffect.define<null>()
+
+/** ViewPlugin that dispatches a relLineNumUpdate effect on every selection change
+ * so the relative line number gutter re-renders when the cursor moves. */
+const relativeLineNumberUpdater = ViewPlugin.define(() => ({
+  update(update: ViewUpdate) {
+    if (update.selectionSet || update.viewportChanged) {
+      update.view.dispatch({ effects: relLineNumUpdate.of(null) })
+    }
+  }
+}))
 
 /** Custom gutter that displays relative line numbers (absolute on cursor line, offsets elsewhere). */
 const relativeLineNumbers = gutter({
@@ -281,6 +294,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
           lspDeco.current.of([]),
           hoverField,
           vim({ status: false }),
+          relativeLineNumberUpdater,
           relativeLineNumbers,
           cmTheme,
           EditorView.lineWrapping,
