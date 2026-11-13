@@ -3,7 +3,8 @@ import type { Ref } from 'react'
 import Box from '@mui/material/Box'
 import { history } from '@codemirror/commands'
 import { Compartment, EditorState, type Extension } from '@codemirror/state'
-import { EditorView, lineNumbers } from '@codemirror/view'
+import { EditorView, gutter, GutterMarker } from '@codemirror/view'
+import { RangeSetBuilder } from '@codemirror/state'
 import { getCM, Vim, vim } from '@replit/codemirror-vim'
 import type { Keymap } from '../../core/keymaps'
 import { pendingText } from '../../core/terminalUx'
@@ -21,6 +22,35 @@ import { installExCommands, stubNotes } from './exCommands'
 import { highlighting, loadLanguage } from './languages'
 
 installExCommands()
+
+/** Relative line number gutter marker: shows absolute number on cursor line, offset on others. */
+class RelativeLineMarker extends GutterMarker {
+  constructor(private readonly offset: number) { super() }
+  toDOM() {
+    return document.createTextNode(String(this.offset))
+  }
+}
+
+/** Custom gutter that displays relative line numbers (absolute on cursor line). */
+const relativeLineNumbers = gutter({
+  class: 'cm-relative-line-numbers',
+  renderEmptyElements: false,
+  markers(view) {
+    const builder = new RangeSetBuilder<RelativeLineMarker>()
+    const cursorLine = view.state.doc.lineAt(view.state.selection.main.head).number
+    for (const { from } of view.visibleRanges) {
+      for (let pos = from; pos <= view.state.doc.length;) {
+        const line = view.state.doc.lineAt(pos)
+        const offset = Math.abs(line.number - cursorLine)
+        builder.add(line.from, line.from, new RelativeLineMarker(offset === 0 ? line.number : offset))
+        if (pos >= line.to) break
+        pos = line.to + 1
+      }
+    }
+    return builder.finish()
+  },
+  initialSpacer() { return new RelativeLineMarker(0) },
+})
 
 const CTX = { n: 'normal', v: 'visual', x: 'visual', i: 'insert' } as const
 
@@ -161,7 +191,7 @@ const cmTheme = EditorView.theme({
     outline: `1px solid ${P}primary-main)`,
     color: 'inherit !important',
   },
-  '.cm-selectionBackground': { background: `${P}primary-main) !important`, opacity: '.35' },
+  '.cm-selectionBackground': { background: `${P}primary-main) !important`, opacity: '.5' },
   '.cm-vim-panel': {
     background: `${P}background-default)`,
     color: `${P}text-primary)`,
@@ -249,7 +279,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
           lspDeco.current.of([]),
           hoverField,
           vim({ status: false }),
-          lineNumbers(),
+          relativeLineNumbers,
           cmTheme,
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({ 'aria-label': 'Vim editor for the challenge', spellcheck: 'false' }),
