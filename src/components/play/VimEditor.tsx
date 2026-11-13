@@ -25,31 +25,33 @@ installExCommands()
 
 /** Relative line number gutter marker: shows absolute number on cursor line, offset on others. */
 class RelativeLineMarker extends GutterMarker {
-  constructor(private readonly offset: number) { super() }
+  constructor(private readonly text: string) { super() }
   toDOM() {
-    return document.createTextNode(String(this.offset))
+    return document.createTextNode(this.text)
   }
+  eq(other: RelativeLineMarker) { return this.text === other.text }
 }
 
-/** Custom gutter that displays relative line numbers (absolute on cursor line). */
+/** Custom gutter that displays relative line numbers (absolute on cursor line, offsets elsewhere). */
 const relativeLineNumbers = gutter({
   class: 'cm-relative-line-numbers',
   renderEmptyElements: false,
   markers(view) {
     const builder = new RangeSetBuilder<RelativeLineMarker>()
     const cursorLine = view.state.doc.lineAt(view.state.selection.main.head).number
-    for (const { from } of view.visibleRanges) {
-      for (let pos = from; pos <= view.state.doc.length;) {
+    for (const range of view.visibleRanges) {
+      let pos = range.from
+      while (pos <= range.to) {
         const line = view.state.doc.lineAt(pos)
         const offset = Math.abs(line.number - cursorLine)
-        builder.add(line.from, line.from, new RelativeLineMarker(offset === 0 ? line.number : offset))
-        if (pos >= line.to) break
+        const text = offset === 0 ? String(line.number) : String(offset)
+        builder.add(line.from, line.from, new RelativeLineMarker(text))
         pos = line.to + 1
       }
     }
     return builder.finish()
   },
-  initialSpacer() { return new RelativeLineMarker(0) },
+  initialSpacer() { return new RelativeLineMarker('0') },
 })
 
 const CTX = { n: 'normal', v: 'visual', x: 'visual', i: 'insert' } as const
