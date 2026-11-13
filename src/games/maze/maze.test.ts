@@ -54,15 +54,15 @@ const SIMPLE_LEVEL: MazeLevel = {
 const DOOR_LEVEL: MazeLevel = {
   id: 'test-door',
   name: 'Door Test',
-  width: 5,
+  width: 6,
   height: 2,
   parSeconds: 30,
   parMotions: 5,
-  doors: [{ row: 0, col: 3, requiredMotion: 'w' }],
+  doors: [{ row: 0, col: 4, requiredMotion: 'w' }],
   markers: {},
   grid: [
-    ['start', 'open', 'wall', 'door', 'goal'],
-    ['wall', 'wall', 'wall', 'wall', 'wall'],
+    ['start', 'open', 'open', 'wall', 'door', 'goal'],
+    ['wall', 'wall', 'wall', 'wall', 'wall', 'wall'],
   ],
 }
 
