@@ -6,7 +6,6 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 import { useArcadeStore } from '../store/arcadeStore'
-import { navigate } from '../hooks/useRoute'
 
 interface GameCardProps {
  title: string
@@ -78,7 +77,7 @@ export function ArcadeMenuPage() {
  description="Navigate mazes with vim motions. Collect items, open doors by typing their command, reach the goal before par time."
  available
  bestScore={mazeBest}
- onClick={() => navigate('arcade')}
+ onClick={() => { window.location.hash = '#/arcade/maze' }}
  />
  </Grid>
  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -87,7 +86,7 @@ export function ArcadeMenuPage() {
  description="Hit h/j/k/l keys when notes reach the line. Build combos for score multipliers in this rhythm-based muscle memory trainer."
  available
  bestScore={rhythmBest}
- onClick={() => navigate('arcade')}
+ onClick={() => { window.location.hash = '#/arcade/rhythm' }}
  />
  </Grid>
  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -96,7 +95,7 @@ export function ArcadeMenuPage() {
  description="Defend your buffer from incoming threats. Type vim commands to destroy enemies before they reach your base."
  available
  bestScore={defenderBest}
- onClick={() => navigate('arcade')}
+ onClick={() => { window.location.hash = '#/arcade/defender' }}
  />
  </Grid>
  </Grid>

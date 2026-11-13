@@ -4,13 +4,13 @@ import ButtonBase from '@mui/material/ButtonBase'
 import IconButton from '@mui/material/IconButton'
 import Stack from '@mui/material/Stack'
 import type { KeyboardEvent } from 'react'
-import type { TerminalBuffer } from '../../store/terminalStore'
+import type { Tab } from '../../store/terminalStore'
 
 const BG = 'var(--t-bg)'
 const LINE = '1px solid var(--t-line)'
 
 interface TabBarProps {
-  tabs: TerminalBuffer[]
+  tabs: Tab[]
   activeTab: number
   onGoTab: (index: number) => void
   onCloseTab: (index: number) => void

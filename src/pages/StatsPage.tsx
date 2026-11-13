@@ -10,7 +10,6 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
-import { useTheme } from '@mui/material/styles'
 import { useEffect, useState } from 'react'
 import { authConfig } from '../auth/config'
 
@@ -102,7 +101,6 @@ function TrendChart({ daily }: { daily: DailyRow[] }) {
 }
 
 export function StatsPage() {
- const theme = useTheme()
  const [data, setData] = useState<PublicStats | null>(null)
  const [error, setError] = useState<string | null>(null)
  const [loading, setLoading] = useState(true)
