@@ -58,13 +58,34 @@ export function StatsPanel() {
   const totalCompleted = useScoringStore((s) => s.totalCompleted)
   const streak = useScoringStore((s) => s.streak)
   const clearAll = useScoringStore((s) => s.clearAll)
-  const getStats = useScoringStore((s) => s.getStats)
 
-  const stats = useMemo(() => getStats(), [getStats, bests])
+  const stats = useMemo(() => {
+    const entries = Object.values(bests)
+    const total = entries.length
+    let sCount = 0
+    let aCount = 0
+    let bCount = 0
+    let cCount = 0
+    let efficiencySum = 0
+    for (const b of entries) {
+      if (b.rank === 'S') { sCount++; efficiencySum += 100 }
+      else if (b.rank === 'A') { aCount++; efficiencySum += 80 }
+      else if (b.rank === 'B') { bCount++; efficiencySum += 60 }
+      else { cCount++; efficiencySum += 40 }
+    }
+    return {
+      total,
+      sCount,
+      aCount,
+      bCount,
+      cCount,
+      avgEfficiency: total > 0 ? Math.round(efficiencySum / total) : 0,
+    }
+  }, [bests])
 
   const recent = useMemo(() => {
     return Object.values(bests)
-      .sort((a, b) => (a.date > b.date ? -1 : 1))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 10)
   }, [bests])
 

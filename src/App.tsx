@@ -33,6 +33,16 @@ const TITLES: Record<Route, string> = {
   arcade: 'Arcade | arcade.nvim',
 }
 
+/** Shared full-screen layout for pages that fill the viewport under the header (terminal, arcade). */
+function FullScreenLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
+      <TopBar fluid />
+      <Suspense fallback={null}>{children}</Suspense>
+    </Box>
+  )
+}
+
 export default function App() {
   const route = useRoute()
   // finish a sign-in that just came back from Keycloak, or restore this tab's session (does nothing when sign-in is off)
@@ -54,23 +64,17 @@ export default function App() {
   // the terminal and arcade fill the screen under the header; every other page scrolls normally
   if (route === 'terminal') {
     return (
-      <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
-        <TopBar fluid />
-        <Suspense fallback={null}>
-          <TerminalPage />
-        </Suspense>
-      </Box>
+      <FullScreenLayout>
+        <TerminalPage />
+      </FullScreenLayout>
     )
   }
 
   if (route === 'arcade') {
     return (
-      <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
-        <TopBar fluid />
-        <Suspense fallback={null}>
-          <ArcadePage />
-        </Suspense>
-      </Box>
+      <FullScreenLayout>
+        <ArcadePage />
+      </FullScreenLayout>
     )
   }
 

@@ -3,108 +3,29 @@ import Button from '@mui/material/Button'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
-import { useEffect, useRef, useState } from 'react'
-import { readThemeColors } from '../engine/theme'
+import { useCallback, useState } from 'react'
 import { MAZE_LEVELS } from './levels'
 import { MazeGame } from './MazeGame'
-import type { GameState } from '../engine/types'
+import type { GameConfig } from '../engine/types'
+import { useCanvasGame } from '../engine/useCanvasGame'
 import { useArcadeStore } from '../../store/arcadeStore'
+import { navigate } from '../../hooks/useRoute'
 
 export function MazePage() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const gameRef = useRef<MazeGame | null>(null)
-  const [gameState, setGameState] = useState<GameState>({
-    score: 0,
-    lives: 1,
-    wave: 0,
-    isRunning: false,
-    isPaused: false,
-    isGameOver: false,
-  })
   const [levelIndex, setLevelIndex] = useState(0)
   const saveScore = useArcadeStore((s) => s.saveScore)
 
-  // Initialize game on mount
-  useEffect(() => {
-    const canvas = canvasRef.current
-    const container = containerRef.current
-    if (!canvas || !container) return
+  const createGame = useCallback((config: GameConfig) => new MazeGame(config), [])
 
-    const colors = readThemeColors()
-    const game = new MazeGame({
-      canvas,
-      colors,
-      onStateChange: (state) => setGameState({ ...state }),
-      onGameOver: (finalScore) => {
-        saveScore('maze', levelIndex + 1, finalScore)
-      },
-    })
-
-    game.loadLevel(MAZE_LEVELS[levelIndex])
-
-    // Wire up keyboard shortcut callbacks
-    game.onNavigateBack = () => {
-      window.location.hash = '#/arcade'
-    }
-    game.onRequestStart = () => {
-      if (game.getState().isGameOver) {
-        // Restart: reload current level and start
-        game.loadLevel(MAZE_LEVELS[levelIndex])
-      }
-      game.start()
-      container.focus()
-    }
-    game.onRequestReset = () => {
-      game.stop()
-      game.loadLevel(MAZE_LEVELS[levelIndex])
-      setGameState({
-        score: 0,
-        lives: 1,
-        wave: 0,
-        isRunning: false,
-        isPaused: false,
-        isGameOver: false,
-      })
-    }
-
-    gameRef.current = game
-
-    // Focus container for keyboard input
-    container.focus()
-
-    return () => {
-      game.stop()
-      game.onNavigateBack = null
-      game.onRequestStart = null
-      game.onRequestReset = null
-      gameRef.current = null
-    }
-  }, [levelIndex, saveScore])
-
-  // Update theme colors when they change
-  useEffect(() => {
-    const colors = readThemeColors()
-    gameRef.current?.setColors(colors)
-  }, [])
-
-  const handleStart = () => {
-    gameRef.current?.start()
-    containerRef.current?.focus()
-  }
-
-  const handleReset = () => {
-    gameRef.current?.stop()
-    gameRef.current?.loadLevel(MAZE_LEVELS[levelIndex])
-    setGameState({
-      score: 0,
-      lives: 1,
-      wave: 0,
-      isRunning: false,
-      isPaused: false,
-      isGameOver: false,
-    })
-  }
+  const { canvasRef, containerRef, gameRef, gameState, start, reset } = useCanvasGame({
+    createGame,
+    initialState: { score: 0, lives: 1, wave: 0, isRunning: false, isPaused: false, isGameOver: false },
+    onSaveScore: (score) => saveScore('maze', levelIndex + 1, score),
+    onNavigateBack: () => navigate('arcade'),
+    onInit: (game) => game.loadLevel(MAZE_LEVELS[levelIndex]),
+    onReset: (game) => game.loadLevel(MAZE_LEVELS[levelIndex]),
+    onRestart: (game) => game.loadLevel(MAZE_LEVELS[levelIndex]),
+  })
 
   const handleNextLevel = () => {
     if (levelIndex < MAZE_LEVELS.length - 1) {
@@ -114,7 +35,7 @@ export function MazePage() {
 
   const handleBack = () => {
     gameRef.current?.stop()
-    window.location.hash = '#/arcade'
+    navigate('arcade')
   }
 
   const currentLevel = MAZE_LEVELS[levelIndex]
@@ -170,12 +91,12 @@ export function MazePage() {
 
       <Stack direction="row" sx={{ justifyContent: 'center', gap: 2 }}>
         {!gameState.isRunning && !gameState.isGameOver && (
-          <Button variant="contained" onClick={handleStart}>
+          <Button variant="contained" onClick={start}>
             Start Level
           </Button>
         )}
         {(gameState.isRunning || gameState.isGameOver) && (
-          <Button variant="outlined" onClick={handleReset}>
+          <Button variant="outlined" onClick={reset}>
             Reset
           </Button>
         )}
