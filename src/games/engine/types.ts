@@ -5,6 +5,9 @@ export interface GameEngine {
   resume(): void
   getState(): GameState
   setColors(colors: GameColors): void
+  onNavigateBack: (() => void) | null
+  onRequestStart: (() => void) | null
+  onRequestReset: (() => void) | null
 }
 
 export interface GameState {

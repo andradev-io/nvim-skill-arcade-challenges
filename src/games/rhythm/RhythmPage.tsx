@@ -128,6 +128,7 @@ export function RhythmPage() {
 
       <Paper
         elevation={2}
+        aria-live="polite"
         sx={{
           p: 1,
           display: 'flex',
@@ -158,6 +159,8 @@ export function RhythmPage() {
 
       <Box
         ref={containerRef}
+        role="application"
+        aria-label="Vim Rhythm game area: press h/j/k/l when notes reach the hit line"
         tabIndex={0}
         sx={{
           flex: 1,

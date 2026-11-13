@@ -134,10 +134,12 @@ export function TerminalPage() {
   // the fewest keys this session for each challenge, so a retry has something to beat (each solve counted once)
   const passed = play.state.passed
   const challengeId = buffer.challenge?.id
-  if (passed && passed !== counted) {
-    setCounted(passed)
-    if (challengeId && !(bests[challengeId] && bests[challengeId] <= passed.keys)) setBests({ ...bests, [challengeId]: passed.keys })
-  }
+  useEffect(() => {
+    if (passed && passed !== counted) {
+      setCounted(passed)
+      if (challengeId && !(bests[challengeId] && bests[challengeId] <= passed.keys)) setBests({ ...bests, [challengeId]: passed.keys })
+    }
+  }, [passed, counted, challengeId, bests])
 
   // fire abandon when the user switches away from a started-but-not-completed challenge
   const prevChallengeRef = useRef<string | null>(null)

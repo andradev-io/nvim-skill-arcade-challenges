@@ -119,6 +119,7 @@ export function DefenderPage() {
 
       <Paper
         elevation={2}
+        aria-live="polite"
         sx={{
           p: 1,
           display: 'flex',
@@ -136,6 +137,8 @@ export function DefenderPage() {
 
       <Box
         ref={containerRef}
+        role="application"
+        aria-label="Vim Defender game area: type vim commands to destroy enemies"
         tabIndex={0}
         sx={{
           flex: 1,

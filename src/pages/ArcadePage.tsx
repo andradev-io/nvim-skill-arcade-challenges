@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import { ArcadeMenuPage } from '../games/ArcadeMenuPage'
 import { MazePage } from '../games/maze/MazePage'
 import { DefenderPage } from '../games/defender/DefenderPage'
@@ -14,18 +14,21 @@ function parseArcadeSubRoute(hash: string): ArcadeSubRoute {
   return 'menu'
 }
 
-export function ArcadePage() {
-  const [subRoute, setSubRoute] = useState<ArcadeSubRoute>(() =>
-    parseArcadeSubRoute(window.location.hash),
-  )
+const subscribeArcade = (cb: () => void) => {
+  window.addEventListener('hashchange', cb)
+  return () => window.removeEventListener('hashchange', cb)
+}
 
-  useEffect(() => {
-    const onHashChange = () => {
-      setSubRoute(parseArcadeSubRoute(window.location.hash))
-    }
-    window.addEventListener('hashchange', onHashChange)
-    return () => window.removeEventListener('hashchange', onHashChange)
-  }, [])
+function useArcadeSubRoute(): ArcadeSubRoute {
+  return useSyncExternalStore(
+    subscribeArcade,
+    () => parseArcadeSubRoute(window.location.hash),
+    () => 'menu',
+  )
+}
+
+export function ArcadePage() {
+  const subRoute = useArcadeSubRoute()
 
   if (subRoute === 'maze') {
     return <MazePage />

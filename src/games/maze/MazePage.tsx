@@ -132,6 +132,7 @@ export function MazePage() {
 
       <Paper
         elevation={2}
+        aria-live="polite"
         sx={{
           p: 1,
           display: 'flex',
@@ -149,6 +150,8 @@ export function MazePage() {
 
       <Box
         ref={containerRef}
+        role="application"
+        aria-label="Vim Maze game area: use h/j/k/l to move, type commands for doors"
         tabIndex={0}
         sx={{
           flex: 1,
