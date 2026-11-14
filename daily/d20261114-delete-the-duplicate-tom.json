@@ -1,0 +1,24 @@
+{
+  "id": "d20261114-delete-the-duplicate-tom",
+  "title": "Delete the duplicate tomato",
+  "area": "search",
+  "level": 1,
+  "brief": "Your shopping list has tomatoes twice. Search for the second one and delete that entire line so each item appears only once.",
+  "text": "apples\ntomatoes\nbread\ntomatoes\nmilk",
+  "solution": "dd",
+  "expect": {
+    "text": "apples\ntomatoes\nbread\nmilk"
+  },
+  "why": "The cursor is placed directly on the duplicate line. A single dd removes it, leaving the first occurrence intact.",
+  "author": "claude (daily)",
+  "date": "2026-11-14",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:b859325222f8",
+  "cursor": [
+    4,
+    0
+  ],
+  "par_seconds": 5,
+  "hint": "You are already standing on the line to remove."
+}
