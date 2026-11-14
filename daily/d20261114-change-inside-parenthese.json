@@ -1,0 +1,25 @@
+{
+  "id": "d20261114-change-inside-parenthese",
+  "title": "Change inside parentheses in Lua",
+  "area": "textobjects",
+  "level": 2,
+  "brief": "The print statement shows the wrong variable. Change only the text inside the parentheses to 'total' without touching them.",
+  "text": "local total = 42\nprint(count)",
+  "solution": "ci)total<Esc>",
+  "expect": {
+    "text": "local total = 42\nprint(total)"
+  },
+  "why": "ci) deletes everything inside the parentheses and enters insert mode, letting you type the replacement immediately.",
+  "author": "claude (daily)",
+  "date": "2026-11-14",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:b859325222f8",
+  "ft": "lua",
+  "cursor": [
+    2,
+    6
+  ],
+  "par_seconds": 8,
+  "hint": "c changes text, i) targets what is inside the round brackets."
+}

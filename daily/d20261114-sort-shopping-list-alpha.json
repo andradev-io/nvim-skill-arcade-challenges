@@ -1,0 +1,18 @@
+{
+  "id": "d20261114-sort-shopping-list-alpha",
+  "title": "Sort shopping list alphabetically",
+  "area": "search",
+  "level": 2,
+  "brief": "Sort this shopping list in alphabetical order using Vim's sort command.",
+  "text": "zebra chips\napple juice\nbanana bread\ncherry pie\ndragon fruit",
+  "solution": ":sort<CR>",
+  "expect": {
+    "text": "apple juice\nbanana bread\ncherry pie\ndragon fruit\nzebra chips"
+  },
+  "why": ":sort arranges lines alphabetically. It's built into Vim and handles this perfectly without plugins.",
+  "author": "claude (daily)",
+  "date": "2026-11-14",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:b859325222f8"
+}
