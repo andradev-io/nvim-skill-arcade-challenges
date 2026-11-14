@@ -3,15 +3,22 @@ import Button from '@mui/material/Button'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { DefenderGame } from './DefenderGame'
 import type { GameConfig } from '../engine/types'
 import { useCanvasGame } from '../engine/useCanvasGame'
 import { useArcadeStore } from '../../store/arcadeStore'
+import { useCampaignStore } from '../../store/campaignStore'
 import { navigate } from '../../hooks/useRoute'
+import { parseArcadeQueryParams } from '../../pages/ArcadePage'
 
 export function DefenderPage() {
+ const campaignStageId = useMemo(() => {
+ const params = parseArcadeQueryParams(window.location.hash)
+ return params.campaign ?? null
+ }, [])
  const saveScore = useArcadeStore((s) => s.saveScore)
+ const completeStage = useCampaignStore((s) => s.completeStage)
 
  const createGame = useCallback((config: GameConfig) => new DefenderGame(config), [])
 
@@ -21,6 +28,10 @@ export function DefenderPage() {
  onSaveScore: (score) => {
  const wave = gameRef.current?.getState().wave ?? 1
  saveScore('defender', wave, score)
+ if (campaignStageId) {
+ // Defender uses raw score as metric
+ completeStage(campaignStageId, score, score)
+ }
  },
  onNavigateBack: () => navigate('arcade'),
  onRestart: (game) => game.stop(),
@@ -89,6 +100,15 @@ export function DefenderPage() {
  {(gameState.isRunning || gameState.isGameOver) && (
  <Button variant="outlined" onClick={reset}>
  Reset
+ </Button>
+ )}
+ {gameState.isGameOver && campaignStageId && (
+ <Button
+ variant="contained"
+ onClick={() => { window.location.hash = '#/arcade/campaign' }}
+ sx={{ bgcolor: '#d97706', '&:hover': { bgcolor: '#b45309' }, fontFamily: 'monospace' }}
+ >
+ Continue Campaign
  </Button>
  )}
  </Stack>

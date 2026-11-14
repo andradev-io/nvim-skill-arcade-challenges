@@ -3,24 +3,43 @@ import Button from '@mui/material/Button'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { MAZE_LEVELS } from './levels'
 import { MazeGame } from './MazeGame'
 import type { GameConfig } from '../engine/types'
 import { useCanvasGame } from '../engine/useCanvasGame'
 import { useArcadeStore } from '../../store/arcadeStore'
+import { useCampaignStore } from '../../store/campaignStore'
 import { navigate } from '../../hooks/useRoute'
+import { parseArcadeQueryParams } from '../../pages/ArcadePage'
 
 export function MazePage() {
-  const [levelIndex, setLevelIndex] = useState(0)
+  const [levelIndex, setLevelIndex] = useState(() => {
+    const params = parseArcadeQueryParams(window.location.hash)
+    return params.level ? Number(params.level) : 0
+  })
+  const campaignStageId = useMemo(() => {
+    const params = parseArcadeQueryParams(window.location.hash)
+    return params.campaign ?? null
+  }, [])
   const saveScore = useArcadeStore((s) => s.saveScore)
+  const completeStage = useCampaignStore((s) => s.completeStage)
 
   const createGame = useCallback((config: GameConfig) => new MazeGame(config), [])
 
   const { canvasRef, containerRef, gameRef, gameState, start, reset } = useCanvasGame({
     createGame,
     initialState: { score: 0, lives: 1, wave: 0, isRunning: false, isPaused: false, isGameOver: false },
-    onSaveScore: (score) => saveScore('maze', levelIndex + 1, score),
+    onSaveScore: (score) => {
+      saveScore('maze', levelIndex + 1, score)
+      if (campaignStageId && gameRef.current) {
+        // parRatio = elapsedMs / parTimeMs; lower is better
+        const state = gameRef.current.getState() as { elapsedMs?: number }
+        const parMs = MAZE_LEVELS[levelIndex].parSeconds * 1000
+        const ratio = parMs > 0 && state.elapsedMs != null ? state.elapsedMs / parMs : 999
+        completeStage(campaignStageId, score, ratio)
+      }
+    },
     onNavigateBack: () => navigate('arcade'),
     onInit: (game) => game.loadLevel(MAZE_LEVELS[levelIndex]),
     onReset: (game) => game.loadLevel(MAZE_LEVELS[levelIndex]),
@@ -103,6 +122,15 @@ export function MazePage() {
         {gameState.isGameOver && levelIndex < MAZE_LEVELS.length - 1 && (
           <Button variant="contained" onClick={handleNextLevel}>
             Next Level
+          </Button>
+        )}
+        {gameState.isGameOver && campaignStageId && (
+          <Button
+            variant="contained"
+            onClick={() => { window.location.hash = '#/arcade/campaign' }}
+            sx={{ bgcolor: '#d97706', '&:hover': { bgcolor: '#b45309' }, fontFamily: 'monospace' }}
+          >
+            Continue Campaign
           </Button>
         )}
       </Stack>
