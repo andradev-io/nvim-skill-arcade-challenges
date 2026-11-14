@@ -171,7 +171,16 @@ export function ArcadeMenuPage() {
  onClick={() => { window.location.hash = '#/arcade/memory' }}
  />
  </Grid>
- </Grid>
+	 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+	 <GameCard
+	 title="Vim Snake"
+	 description="Guide the snake using vim motions. Eat food to learn vim tips. Avoid walls and your own tail!"
+	 available
+	 bestScore={snakeBest}
+	 onClick={() => { window.location.hash = '#/arcade/snake' }}
+	 />
+	 </Grid>
+	 </Grid>
  </Stack>
  )
 }
