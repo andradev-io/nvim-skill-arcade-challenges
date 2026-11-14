@@ -20,9 +20,9 @@ const ACCURACY_MEDIUM: StarThresholds = { oneStar: 55, twoStars: 78, threeStars:
 const ACCURACY_HARD: StarThresholds = { oneStar: 60, twoStars: 80, threeStars: 95, metric: 'accuracy' }
 
 const DEFENDER_SCORE_W1: StarThresholds = { oneStar: 500, twoStars: 1000, threeStars: 1500, metric: 'score' }
-const DEFENDER_SCORE_W2: StarThresholds = { oneStar: 1000, twoStars: 2000, threeStars: 3000, metric: 'score' }
+export const DEFENDER_SCORE_W2: StarThresholds = { oneStar: 1000, twoStars: 2000, threeStars: 3000, metric: 'score' }
 const DEFENDER_SCORE_W3: StarThresholds = { oneStar: 1500, twoStars: 3000, threeStars: 4500, metric: 'score' }
-const DEFENDER_SCORE_W4: StarThresholds = { oneStar: 2000, twoStars: 4000, threeStars: 6000, metric: 'score' }
+export const DEFENDER_SCORE_W4: StarThresholds = { oneStar: 2000, twoStars: 4000, threeStars: 6000, metric: 'score' }
 const DEFENDER_SCORE_W5: StarThresholds = { oneStar: 2500, twoStars: 5000, threeStars: 7500, metric: 'score' }
 
 export const CAMPAIGN_STAGES: CampaignStage[] = [

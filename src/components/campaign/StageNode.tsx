@@ -6,7 +6,8 @@ import LockIcon from '@mui/icons-material/Lock'
 import Stack from '@mui/material/Stack'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
-import type { CampaignStage, StageProgress } from '../../store/campaignStore'
+import type { StageProgress } from '../../store/campaignStore'
+import type { CampaignStage } from '../../store/campaignStages'
 
 const GAME_COLORS: Record<string, string> = {
   maze: '#22c55e',

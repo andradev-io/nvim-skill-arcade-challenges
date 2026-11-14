@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import type { Direction, Position, SnakeLevel } from './types'
+import { describe, it, expect } from 'vitest'
+import type { Direction, Position } from './types'
 
 // Pure logic tests for snake game mechanics (no canvas/DOM dependency)
 
@@ -166,9 +166,7 @@ describe('Snake Game Logic', () => {
         { row: 4, col: 4 },
         { row: 4, col: 3 },
       ]
-      const food = [{ position: { row: 4, col: 6 }, label: 'dd', tip: 'test', points: 10 }]
-
-      // Simulate eating: new head at food position, don't remove tail
+      // Simulate eating: new head at food position (4,6), don't remove tail
       const newHead = { row: 4, col: 6 }
       const newSnake = [newHead, ...snake]
       // Don't pop tail since food was eaten

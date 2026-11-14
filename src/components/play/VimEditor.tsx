@@ -52,14 +52,18 @@ const relativeLineNumbers = gutter({
   markers(view) {
     const builder = new RangeSetBuilder<RelativeLineMarker>()
     const cursorLine = view.state.doc.lineAt(view.state.selection.main.head).number
+    // Iterate by line number to avoid gaps from position-based iteration
+    const covered = new Set<number>()
     for (const range of view.visibleRanges) {
-      let pos = range.from
-      while (pos <= range.to) {
-        const line = view.state.doc.lineAt(pos)
-        const offset = Math.abs(line.number - cursorLine)
-        const text = offset === 0 ? String(line.number) : String(offset)
+      const firstLine = view.state.doc.lineAt(range.from).number
+      const lastLine = view.state.doc.lineAt(Math.min(range.to, view.state.doc.length)).number
+      for (let ln = firstLine; ln <= lastLine; ln++) {
+        if (covered.has(ln)) continue
+        covered.add(ln)
+        const line = view.state.doc.line(ln)
+        const offset = Math.abs(ln - cursorLine)
+        const text = offset === 0 ? String(ln) : String(offset)
         builder.add(line.from, line.from, new RelativeLineMarker(text))
-        pos = line.to + 1
       }
     }
     return builder.finish()

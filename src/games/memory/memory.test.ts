@@ -47,9 +47,10 @@ describe('Memory Match - cards', () => {
   })
 
   it('all card pools have unique IDs within each category', () => {
-    for (const [cat, cards] of Object.entries(ALL_CARDS)) {
+    for (const [, cards] of Object.entries(ALL_CARDS)) {
       const ids = cards.map((c) => c.id)
-      expect(new Set(ids).size).toBe(ids.length, `Duplicate IDs in ${cat}`)
+      const uniqueIds = new Set(ids)
+      expect(uniqueIds.size).toBe(ids.length) // no duplicate IDs in category
     }
   })
 })
