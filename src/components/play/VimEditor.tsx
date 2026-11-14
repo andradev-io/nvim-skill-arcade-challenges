@@ -261,7 +261,7 @@ export function VimEditor({ initialText, initialCursor, onKey, onSync, noMouse =
   const wkConfigRef = useRef<WhichKeyConfig | null>(whichKeyConfig ?? null)
   const wkStateRef = useRef<WhichKeyState>(initialWhichKeyState())
   const wkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [_wkState, setWkState] = useState<WhichKeyState>(initialWhichKeyState())
+  const [, setWkState] = useState<WhichKeyState>(initialWhichKeyState())
   // Runs on every render (no dependency array) by design: this effect keeps refs in sync
   // with the latest props so that event handlers attached once in the mount-only effect below
   // always call the current callbacks. Adding a dependency array would defeat the purpose —

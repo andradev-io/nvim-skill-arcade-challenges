@@ -16,7 +16,7 @@ describe('GameLoop', () => {
       rafCallbacks.push(cb as (time: number) => void)
       return id
     })
-    vi.stubGlobal('cancelAnimationFrame', (_id: number) => {
+    vi.stubGlobal('cancelAnimationFrame', () => {
       // no-op in tests; we control frame delivery
     })
     vi.stubGlobal('performance', { ...performance, now: () => simulatedNow })

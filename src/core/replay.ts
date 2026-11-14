@@ -573,7 +573,7 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       if (!pair) { unsupported('ys' + k + ch); return true }
       const f = flat()
       // Trim trailing whitespace from range when surround char is unspaced (e.g. ')' not '(')
-      let [rs, re] = range
+      const [rs, re] = range
       const isSpaced = pair.open.length > 1 || pair.close.length > 1
       if (!isSpaced && re > rs) {
         while (re > rs && /\s/.test(f[re - 1])) re--
@@ -803,7 +803,7 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
             i++
             if (mk === 'f' || mk === 't' || mk === 'F' || mk === 'T') arg = lit(toks[i++])
             if (mk === 'G') arg = count ? 'n' : 'none'
-            let wk = mk
+            const wk = mk
             const mo = motion(wk, cnt, arg)
             if (!mo) {
               unsupported('gc' + (mk || ''))

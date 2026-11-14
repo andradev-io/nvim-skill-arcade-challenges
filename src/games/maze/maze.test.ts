@@ -86,16 +86,14 @@ function dispatchKey(container: HTMLElement | HTMLCanvasElement, code: string): 
 
 describe('MazeGame', () => {
   let config: GameConfig
-  let stateChanges: number
   let gameOverScore: number | null
 
   beforeEach(() => {
-    stateChanges = 0
     gameOverScore = null
     config = {
       canvas: makeCanvas(),
       colors: COLORS,
-      onStateChange: () => { stateChanges++ },
+      onStateChange: () => {},
       onGameOver: (score) => { gameOverScore = score },
     }
   })

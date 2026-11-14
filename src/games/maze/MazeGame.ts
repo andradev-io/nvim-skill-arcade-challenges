@@ -362,7 +362,7 @@ export class MazeGame implements GameEngine {
     let newRow = prevRow
     let newCol = prevCol
     let result: ParsedMotion['result'] = 'moved'
-    let description = ''
+    let description: string
 
     switch (motion) {
       case 'h': {
