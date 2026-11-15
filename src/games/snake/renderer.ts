@@ -130,16 +130,13 @@ export class SnakeRenderer {
 
     // Status indicator
     this.ctx.textAlign = 'right'
-    let statusText = ''
-    if (state.isPaused) statusText = 'PAUSED'
-    else if (state.isGameOver) statusText = 'GAME OVER'
-    else if (!state.isRunning) statusText = 'READY'
-    else statusText = 'RUNNING'
+    const statusText = state.isPaused ? 'PAUSED'
+      : state.isGameOver ? 'GAME OVER'
+        : !state.isRunning ? 'READY'
+          : 'RUNNING'
 
-    if (statusText) {
-      this.ctx.fillStyle = state.isGameOver ? this.colors.warn : this.colors.fg
-      this.ctx.fillText(statusText, width * cs - 4, hudY + 4)
-    }
+    this.ctx.fillStyle = state.isGameOver ? this.colors.warn : this.colors.fg
+    this.ctx.fillText(statusText, width * cs - 4, hudY + 4)
 
     // Pause/Game Over overlays
     if (state.isPaused || state.isGameOver) {
