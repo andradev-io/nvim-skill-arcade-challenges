@@ -573,7 +573,7 @@ export function replay(text: string, cursor: Cursor, solution: string, forbid: s
       if (!pair) { unsupported('ys' + k + ch); return true }
       const f = flat()
       // Trim trailing whitespace from range when surround char is unspaced (e.g. ')' not '(')
-      const [rs, re] = range
+      let [rs, re] = range
       const isSpaced = pair.open.length > 1 || pair.close.length > 1
       if (!isSpaced && re > rs) {
         while (re > rs && /\s/.test(f[re - 1])) re--
