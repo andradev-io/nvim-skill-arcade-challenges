@@ -1,0 +1,24 @@
+{
+  "id": "d20261115-scoreboard-update-the-sc",
+  "title": "Scoreboard: update the score",
+  "area": "editing",
+  "level": 2,
+  "brief": "The home team just scored. Change their score from 2 to 3 on the scoreboard.",
+  "text": "Home: 2\nAway: 1",
+  "solution": "r3",
+  "expect": {
+    "text": "Home: 3\nAway: 1"
+  },
+  "why": "r replaces a single character under the cursor without entering insert mode, perfect for bumping a digit.",
+  "author": "claude (daily)",
+  "date": "2026-11-15",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:c985bec3b347",
+  "cursor": [
+    1,
+    6
+  ],
+  "par_seconds": 5,
+  "hint": "You only need to change one character."
+}

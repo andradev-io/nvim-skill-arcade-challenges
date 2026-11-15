@@ -1,0 +1,22 @@
+{
+  "id": "d20261115-bracket-reverse-match-or",
+  "title": "Bracket: reverse match order",
+  "area": "editing",
+  "level": 2,
+  "brief": "The match listing shows teams in wrong order. Reverse each pair so the home team comes first.",
+  "text": "Away: Lakers vs Celtics\nAway: Warriors vs Bulls\nAway: Heat vs Nets",
+  "solution": ":%s/\\(Away: \\)\\(.\\{-}\\) vs \\(.\\{-}\\)$/\\1\\3 vs \\2/<CR>",
+  "expect": {
+    "text": "Away: Celtics vs Lakers\nAway: Bulls vs Warriors\nAway: Nets vs Heat"
+  },
+  "why": "Substitution with capture groups swaps the two team names while preserving the prefix.",
+  "author": "claude (daily)",
+  "date": "2026-11-15",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:c985bec3b347",
+  "cursor": [
+    1,
+    6
+  ]
+}
