@@ -29,7 +29,11 @@ interface EditorSinkOptions {
 export function useEditorSink({ editor, actions, judged, setPickerConfig, setPickerOpen, setPalette, noteTimer }: EditorSinkOptions) {
   // keep a stable ref to the latest options so the effect closure never goes stale
   const opts = useRef({ judged, setPickerConfig, setPickerOpen, setPalette })
-  opts.current = { judged, setPickerConfig, setPickerOpen, setPalette }
+
+  // Sync opts ref after render to avoid react-hooks/refs violation
+  useEffect(() => {
+    opts.current = { judged, setPickerConfig, setPickerOpen, setPalette }
+  })
 
   useEffect(() => {
     const t = useTerminalStore.getState
