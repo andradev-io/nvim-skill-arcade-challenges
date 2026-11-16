@@ -13,7 +13,7 @@ Fields:
 - "id": string, unique level identifier (e.g., "maze-gen-1")
 - "name": string, short descriptive name (max 40 chars)
 - "width": integer, grid width in cells (8-20)
-- "height": integer, grid height in cells (6-15)
+- "height": integer, grid height in cells (6-16)
 - "grid": 2D array of CellType strings: "open", "wall", "start", "goal", "collectible", "door", "marker"
 - "doors": array of { row, col, requiredMotion } where requiredMotion is a Vim motion like "w", "3w", "fa"
 - "markers": object mapping "row,col" strings to single-character labels for f/t targets
