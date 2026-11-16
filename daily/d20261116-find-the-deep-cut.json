@@ -1,0 +1,24 @@
+{
+  "id": "d20261116-find-the-deep-cut",
+  "title": "Find the deep cut",
+  "area": "search",
+  "level": 3,
+  "brief": "A fan shouted for 'Echoes'! Search forward through this DJ tracklist and delete that entire song entry so the crowd calms down.",
+  "text": "Track 1: Sunrise\nTrack 2: Echoes\nTrack 3: Midnight\nTrack 4: Dawn",
+  "solution": "/Echoes<CR>dd",
+  "expect": {
+    "text": "Track 1: Sunrise\nTrack 3: Midnight\nTrack 4: Dawn"
+  },
+  "why": "/pattern<CR> moves the cursor to the matching line, letting dd immediately remove it. No need to count lines manually.",
+  "author": "claude (daily)",
+  "date": "2026-11-16",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:7d975fdd0486",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 10,
+  "hint": "Search lands your cursor on the match; then one command removes the whole line."
+}

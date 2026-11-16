@@ -1,0 +1,23 @@
+{
+  "id": "d20261116-swap-artist-and-title",
+  "title": "Swap artist and title",
+  "area": "registers",
+  "level": 3,
+  "brief": "Each line has 'Title by Artist'. Rearrange to 'Artist - Title' format for the playlist metadata.",
+  "text": "Bohemian Rhapsody by Queen\nHotel California by Eagles\nStairway to Heaven by Led Zeppelin",
+  "solution": ":%s/\\(.*\\) by \\(.*\\)/\\2 - \\1/<CR>",
+  "expect": {
+    "text": "Queen - Bohemian Rhapsody\nEagles - Hotel California\nLed Zeppelin - Stairway to Heaven"
+  },
+  "why": "Capture groups in substitution let you reorder parts of each line efficiently.",
+  "author": "claude (daily)",
+  "date": "2026-11-16",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:7d975fdd0486",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 20
+}
