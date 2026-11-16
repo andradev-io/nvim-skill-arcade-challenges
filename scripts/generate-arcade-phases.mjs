@@ -387,22 +387,29 @@ for (const a of accepted) {
 }
 
 if (!dry) {
-  // Append levels to source files
+  // Read existing campaign stages as objects (needed by generateCampaignStage)
+  const existingStages = readExistingCampaignStages()
+
+  // Append levels to source files — one level at a time with correct arg order
   const byGame = new Map()
   for (const a of accepted) {
     if (!byGame.has(a.game)) byGame.set(a.game, [])
     byGame.get(a.game).push(a.level)
   }
   for (const [game, levels] of byGame) {
-    const tsCode = serializeToTypeScript(game, levels)
-    appendLevelToSource(game, tsCode)
+    for (let i = 0; i < levels.length; i++) {
+      const level = levels[i]
+      const { code, varName } = serializeToTypeScript(level, game)
+      appendLevelToSource(game, code, varName)
+    }
     log(`  appended ${levels.length} level(s) to src/games/${game}/${game === 'defender' ? 'waves' : 'levels'}.ts`)
   }
 
-  // Generate and append campaign stages
+  // Generate and append campaign stages — correct arg order: (level, game, existingStages, tier)
   for (const a of accepted) {
-    const stage = generateCampaignStage(a.game, a.level, campaignStatsFor(a.game))
+    const stage = generateCampaignStage(a.level, a.game, existingStages, String(a.tier ?? 'easy'))
     appendStageToCampaign(stage)
+    existingStages.push(stage) // keep in sync for subsequent stages in this run
   }
   log(`  appended ${accepted.length} campaign stage(s) to src/store/campaignStages.ts`)
 
@@ -434,6 +441,35 @@ if (!dry) {
 output(dry ? 0 : accepted.length)
 
 // ── helpers ─────────────────────────────────────────────────────────────────
+
+/** Read existing campaign stage objects from source (needed by generateCampaignStage). */
+function readExistingCampaignStages() {
+  const file = path.join('src', 'store', 'campaignStages.ts')
+  if (!fs.existsSync(file)) return []
+  const src = fs.readFileSync(file, 'utf8')
+  // Extract each stage object block from the CAMPAIGN_STAGES array
+  const stages = []
+  const idMatches = [...src.matchAll(/id:\s*['"]([^'"]+)['"]/g)]
+  for (const m of idMatches) {
+    const id = m[1]
+    // Extract surrounding fields via regex on the source text
+    const gameIdMatch = src.slice(m.index).match(/gameId:\s*['"]([^'"]+)['"]/)
+    const levelIndexMatch = src.slice(m.index).match(/levelIndex:\s*(\d+)/)
+    const nameMatch = src.slice(m.index).match(/name:\s*['"]([^'"]+)['"]/)
+    const chapterMatch = src.slice(m.index).match(/chapter:\s*(\d+)/)
+    if (gameIdMatch && levelIndexMatch) {
+      stages.push({
+        id,
+        gameId: gameIdMatch[1],
+        levelIndex: Number(levelIndexMatch[1]),
+        name: nameMatch ? nameMatch[1] : id,
+        chapter: chapterMatch ? Number(chapterMatch[1]) : 1,
+      })
+    }
+  }
+  return stages
+}
+
 function campaignStatsFor(game) {
   const stats = readCampaignStats()
   // Count existing stages for this game to determine level index
