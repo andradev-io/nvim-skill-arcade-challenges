@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 const STORAGE_KEY = 'nvim-arcade-highscores'
 
-export type ArcadeGameId = 'maze' | 'rhythm' | 'defender' | 'memory' | 'snake'
+export type ArcadeGameId = 'maze' | 'rhythm' | 'defender' | 'memory' | 'snake' | 'racer' | 'regex' | 'fuzzy'
 
 export interface ArcadeHighScore {
   gameId: ArcadeGameId

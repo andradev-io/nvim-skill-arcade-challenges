@@ -4,7 +4,7 @@ import type { CampaignStage } from './campaignStages'
 
 const STORAGE_KEY = 'nvim-arcade-campaign'
 
-export type CampaignGameId = 'maze' | 'rhythm' | 'defender' | 'snake' | 'memory'
+export type CampaignGameId = 'maze' | 'rhythm' | 'defender' | 'snake' | 'memory' | 'racer' | 'regex' | 'fuzzy'
 
 export interface StarThresholds {
   oneStar: number

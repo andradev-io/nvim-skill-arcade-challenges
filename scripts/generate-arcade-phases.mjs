@@ -20,7 +20,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import {
   sanitizeMazeLevel, sanitizeRhythmLevel, sanitizeDefenderWave, sanitizeSnakeLevel, sanitizeMemoryLevel,
+  sanitizeRacerLevel, sanitizeRegexLevel, sanitizeFuzzyLevel,
   validateMazePlayability, validateRhythmPlayability, validateDefenderPlayability, validateSnakePlayability, validateMemoryPlayability,
+  validateRacerPlayability, validateRegexPlayability, validateFuzzyPlayability,
   serializeToTypeScript, appendLevelToSource,
   generateCampaignStage, appendStageToCampaign,
   resolveBaseUrl, redact, extractJson, resolveModels, modelChain, resolveBudgetMs, resolveTimeoutMs,
@@ -54,7 +56,7 @@ const log = (msg) => console.log(msg)
 const flag = (v) => /^(1|true|yes)$/i.test(String(v ?? ''))
 const printPrompt = process.argv.includes('--print-prompt')
 
-const GAMES = ['maze', 'rhythm', 'defender', 'snake', 'memory']
+const GAMES = ['maze', 'rhythm', 'defender', 'snake', 'memory', 'racer', 'regex', 'fuzzy']
 const pickGames = (() => {
   const raw = String(env.ARCADE_GAME ?? 'all').trim().toLowerCase()
   if (raw === 'all') return GAMES
@@ -206,6 +208,56 @@ const MOCK_LEVELS = {
     parMoves: 12,
     hints: ['Match each command with its description.'],
   }],
+  racer: [{
+    id: 'racer-gen-mock-1',
+    name: 'Mock Racer',
+    laneCount: 3,
+    trackLength: 100,
+    baseSpeed: 10,
+    maxSpeed: 25,
+    obstacles: [
+      { position: 0.2, command: 'dw', label: 'Delete word', points: 10, timeoutMs: 3000, lane: 0 },
+      { position: 0.4, command: 'yy', label: 'Yank line', points: 10, timeoutMs: 3000, lane: 1 },
+      { position: 0.6, command: 'p', label: 'Paste', points: 10, timeoutMs: 3000, lane: 2 },
+      { position: 0.8, command: 'u', label: 'Undo', points: 10, timeoutMs: 3000, lane: -1 },
+    ],
+    parSeconds: 30,
+    parAccuracy: 80,
+    hints: ['Type commands quickly to clear obstacles.'],
+  }],
+  regex: [{
+    id: 'regex-gen-mock-1',
+    name: 'Mock Regex',
+    puzzles: [
+      {
+        bufferLines: ['hello world', 'foo bar baz'],
+        targets: [{ line: 0, startCol: 0, endCol: 5 }],
+        feature: 'literal',
+      },
+    ],
+    parSeconds: 30,
+    maxAttemptsPerPuzzle: 5,
+    hints: ['Match the highlighted text exactly.'],
+  }],
+  fuzzy: [{
+    id: 'fuzzy-gen-mock-1',
+    name: 'Mock Fuzzy',
+    rounds: [
+      {
+        entries: [
+          { text: 'src/index.ts', category: 'source' },
+          { text: 'src/app.tsx', category: 'source' },
+          { text: 'README.md', category: 'doc' },
+          { text: 'package.json', category: 'config' },
+          { text: 'tsconfig.json', category: 'config' },
+        ],
+        targetIndex: 1,
+      },
+    ],
+    parSeconds: 20,
+    maxWrongPerRound: 3,
+    hints: ['Type to filter, then select the target.'],
+  }],
 }
 
 const SANITIZERS = {
@@ -214,6 +266,9 @@ const SANITIZERS = {
   defender: sanitizeDefenderWave,
   snake: sanitizeSnakeLevel,
   memory: sanitizeMemoryLevel,
+  racer: sanitizeRacerLevel,
+  regex: sanitizeRegexLevel,
+  fuzzy: sanitizeFuzzyLevel,
 }
 
 const VALIDATORS = {
@@ -222,6 +277,9 @@ const VALIDATORS = {
   defender: validateDefenderPlayability,
   snake: validateSnakePlayability,
   memory: validateMemoryPlayability,
+  racer: validateRacerPlayability,
+  regex: validateRegexPlayability,
+  fuzzy: validateFuzzyPlayability,
 }
 
 // ── API call ────────────────────────────────────────────────────────────────

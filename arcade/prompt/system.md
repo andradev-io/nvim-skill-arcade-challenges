@@ -124,6 +124,88 @@ Design guidance:
 - Categories should be balanced within a level
 - Grid dimensions must fit the pair count exactly (cols * rows = pairs * 2)
 
+
+## racer
+A side-scrolling racing game where players type Vim commands to clear obstacles on a multi-lane track.
+Fields:
+- "id": string (e.g., "racer-gen-1")
+- "name": string (max 40 chars)
+- "laneCount": integer, number of lanes (2-4)
+- "trackLength": integer, length of the track in cells (50-300)
+- "baseSpeed": number, starting scroll speed (5-30)
+- "maxSpeed": number, maximum scroll speed, must be > baseSpeed and <= baseSpeed*3
+- "obstacles": array of { position, command, label, points, timeoutMs, lane }
+  - position: number 0.01-0.99, normalized distance along track, ascending with min gap 0.05
+  - command: string (max 20 chars), the Vim command to type
+  - label: string (max 40 chars), description shown to player
+  - points: positive integer
+  - timeoutMs: integer 1000-5000
+  - lane: integer -1 (all lanes) or 0 to laneCount-1
+- "parSeconds": positive number, target completion time
+- "parAccuracy": number 50-100, target accuracy percentage
+- "hints": optional array of hint strings (max 2, max 80 chars each)
+
+Design guidance:
+- Tier 1: 2-3 lanes, slow speed, simple single-key commands (h, j, k, l), few obstacles
+- Tier 2: 3 lanes, moderate speed, two-key commands (dw, dd, yy), more obstacles
+- Tier 3: 3-4 lanes, faster speed, text objects (ciw, di"), tighter timing
+- Tier 4: 4 lanes, fast speed, complex combos (daw, ci(, ggVG), dense obstacles
+- Tier 5: 4 lanes, very fast, ex commands and macros, minimal reaction time
+- Obstacles should teach useful Vim commands in context
+- Position obstacles so the player has time to react but feels pressure
+- Lane -1 obstacles span all lanes and require quick recognition
+
+## regex
+A puzzle game where players build Vim regex patterns to match highlighted targets in buffer lines.
+Fields:
+- "id": string (e.g., "regex-gen-1")
+- "name": string (max 40 chars)
+- "puzzles": array of { bufferLines, targets, feature? } (1-8 puzzles)
+  - bufferLines: array of 1-10 strings (max 80 chars each), the mock buffer content
+  - targets: array of { line, startCol, endCol }, non-overlapping highlights within bounds
+  - feature: optional string describing the regex concept taught (e.g., "literal", "character-class")
+- "parSeconds": positive number, target completion time
+- "maxAttemptsPerPuzzle": integer 3-20
+- "allowedFeatures": optional array of strings restricting which regex features are accepted
+- "hints": optional array of hint strings (max 2, max 80 chars each)
+
+Design guidance:
+- Tier 1: literal matches only, short buffers, single target per puzzle
+- Tier 2: character classes [abc], anchors ^$, simple quantifiers *+
+- Tier 3: groups (), alternation |, word boundaries \b
+- Tier 4: lookaheads, backreferences, nested groups
+- Tier 5: complex real-world patterns, multiple targets, tight par
+- Buffer lines should resemble real code or prose
+- Targets should highlight meaningful text that the pattern should match
+- Each puzzle should isolate one regex concept
+- Avoid ambiguous patterns where multiple solutions exist
+
+## fuzzy
+A simulated Telescope/fzf experience where players search mock file trees and select targets with minimal keystrokes.
+Fields:
+- "id": string (e.g., "fuzzy-gen-1")
+- "name": string (max 40 chars)
+- "rounds": array of { entries, targetIndex, hint? } (1-10 rounds)
+  - entries: array of 5-80 { text, category? } items, no duplicate texts within a round
+  - text: string max 100 chars (file paths, command names, etc.)
+  - category: optional string max 20 chars
+  - targetIndex: integer 0 to entries.length-1, the item the player must find
+  - hint: optional string hint for this round
+- "parSeconds": positive number, target completion time
+- "maxWrongPerRound": integer 1-10
+- "hints": optional array of hint strings (max 2, max 80 chars each)
+
+Design guidance:
+- Tier 1: small entry lists (5-10), obvious targets, generous par
+- Tier 2: medium lists (10-20), similar-looking entries, moderate par
+- Tier 3: larger lists (20-40), targets requiring specific filter strings
+- Tier 4: large lists (40-60), subtle distinctions between entries
+- Tier 5: very large lists (60-80), near-duplicate entries, tight par
+- Entries should resemble real project structures (src/, lib/, test/)
+- Target should be findable with a reasonable filter string
+- Categories help organize entries visually (source, doc, config, test)
+- Vary entry naming conventions across rounds (camelCase, kebab-case, snake_case)
+
 # General rules
 - All ids must start with the game prefix followed by "-gen-" and a number
 - Names should be evocative and describe what the level teaches

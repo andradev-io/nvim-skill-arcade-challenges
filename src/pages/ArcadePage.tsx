@@ -5,9 +5,12 @@ import { DefenderPage } from '../games/defender/DefenderPage'
 import { RhythmPage } from '../games/rhythm/RhythmPage'
 import { MemoryPage } from '../games/memory/MemoryPage'
 import { SnakePage } from '../games/snake/SnakePage'
+import { RacerPage } from '../games/racer/RacerPage'
+import { RegexPage } from '../games/regex/RegexPage'
+import { FuzzyPage } from '../games/fuzzy/FuzzyPage'
 import { CampaignPage } from './CampaignPage'
 
-type ArcadeSubRoute = 'menu' | 'maze' | 'defender' | 'rhythm' | 'memory' | 'snake' | 'campaign'
+type ArcadeSubRoute = 'menu' | 'maze' | 'defender' | 'rhythm' | 'memory' | 'snake' | 'racer' | 'regex' | 'fuzzy' | 'campaign'
 
 function parseArcadeSubRoute(hash: string): ArcadeSubRoute {
   const path = hash.replace(/^#\/?/, '').split('?')[0]
@@ -16,6 +19,9 @@ function parseArcadeSubRoute(hash: string): ArcadeSubRoute {
   if (path === 'arcade/rhythm') return 'rhythm'
   if (path === 'arcade/memory') return 'memory'
   if (path === 'arcade/snake') return 'snake'
+  if (path === 'arcade/racer') return 'racer'
+  if (path === 'arcade/regex') return 'regex'
+  if (path === 'arcade/fuzzy') return 'fuzzy'
   if (path === 'arcade/campaign') return 'campaign'
   return 'menu'
 }
@@ -71,6 +77,18 @@ export function ArcadePage() {
 
   if (subRoute === 'snake') {
     return <SnakePage />
+  }
+
+  if (subRoute === 'racer') {
+    return <RacerPage />
+  }
+
+  if (subRoute === 'regex') {
+    return <RegexPage />
+  }
+
+  if (subRoute === 'fuzzy') {
+    return <FuzzyPage />
   }
 
   return <ArcadeMenuPage />

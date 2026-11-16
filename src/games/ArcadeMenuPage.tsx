@@ -65,6 +65,9 @@ export function ArcadeMenuPage() {
  const defenderBest = getBest('defender', 1) ?? getBest('defender', 2) ?? getBest('defender', 3) ?? getBest('defender', 4) ?? getBest('defender', 5)
  const memoryBest = getBest('memory', 1) ?? getBest('memory', 2) ?? getBest('memory', 3) ?? getBest('memory', 4)
  const snakeBest = getBest('snake', 1) ?? getBest('snake', 2) ?? getBest('snake', 3) ?? getBest('snake', 4)
+ const racerBest = getBest('racer', 1) ?? getBest('racer', 2) ?? getBest('racer', 3) ?? getBest('racer', 4)
+ const regexBest = getBest('regex', 1) ?? getBest('regex', 2) ?? getBest('regex', 3)
+ const fuzzyBest = getBest('fuzzy', 1) ?? getBest('fuzzy', 2) ?? getBest('fuzzy', 3)
 
  const campaignLabel = totalStars > 0 ? 'Continue Campaign' : 'Start Campaign'
 
@@ -178,6 +181,33 @@ export function ArcadeMenuPage() {
 	 available
 	 bestScore={snakeBest}
 	 onClick={() => { window.location.hash = '#/arcade/snake' }}
+	 />
+	 </Grid>
+	 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+	 <GameCard
+	 title="Vim Racer"
+	 description="Race through code by typing Vim commands to clear obstacles. Master operator+motion combos under pressure!"
+	 available
+	 bestScore={racerBest}
+	 onClick={() => { window.location.hash = '#/arcade/racer' }}
+	 />
+	 </Grid>
+	 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+	 <GameCard
+	 title="Vim Regex Builder"
+	 description="Build regex patterns to match highlighted targets. Learn Vim search syntax from literals to advanced patterns."
+	 available
+	 bestScore={regexBest}
+	 onClick={() => { window.location.hash = '#/arcade/regex' }}
+	 />
+	 </Grid>
+	 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+	 <GameCard
+	 title="Vim Fuzzy Finder"
+	 description="Simulated Telescope/fzf experience. Search mock file trees and select targets with minimal keystrokes."
+	 available
+	 bestScore={fuzzyBest}
+	 onClick={() => { window.location.hash = '#/arcade/fuzzy' }}
 	 />
 	 </Grid>
 	 </Grid>

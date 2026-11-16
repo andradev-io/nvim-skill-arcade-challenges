@@ -414,6 +414,252 @@ export function sanitizeMemoryLevel(raw, meta) {
   return { level }
 }
 
+
+// ── racer sanitizer ─────────────────────────────────────────────────────────
+
+export function sanitizeRacerLevel(raw, meta) {
+  if (!raw || typeof raw !== 'object') return { error: 'not an object' }
+
+  const name = str(raw.name, 40)
+  if (!name) return { error: 'name is required (string, max 40 chars)' }
+
+  const laneCount = intRange(raw.laneCount, 2, 4)
+  if (!laneCount) return { error: 'laneCount must be integer 2-4' }
+
+  const trackLength = intRange(raw.trackLength, 50, 300)
+  if (!trackLength) return { error: 'trackLength must be integer 50-300' }
+
+  const baseSpeed = numRange(raw.baseSpeed, 5, 30)
+  if (!baseSpeed) return { error: 'baseSpeed must be number 5-30' }
+
+  const maxSpeed = numRange(raw.maxSpeed, baseSpeed + 0.01, baseSpeed * 3)
+  if (!maxSpeed) return { error: `maxSpeed must be > baseSpeed (${baseSpeed}) and <= baseSpeed*3 (${baseSpeed * 3})` }
+
+  if (!Array.isArray(raw.obstacles) || raw.obstacles.length === 0) {
+    return { error: 'obstacles must be a non-empty array' }
+  }
+  const obstacles = []
+  let prevPos = -1
+  for (let i = 0; i < raw.obstacles.length; i++) {
+    const o = raw.obstacles[i]
+    if (!o || typeof o !== 'object') return { error: `obstacles[${i}] is not an object` }
+    const position = numRange(o.position, 0.01, 0.99)
+    if (!position) return { error: `obstacles[${i}].position must be number 0.01-0.99` }
+    if (prevPos >= 0 && position - prevPos < 0.05) {
+      return { error: `obstacles[${i}].position (${position}) too close to previous (${prevPos}), min gap 0.05` }
+    }
+    prevPos = position
+    const command = str(o.command, 20)
+    if (!command) return { error: `obstacles[${i}].command is required (string, max 20 chars)` }
+    const label = str(o.label, 40)
+    if (!label) return { error: `obstacles[${i}].label is required (string, max 40 chars)` }
+    const points = posInt(o.points)
+    if (!points) return { error: `obstacles[${i}].points must be a positive integer` }
+    const timeoutMs = intRange(o.timeoutMs, 1000, 5000)
+    if (!timeoutMs) return { error: `obstacles[${i}].timeoutMs must be integer 1000-5000` }
+    const lane = intRange(o.lane, -1, laneCount - 1)
+    if (lane === undefined) return { error: `obstacles[${i}].lane must be integer -1 to ${laneCount - 1}` }
+    obstacles.push({ position, command, label, points, timeoutMs, lane })
+  }
+
+  const parSeconds = posNum(raw.parSeconds)
+  if (!parSeconds) return { error: 'parSeconds must be a positive number' }
+
+  const parAccuracy = numRange(raw.parAccuracy, 50, 100)
+  if (!parAccuracy) return { error: 'parAccuracy must be number 50-100' }
+
+  let hints
+  if (raw.hints !== undefined) {
+    if (!Array.isArray(raw.hints)) return { error: 'hints must be an array' }
+    if (raw.hints.length > 2) return { error: 'hints may have at most 2 entries' }
+    hints = []
+    for (let i = 0; i < raw.hints.length; i++) {
+      const h = str(raw.hints[i], 80)
+      if (!h) return { error: `hints[${i}] must be a string of at most 80 chars` }
+      hints.push(h)
+    }
+  }
+
+  const compact = (meta?.date ?? '').replace(/-/g, '')
+  const id = str(raw.id, 60) ?? `racer-${compact}-${meta?.index ?? 0}`
+
+  const level = { id, name, laneCount, trackLength, baseSpeed, maxSpeed, obstacles, parSeconds, parAccuracy }
+  if (hints) level.hints = hints
+  return { level }
+}
+
+// ── regex sanitizer ─────────────────────────────────────────────────────────
+
+export function sanitizeRegexLevel(raw, meta) {
+  if (!raw || typeof raw !== 'object') return { error: 'not an object' }
+
+  const name = str(raw.name, 40)
+  if (!name) return { error: 'name is required (string, max 40 chars)' }
+
+  if (!Array.isArray(raw.puzzles) || raw.puzzles.length === 0) {
+    return { error: 'puzzles must be a non-empty array' }
+  }
+  if (raw.puzzles.length > 8) return { error: 'puzzles may have at most 8 entries' }
+
+  const puzzles = []
+  for (let pi = 0; pi < raw.puzzles.length; pi++) {
+    const p = raw.puzzles[pi]
+    if (!p || typeof p !== 'object') return { error: `puzzles[${pi}] is not an object` }
+
+    if (!Array.isArray(p.bufferLines) || p.bufferLines.length === 0) {
+      return { error: `puzzles[${pi}].bufferLines must be a non-empty array` }
+    }
+    if (p.bufferLines.length > 10) return { error: `puzzles[${pi}].bufferLines may have at most 10 lines` }
+    const bufferLines = []
+    for (let li = 0; li < p.bufferLines.length; li++) {
+      const line = str(p.bufferLines[li], 80)
+      if (line === undefined) return { error: `puzzles[${pi}].bufferLines[${li}] must be a string of at most 80 chars` }
+      bufferLines.push(line)
+    }
+
+    if (!Array.isArray(p.targets) || p.targets.length === 0) {
+      return { error: `puzzles[${pi}].targets must be a non-empty array` }
+    }
+    const targets = []
+    const lineOccupied = new Map()
+    for (let ti = 0; ti < p.targets.length; ti++) {
+      const t = p.targets[ti]
+      if (!t || typeof t !== 'object') return { error: `puzzles[${pi}].targets[${ti}] is not an object` }
+      const line = intRange(t.line, 0, bufferLines.length - 1)
+      if (line === undefined) return { error: `puzzles[${pi}].targets[${ti}].line out of bounds` }
+      const startCol = intRange(t.startCol, 0, bufferLines[line].length - 1)
+      if (startCol === undefined) return { error: `puzzles[${pi}].targets[${ti}].startCol out of bounds` }
+      const endCol = intRange(t.endCol, startCol + 1, bufferLines[line].length)
+      if (endCol === undefined) return { error: `puzzles[${pi}].targets[${ti}].endCol out of bounds or <= startCol` }
+      const occupied = lineOccupied.get(line) ?? []
+      for (const [os, oe] of occupied) {
+        if (startCol < oe && endCol > os) {
+          return { error: `puzzles[${pi}].targets[${ti}] overlaps with another target on line ${line}` }
+        }
+      }
+      occupied.push([startCol, endCol])
+      lineOccupied.set(line, occupied)
+      targets.push({ line, startCol, endCol })
+    }
+
+    const puzzle = { bufferLines, targets }
+    if (typeof p.feature === 'string' && p.feature.trim()) puzzle.feature = p.feature
+    puzzles.push(puzzle)
+  }
+
+  const parSeconds = posNum(raw.parSeconds)
+  if (!parSeconds) return { error: 'parSeconds must be a positive number' }
+
+  const maxAttemptsPerPuzzle = intRange(raw.maxAttemptsPerPuzzle, 3, 20)
+  if (!maxAttemptsPerPuzzle) return { error: 'maxAttemptsPerPuzzle must be integer 3-20' }
+
+  let allowedFeatures
+  if (raw.allowedFeatures !== undefined) {
+    if (!Array.isArray(raw.allowedFeatures)) return { error: 'allowedFeatures must be an array' }
+    allowedFeatures = []
+    for (let i = 0; i < raw.allowedFeatures.length; i++) {
+      const af = str(raw.allowedFeatures[i], 40)
+      if (!af) return { error: `allowedFeatures[${i}] must be a non-empty string` }
+      allowedFeatures.push(af)
+    }
+  }
+
+  let hints
+  if (raw.hints !== undefined) {
+    if (!Array.isArray(raw.hints)) return { error: 'hints must be an array' }
+    if (raw.hints.length > 2) return { error: 'hints may have at most 2 entries' }
+    hints = []
+    for (let i = 0; i < raw.hints.length; i++) {
+      const h = str(raw.hints[i], 80)
+      if (!h) return { error: `hints[${i}] must be a string of at most 80 chars` }
+      hints.push(h)
+    }
+  }
+
+  const compact = (meta?.date ?? '').replace(/-/g, '')
+  const id = str(raw.id, 60) ?? `regex-${compact}-${meta?.index ?? 0}`
+
+  const level = { id, name, puzzles, parSeconds, maxAttemptsPerPuzzle }
+  if (allowedFeatures) level.allowedFeatures = allowedFeatures
+  if (hints) level.hints = hints
+  return { level }
+}
+
+// ── fuzzy sanitizer ─────────────────────────────────────────────────────────
+
+export function sanitizeFuzzyLevel(raw, meta) {
+  if (!raw || typeof raw !== 'object') return { error: 'not an object' }
+
+  const name = str(raw.name, 40)
+  if (!name) return { error: 'name is required (string, max 40 chars)' }
+
+  if (!Array.isArray(raw.rounds) || raw.rounds.length === 0) {
+    return { error: 'rounds must be a non-empty array' }
+  }
+  if (raw.rounds.length > 10) return { error: 'rounds may have at most 10 entries' }
+
+  const rounds = []
+  for (let ri = 0; ri < raw.rounds.length; ri++) {
+    const r = raw.rounds[ri]
+    if (!r || typeof r !== 'object') return { error: `rounds[${ri}] is not an object` }
+
+    if (!Array.isArray(r.entries)) return { error: `rounds[${ri}].entries must be an array` }
+    if (r.entries.length < 5 || r.entries.length > 80) {
+      return { error: `rounds[${ri}].entries must have 5-80 items (got ${r.entries.length})` }
+    }
+
+    const entryTexts = new Set()
+    const entries = []
+    for (let ei = 0; ei < r.entries.length; ei++) {
+      const e = r.entries[ei]
+      if (!e || typeof e !== 'object') return { error: `rounds[${ri}].entries[${ei}] is not an object` }
+      const text = str(e.text, 100)
+      if (!text) return { error: `rounds[${ri}].entries[${ei}].text is required (string, max 100 chars)` }
+      if (entryTexts.has(text)) return { error: `rounds[${ri}].entries[${ei}] has duplicate text "${text}"` }
+      entryTexts.add(text)
+      const entry = { text }
+      if (e.category !== undefined) {
+        const cat = str(e.category, 20)
+        if (!cat) return { error: `rounds[${ri}].entries[${ei}].category must be string max 20 chars` }
+        entry.category = cat
+      }
+      entries.push(entry)
+    }
+
+    const targetIndex = intRange(r.targetIndex, 0, entries.length - 1)
+    if (targetIndex === undefined) return { error: `rounds[${ri}].targetIndex out of bounds` }
+
+    const round = { entries, targetIndex }
+    if (typeof r.hint === 'string' && r.hint.trim()) round.hint = r.hint
+    rounds.push(round)
+  }
+
+  const parSeconds = posNum(raw.parSeconds)
+  if (!parSeconds) return { error: 'parSeconds must be a positive number' }
+
+  const maxWrongPerRound = intRange(raw.maxWrongPerRound, 1, 10)
+  if (!maxWrongPerRound) return { error: 'maxWrongPerRound must be integer 1-10' }
+
+  let hints
+  if (raw.hints !== undefined) {
+    if (!Array.isArray(raw.hints)) return { error: 'hints must be an array' }
+    if (raw.hints.length > 2) return { error: 'hints may have at most 2 entries' }
+    hints = []
+    for (let i = 0; i < raw.hints.length; i++) {
+      const h = str(raw.hints[i], 80)
+      if (!h) return { error: `hints[${i}] must be a string of at most 80 chars` }
+      hints.push(h)
+    }
+  }
+
+  const compact = (meta?.date ?? '').replace(/-/g, '')
+  const id = str(raw.id, 60) ?? `fuzzy-${compact}-${meta?.index ?? 0}`
+
+  const level = { id, name, rounds, parSeconds, maxWrongPerRound }
+  if (hints) level.hints = hints
+  return { level }
+}
+
 // ── playability validators ──────────────────────────────────────────────────
 
 function bfs(grid, startR, startC, height, width) {
@@ -648,6 +894,105 @@ export function validateMemoryPlayability(level) {
   return errors
 }
 
+
+export function validateRacerPlayability(level) {
+  const errors = []
+  const { obstacles, laneCount, parSeconds } = level
+
+  if (!obstacles || obstacles.length < 3) {
+    errors.push('at least 3 obstacles are required')
+  }
+
+  for (let i = 0; i < (obstacles ?? []).length; i++) {
+    const o = obstacles[i]
+    if (o.lane !== -1 && (o.lane < 0 || o.lane >= laneCount)) {
+      errors.push(`obstacles[${i}].lane (${o.lane}) out of range for laneCount ${laneCount}`)
+    }
+  }
+
+  // check sorted positions with gaps
+  for (let i = 1; i < (obstacles ?? []).length; i++) {
+    if (obstacles[i].position - obstacles[i - 1].position < 0.05) {
+      errors.push(`obstacles[${i}].position too close to obstacles[${i - 1}]`)
+    }
+  }
+
+  if (!parSeconds || parSeconds <= 0) {
+    errors.push('parSeconds must be positive')
+  }
+
+  return errors
+}
+
+export function validateRegexPlayability(level) {
+  const errors = []
+  const { puzzles, parSeconds } = level
+
+  if (!puzzles || puzzles.length < 1) {
+    errors.push('at least 1 puzzle is required')
+  }
+
+  for (let pi = 0; pi < (puzzles ?? []).length; pi++) {
+    const p = puzzles[pi]
+    if (!p.bufferLines || p.bufferLines.length === 0) {
+      errors.push(`puzzles[${pi}].bufferLines must be non-empty`)
+    }
+    for (let ti = 0; ti < (p.targets ?? []).length; ti++) {
+      const t = p.targets[ti]
+      if (!p.bufferLines || t.line < 0 || t.line >= p.bufferLines.length) {
+        errors.push(`puzzles[${pi}].targets[${ti}].line out of bounds`)
+      } else {
+        const lineLen = p.bufferLines[t.line].length
+        if (t.startCol < 0 || t.startCol >= lineLen) {
+          errors.push(`puzzles[${pi}].targets[${ti}].startCol out of bounds`)
+        }
+        if (t.endCol <= t.startCol || t.endCol > lineLen) {
+          errors.push(`puzzles[${pi}].targets[${ti}].endCol out of bounds or <= startCol`)
+        }
+      }
+    }
+  }
+
+  if (!parSeconds || parSeconds <= 0) {
+    errors.push('parSeconds must be positive')
+  }
+
+  return errors
+}
+
+export function validateFuzzyPlayability(level) {
+  const errors = []
+  const { rounds, parSeconds } = level
+
+  if (!rounds || rounds.length < 1) {
+    errors.push('at least 1 round is required')
+  }
+
+  for (let ri = 0; ri < (rounds ?? []).length; ri++) {
+    const r = rounds[ri]
+    if (!r.entries || r.entries.length < 3) {
+      errors.push(`rounds[${ri}] must have at least 3 entries`)
+    }
+    if (r.targetIndex === undefined || r.targetIndex < 0 || r.targetIndex >= (r.entries ?? []).length) {
+      errors.push(`rounds[${ri}].targetIndex out of bounds`)
+    }
+    // check duplicates
+    const texts = new Set()
+    for (const e of (r.entries ?? [])) {
+      if (texts.has(e.text)) {
+        errors.push(`rounds[${ri}] has duplicate entry text "${e.text}"`)
+      }
+      texts.add(e.text)
+    }
+  }
+
+  if (!parSeconds || parSeconds <= 0) {
+    errors.push('parSeconds must be positive')
+  }
+
+  return errors
+}
+
 // ── TypeScript serializer ───────────────────────────────────────────────────
 
 function jsValue(v, indent = 0) {
@@ -728,7 +1073,7 @@ function serializeHints(hints) {
 }
 
 export function serializeToTypeScript(level, game) {
-  const validGames = ['maze', 'rhythm', 'defender', 'snake', 'memory']
+  const validGames = ['maze', 'rhythm', 'defender', 'snake', 'memory', 'racer', 'regex', 'fuzzy']
   if (!validGames.includes(game)) throw new Error(`unknown game: ${game}`)
 
   const date = new Date().toISOString().slice(0, 10)
@@ -799,6 +1144,60 @@ export function serializeToTypeScript(level, game) {
     const hintsStr = serializeHints(level.hints)
     if (hintsStr) lines.push(`  hints: ${hintsStr},`)
     lines.push('}')
+  } else if (game === 'racer') {
+    lines.push(`const ${varName}: RacerLevel = {`)
+    lines.push(`  id: '${level.id}',`)
+    lines.push(`  name: '${level.name}',`)
+    lines.push(`  laneCount: ${level.laneCount},`)
+    lines.push(`  trackLength: ${level.trackLength},`)
+    lines.push(`  baseSpeed: ${level.baseSpeed},`)
+    lines.push(`  maxSpeed: ${level.maxSpeed},`)
+    const obsItems = level.obstacles.map((o) =>
+      `    { position: ${o.position}, command: '${o.command}', label: '${o.label}', points: ${o.points}, timeoutMs: ${o.timeoutMs}, lane: ${o.lane} }`
+    )
+    lines.push(`  obstacles: [\n${obsItems.join(',\n')},\n  ],`)
+    lines.push(`  parSeconds: ${level.parSeconds},`)
+    lines.push(`  parAccuracy: ${level.parAccuracy},`)
+    const hintsStr = serializeHints(level.hints)
+    if (hintsStr) lines.push(`  hints: ${hintsStr},`)
+    lines.push('}')
+  } else if (game === 'regex') {
+    lines.push(`const ${varName}: RegexLevel = {`)
+    lines.push(`  id: '${level.id}',`)
+    lines.push(`  name: '${level.name}',`)
+    const puzzleItems = level.puzzles.map((p) => {
+      const blStr = `[${p.bufferLines.map((l) => `'${l}'`).join(', ')}]`
+      const tgtStr = p.targets.map((t) => `{ line: ${t.line}, startCol: ${t.startCol}, endCol: ${t.endCol} }`).join(', ')
+      const feat = p.feature ? `, feature: '${p.feature}'` : ''
+      return `    { bufferLines: ${blStr}, targets: [${tgtStr}]${feat} }`
+    })
+    lines.push(`  puzzles: [\n${puzzleItems.join(',\n')},\n  ],`)
+    lines.push(`  parSeconds: ${level.parSeconds},`)
+    lines.push(`  maxAttemptsPerPuzzle: ${level.maxAttemptsPerPuzzle},`)
+    if (level.allowedFeatures) {
+      lines.push(`  allowedFeatures: [${level.allowedFeatures.map((f) => `'${f}'`).join(', ')}],`)
+    }
+    const hintsStr2 = serializeHints(level.hints)
+    if (hintsStr2) lines.push(`  hints: ${hintsStr2},`)
+    lines.push('}')
+  } else if (game === 'fuzzy') {
+    lines.push(`const ${varName}: FuzzyLevel = {`)
+    lines.push(`  id: '${level.id}',`)
+    lines.push(`  name: '${level.name}',`)
+    const roundItems = level.rounds.map((r) => {
+      const entStr = r.entries.map((e) => {
+        const cat = e.category ? `, category: '${e.category}'` : ''
+        return `{ text: '${e.text}'${cat} }`
+      }).join(', ')
+      const hint = r.hint ? `, hint: '${r.hint}'` : ''
+      return `    { entries: [${entStr}], targetIndex: ${r.targetIndex}${hint} }`
+    })
+    lines.push(`  rounds: [\n${roundItems.join(',\n')},\n  ],`)
+    lines.push(`  parSeconds: ${level.parSeconds},`)
+    lines.push(`  maxWrongPerRound: ${level.maxWrongPerRound},`)
+    const hintsStr3 = serializeHints(level.hints)
+    if (hintsStr3) lines.push(`  hints: ${hintsStr3},`)
+    lines.push('}')
   }
 
   return { code: lines.join('\n'), varName }
@@ -812,6 +1211,9 @@ const GAME_FILES = {
   defender: 'src/games/defender/waves.ts',
   snake: 'src/games/snake/levels.ts',
   memory: 'src/games/memory/levels.ts',
+  racer: 'src/games/racer/levels.ts',
+  regex: 'src/games/regex/levels.ts',
+  fuzzy: 'src/games/fuzzy/levels.ts',
 }
 
 const EXPORT_ARRAYS = {
@@ -820,6 +1222,9 @@ const EXPORT_ARRAYS = {
   defender: 'WAVE_CONFIGS',
   snake: 'SNAKE_LEVELS',
   memory: 'MEMORY_LEVELS',
+  racer: 'RACER_LEVELS',
+  regex: 'REGEX_LEVELS',
+  fuzzy: 'FUZZY_LEVELS',
 }
 
 export function appendLevelToSource(game, tsCode, levelVarName) {
@@ -855,6 +1260,9 @@ const TIER_THRESHOLDS = {
     defender: { oneStar: 500, twoStars: 1000, threeStars: 1500, metric: 'score' },
     snake: { oneStar: 1.5, twoStars: 1.0, threeStars: 0.75, metric: 'parRatio' },
     memory: { oneStar: 1.5, twoStars: 1.0, threeStars: 0.75, metric: 'parRatio' },
+    racer: { oneStar: 50, twoStars: 75, threeStars: 90, metric: 'accuracy' },
+    regex: { oneStar: 150, twoStars: 300, threeStars: 450, metric: 'score' },
+    fuzzy: { oneStar: 150, twoStars: 300, threeStars: 450, metric: 'score' },
   },
   medium: {
     maze: { oneStar: 1.8, twoStars: 1.2, threeStars: 0.85, metric: 'parRatio' },
@@ -862,6 +1270,9 @@ const TIER_THRESHOLDS = {
     defender: { oneStar: 1000, twoStars: 2000, threeStars: 3000, metric: 'score' },
     snake: { oneStar: 1.8, twoStars: 1.2, threeStars: 0.85, metric: 'parRatio' },
     memory: { oneStar: 1.8, twoStars: 1.2, threeStars: 0.85, metric: 'parRatio' },
+    racer: { oneStar: 55, twoStars: 78, threeStars: 92, metric: 'accuracy' },
+    regex: { oneStar: 200, twoStars: 400, threeStars: 600, metric: 'score' },
+    fuzzy: { oneStar: 200, twoStars: 400, threeStars: 600, metric: 'score' },
   },
   hard: {
     maze: { oneStar: 2.0, twoStars: 1.3, threeStars: 0.9, metric: 'parRatio' },
@@ -869,6 +1280,9 @@ const TIER_THRESHOLDS = {
     defender: { oneStar: 1500, twoStars: 3000, threeStars: 4500, metric: 'score' },
     snake: { oneStar: 2.0, twoStars: 1.3, threeStars: 0.9, metric: 'parRatio' },
     memory: { oneStar: 2.0, twoStars: 1.3, threeStars: 0.9, metric: 'parRatio' },
+    racer: { oneStar: 60, twoStars: 80, threeStars: 95, metric: 'accuracy' },
+    regex: { oneStar: 250, twoStars: 500, threeStars: 750, metric: 'score' },
+    fuzzy: { oneStar: 250, twoStars: 500, threeStars: 750, metric: 'score' },
   },
 }
 
