@@ -1,0 +1,20 @@
+{
+  "id": "d20261115-fix-recipe-measurements",
+  "title": "Fix recipe measurements",
+  "area": "editing",
+  "level": 2,
+  "brief": "The recipe was doubled by mistake. Change every '2' back to '1' so the portions are correct again.",
+  "text": "2 cups flour\n2 eggs\n2 tsp salt",
+  "solution": ":%s/2/1/g<CR>",
+  "expect": {
+    "text": "1 cups flour\n1 eggs\n1 tsp salt"
+  },
+  "why": "The substitute command with % and g flags replaces all occurrences across the whole buffer in one step.",
+  "author": "claude (daily)",
+  "date": "2026-11-15",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:c985bec3b347",
+  "par_seconds": 10,
+  "hint": "Use :s with the global flag to hit every match on every line."
+}
