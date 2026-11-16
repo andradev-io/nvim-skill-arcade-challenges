@@ -1,0 +1,24 @@
+{
+  "id": "d20261116-drop-the-encore",
+  "title": "Drop the encore",
+  "area": "editing",
+  "level": 1,
+  "brief": "The venue has a strict curfew. Remove the final track from this concert setlist so the band wraps up on time.",
+  "text": "1. Opening Riff\n2. Bass Solo\n3. Drum Break\n4. Encore Jam",
+  "solution": "Gdd",
+  "expect": {
+    "text": "1. Opening Riff\n2. Bass Solo\n3. Drum Break"
+  },
+  "why": "G jumps to the last line of the file, and dd deletes it. Two keystrokes to cut the finale.",
+  "author": "claude (daily)",
+  "date": "2026-11-16",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:7d975fdd0486",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 5,
+  "hint": "How do you reach the very end of a file instantly?"
+}
