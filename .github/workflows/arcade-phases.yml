@@ -1,0 +1,137 @@
+name: arcade phases
+
+# Weekly generation of new arcade game levels. A model designs levels for each game,
+# validates them via TypeScript compilation and algorithmic playability checks,
+# integrates them into the campaign system, and opens a pull request for review.
+
+on:
+  schedule:
+    - cron: "23 5 * * 1" # Monday 05:23 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run every gate, publish nothing"
+        type: boolean
+        default: true
+      game:
+        description: "Target game (maze|rhythm|defender|snake|memory|all)"
+        required: false
+        type: string
+        default: "all"
+      tier:
+        description: "Difficulty tier 1-5 (default: auto-rotate)"
+        required: false
+        type: string
+      count:
+        description: "Levels per game (default: 2)"
+        required: false
+        type: string
+        default: "2"
+      theme:
+        description: "Creative theme (160 chars max)"
+        required: false
+        type: string
+      model:
+        description: "Model override for this run"
+        required: false
+        type: string
+      budget_seconds:
+        description: "Time budget per batch in seconds (default 300)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write # lets the run start the validation workflow on the branch it pushes
+
+concurrency:
+  group: arcade-phases
+
+jobs:
+  generate:
+    # Kill switch: nothing runs unless the repository variable ARCADE_PHASES_ENABLED is exactly "true".
+    if: ${{ vars.ARCADE_PHASES_ENABLED == 'true' }}
+    runs-on: andradev-io # self-hosted ARC runner (homelab): the Anthropic org allowlists its IP, not the GitHub-hosted ones
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Generate, validate, and integrate arcade phases
+        id: gen
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_URL: ${{ vars.ANTHROPIC_URL }}
+          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
+          ANTHROPIC_MODEL_FALLBACK: ${{ vars.ANTHROPIC_MODEL_FALLBACK }}
+          ANTHROPIC_MODEL_HARD: ${{ vars.ANTHROPIC_MODEL_HARD }}
+          ARCADE_GAME: ${{ inputs.game }}
+          ARCADE_TIER: ${{ inputs.tier }}
+          ARCADE_COUNT: ${{ inputs.count }}
+          ARCADE_THEME: ${{ inputs.theme }}
+          ARCADE_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+          ARCADE_PR_BODY: ${{ runner.temp }}/pr-body.md
+          DAILY_MODEL: ${{ inputs.model }}
+          DAILY_BATCH_BUDGET_SECONDS: ${{ inputs.budget_seconds || vars.DAILY_BATCH_BUDGET_SECONDS }}
+        run: |
+          set -o pipefail
+          node scripts/generate-arcade-phases.mjs | tee "$RUNNER_TEMP/arcade.log"
+      - name: Show log in summary
+        if: always()
+        run: |
+          {
+            echo '### Arcade Phases'
+            echo '```'
+            cat "$RUNNER_TEMP/arcade.log" 2>/dev/null || echo 'no log'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: TypeScript compilation check
+        if: ${{ steps.gen.outputs.published != '' && steps.gen.outputs.published != '0' }}
+        run: npx tsc -b --noEmit
+      - name: Open pull request with new arcade phases
+        id: pr
+        if: ${{ steps.gen.outputs.published != '' && steps.gen.outputs.published != '0' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="arcade/$(date -u +%Y-%m-%d)-$GITHUB_RUN_ID"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add src/games src/store/campaignStages.ts
+          git commit -m "feat: add generated arcade phases"
+          git push --force origin "$branch"
+          # the self-hosted runner has no gh CLI, so call the REST API with node (set up above)
+          TITLE="feat: add generated arcade phases ($(date -u +%Y-%m-%d))" HEAD="$branch" node -e '
+            const fs = require("fs")
+            const body = fs.readFileSync(process.env.RUNNER_TEMP + "/pr-body.md", "utf8")
+            fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/pulls`, {
+              method: "POST",
+              headers: { authorization: `Bearer ${process.env.GH_TOKEN}`, accept: "application/vnd.github+json", "content-type": "application/json" },
+              body: JSON.stringify({ title: process.env.TITLE, head: process.env.HEAD, base: "main", body }),
+            }).then(async (r) => {
+              const j = await r.json()
+              if (!r.ok && !JSON.stringify(j).includes("already exists")) { console.error(r.status, JSON.stringify(j).slice(0, 300)); process.exit(1) }
+              console.log(j.html_url ?? "pull request already open")
+            })
+          '
+      - name: Run validation checks on the new branch
+        # a pull request opened with the job's own token does not start the "validate challenges" workflow, so start it
+        # here: its check runs attach to the branch's commit and show up on the pull request
+        if: ${{ steps.pr.conclusion == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="arcade/$(date -u +%Y-%m-%d)-$GITHUB_RUN_ID"
+          REF="$branch" node -e '
+            fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/actions/workflows/validate.yml/dispatches`, {
+              method: "POST",
+              headers: { authorization: `Bearer ${process.env.GH_TOKEN}`, accept: "application/vnd.github+json", "content-type": "application/json" },
+              body: JSON.stringify({ ref: process.env.REF }),
+            }).then((r) => {
+              if (r.status !== 204) { console.error("could not start the checks:", r.status); process.exit(1) }
+              console.log("validation started on", process.env.REF)
+            })
+          '
