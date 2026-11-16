@@ -1,0 +1,19 @@
+{
+  "id": "d20261113-decode-digit-cipher-mess",
+  "title": "Decode digit-cipher message",
+  "area": "editing",
+  "level": 3,
+  "brief": "Remove all digits from the encrypted message to reveal the plaintext.",
+  "text": "H3e4l1l9o2 W5o7r8l0d1!",
+  "solution": ":s/\\d//g<CR>",
+  "expect": {
+    "text": "Hello World!"
+  },
+  "why": "The \\d character class matches any digit; the g flag removes them all in one substitution pass.",
+  "author": "claude (daily)",
+  "date": "2026-11-13",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:f44c853b708f",
+  "par_seconds": 10
+}

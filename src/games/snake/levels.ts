@@ -53,7 +53,7 @@ function placeFood(
 
   // Place food in open cells, avoiding walls and previously placed food
   let attempts = 0
-  for (const _food of foods) {
+  for (let fi = 0; fi < foods.length; fi++) {
     let placed = false
     while (!placed && attempts < 200) {
       const r = Math.floor(Math.random() * height)

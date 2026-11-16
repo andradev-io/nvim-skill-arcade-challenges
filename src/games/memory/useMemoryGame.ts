@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MemoryLevel } from './types'
 import { buildShuffledGrid } from './cards'
 
@@ -33,8 +33,19 @@ function calcScore(pairCount: number, moves: number, elapsedMs: number): number 
   return Math.max(0, raw)
 }
 
+/** Build initial card grid from level pairs. */
+function buildInitialCards(level: MemoryLevel): CardInstance[] {
+  return buildShuffledGrid(level.pairs).map((c) => ({
+    pairId: c.id,
+    instanceId: c.instanceId,
+    command: c.command,
+    description: c.description,
+    isCommand: c.instanceId.endsWith('-cmd'),
+  }))
+}
+
 export function useMemoryGame(level: MemoryLevel): MemoryGameActions {
-  const [cards, setCards] = useState<CardInstance[]>([])
+  const [cards, setCards] = useState<CardInstance[]>(() => buildInitialCards(level))
   const [flippedIndices, setFlippedIndices] = useState<number[]>([])
   const [matchedIds, setMatchedIds] = useState<Set<string>>(new Set())
   const [moves, setMoves] = useState(0)
@@ -44,20 +55,17 @@ export function useMemoryGame(level: MemoryLevel): MemoryGameActions {
   const lockRef = useRef(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startedRef = useRef(false)
+  const prevLevelRef = useRef(level)
 
   const totalPairs = level.pairs.length
   const cols = level.gridCols
   const rows = level.gridRows
 
-  const initGame = useCallback(() => {
-    const grid = buildShuffledGrid(level.pairs).map((c) => ({
-      pairId: c.id,
-      instanceId: c.instanceId,
-      command: c.command,
-      description: c.description,
-      isCommand: c.instanceId.endsWith('-cmd'),
-    }))
-    setCards(grid)
+  // Reset game state when level changes (not on initial mount)
+  useEffect(() => {
+    if (prevLevelRef.current === level) return
+    prevLevelRef.current = level
+    setCards(buildInitialCards(level))
     setFlippedIndices([])
     setMatchedIds(new Set())
     setMoves(0)
@@ -71,11 +79,6 @@ export function useMemoryGame(level: MemoryLevel): MemoryGameActions {
       timerRef.current = null
     }
   }, [level])
-
-  // Initialize on mount and when level changes
-  useEffect(() => {
-    initGame()
-  }, [initGame])
 
   // Timer
   useEffect(() => {
@@ -146,16 +149,15 @@ export function useMemoryGame(level: MemoryLevel): MemoryGameActions {
     [cards, flippedIndices, matchedIds, isComplete, totalPairs],
   )
 
-  // Check completion via effect to avoid stale closure
-  useEffect(() => {
-    if (matchedIds.size === totalPairs && totalPairs > 0 && !isComplete) {
-      setIsComplete(true)
-    }
-  }, [matchedIds, totalPairs, isComplete])
+  // Derive completion from matched count — no setState inside effect needed
+  const derivedComplete = useMemo(
+    () => matchedIds.size === totalPairs && totalPairs > 0,
+    [matchedIds, totalPairs],
+  )
 
   const moveCursor = useCallback(
     (key: string) => {
-      if (isComplete) return
+      if (derivedComplete) return
       const row = Math.floor(cursorIndex / cols)
       const col = cursorIndex % cols
 
@@ -205,7 +207,7 @@ export function useMemoryGame(level: MemoryLevel): MemoryGameActions {
         setCursorIndex(newIndex)
       }
     },
-    [cursorIndex, cols, rows, cards.length, isComplete],
+    [cursorIndex, cols, rows, cards.length, derivedComplete],
   )
 
   const score = calcScore(totalPairs, moves, elapsedMs)
@@ -217,14 +219,28 @@ export function useMemoryGame(level: MemoryLevel): MemoryGameActions {
     matchedIds,
     moves,
     elapsedMs,
-    isComplete,
+    isComplete: derivedComplete,
     score,
     cursorIndex,
     cols,
     rows,
     flipCard,
     moveCursor,
-    reset: initGame,
+    reset: useCallback(() => {
+ setCards(buildInitialCards(level))
+ setFlippedIndices([])
+ setMatchedIds(new Set())
+ setMoves(0)
+ setElapsedMs(0)
+ setIsComplete(false)
+ setCursorIndex(0)
+ lockRef.current = false
+ startedRef.current = false
+ if (timerRef.current) {
+ clearInterval(timerRef.current)
+ timerRef.current = null
+ }
+ }, [level]),
     unmatchedCount,
   }
 }

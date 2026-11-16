@@ -101,18 +101,14 @@ function TrendChart({ daily }: { daily: DailyRow[] }) {
 }
 
 export function StatsPage() {
+ const api = authConfig?.api ?? null
  const [data, setData] = useState<PublicStats | null>(null)
- const [error, setError] = useState<string | null>(null)
- const [loading, setLoading] = useState(true)
+ const [error, setError] = useState<string | null>(api ? null : 'API not configured')
+ const [loading, setLoading] = useState(api !== null)
 
  useEffect(() => {
+ if (!api) return
  let cancelled = false
- const api = authConfig?.api
- if (!api) {
- setError('API not configured')
- setLoading(false)
- return
- }
  void fetch(`${api}/api/stats`)
  .then((r) => {
  if (!r.ok) throw new Error(`HTTP ${r.status}`)

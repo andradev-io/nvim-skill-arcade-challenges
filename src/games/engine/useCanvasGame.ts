@@ -43,17 +43,21 @@ export function useCanvasGame<T extends GameEngine>(options: UseCanvasGameOption
 
   // Stable refs for callbacks that close over mutable values
   const onSaveScoreRef = useRef(onSaveScore)
-  onSaveScoreRef.current = onSaveScore
   const onNavigateBackRef = useRef(onNavigateBack)
-  onNavigateBackRef.current = onNavigateBack
   const onInitRef = useRef(onInit)
-  onInitRef.current = onInit
   const onResetRef = useRef(onReset)
-  onResetRef.current = onReset
   const onRestartRef = useRef(onRestart)
-  onRestartRef.current = onRestart
   const initialStateRef = useRef(initialState ?? INITIAL_STATE)
-  initialStateRef.current = initialState ?? INITIAL_STATE
+
+  // Keep refs in sync with latest props without accessing them during render
+  useEffect(() => {
+    onSaveScoreRef.current = onSaveScore
+    onNavigateBackRef.current = onNavigateBack
+    onInitRef.current = onInit
+    onResetRef.current = onReset
+    onRestartRef.current = onRestart
+    initialStateRef.current = initialState ?? INITIAL_STATE
+  })
 
   // Initialize game on mount
   useEffect(() => {
