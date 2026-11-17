@@ -95,7 +95,7 @@ export class RacerRenderer {
   }
 
   private drawCodeBackground(scrollPosition: number): void {
-    const { ctx, width, height, colors } = this
+    const { ctx, height, colors } = this
     const lineHeight = 22
     const offset = Math.floor(scrollPosition * 0.3) % (CODE_LINES.length * lineHeight)
 

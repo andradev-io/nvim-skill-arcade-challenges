@@ -1,7 +1,7 @@
 import { GameLoop } from '../engine/GameLoop'
 import { InputManager } from '../engine/InputManager'
 import type { GameColors, GameConfig, GameEngine, GameState } from '../engine/types'
-import { filterEntries, fuzzyScore } from './fuzzyMatch'
+import { filterEntries } from './fuzzyMatch'
 import type { FuzzyLevel, FuzzyState } from './types'
 import { FuzzyRenderer } from './FuzzyRenderer'
 

@@ -75,7 +75,7 @@ export class FuzzyRenderer {
     }
   }
 
-  private drawPrompt(query: string, w: number): void {
+  private drawPrompt(query: string, _w: number): void {
     const { ctx, colors } = this
     ctx.font = 'bold 16px monospace'
     ctx.textBaseline = 'middle'

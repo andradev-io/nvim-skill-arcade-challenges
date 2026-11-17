@@ -38,7 +38,6 @@ export class RacerGame implements GameEngine {
   private running = false
   private paused = false
   private gameOver = false
-  private won = false
 
   private lastInputTime = 0
   private typedBuffer = ''
@@ -76,7 +75,6 @@ export class RacerGame implements GameEngine {
     this.running = false
     this.paused = false
     this.gameOver = false
-    this.won = false
     this.typedBuffer = ''
     this.lastInputTime = 0
 
@@ -285,7 +283,7 @@ export class RacerGame implements GameEngine {
     }
   }
 
-  private codeToChar(code: string, key: string): string | null {
+  private codeToChar(_code: string, key: string): string | null {
     if (key.length === 1) return key
     if (key === ' ') return ' '
     return null
@@ -361,7 +359,6 @@ export class RacerGame implements GameEngine {
   }
 
   private winGame(): void {
-    this.won = true
     this.gameOver = true
     this.loop.stop()
     this.emitState()

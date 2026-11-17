@@ -107,8 +107,9 @@ describe('filterEntries', () => {
 
 describe('matchPositions', () => {
   it('returns positions of matched characters', () => {
+    // Greedy left-to-right subsequence: h(0), first l(2), o(4)
     const pos = matchPositions('hlo', 'hello')
-    expect(pos).toEqual([0, 3, 4])
+    expect(pos).toEqual([0, 2, 4])
   })
 
   it('returns empty array for no match', () => {
