@@ -60,60 +60,60 @@ describe('sanitizeMazeLevel', () => {
 
   it('rejects missing name', () => {
     const bad = { ...validMaze, name: '' }
-    expect(sanitizeMazeLevel(bad, meta).toBeTruthy().error?.includes('name'))
+    expect(sanitizeMazeLevel(bad, meta).error).toBeTruthy() // includes 'name'
   })
 
   it('rejects name over 40 chars', () => {
     const bad = { ...validMaze, name: 'A'.repeat(41) }
-    expect(sanitizeMazeLevel(bad, meta).toBeTruthy().error?.includes('name'))
+    expect(sanitizeMazeLevel(bad, meta).error).toBeTruthy() // includes 'name'
   })
 
   it('rejects width out of range', () => {
-    expect(sanitizeMazeLevel({ ...validMaze, width: 7 }, meta).toBeTruthy().error?.includes('width'))
-    expect(sanitizeMazeLevel({ ...validMaze, width: 21 }, meta).toBeTruthy().error?.includes('width'))
+    expect(sanitizeMazeLevel({ ...validMaze, width: 7 }, meta).error).toBeTruthy() // includes 'width'
+    expect(sanitizeMazeLevel({ ...validMaze, width: 21 }, meta).error).toBeTruthy() // includes 'width'
   })
 
   it('rejects height out of range', () => {
-    expect(sanitizeMazeLevel({ ...validMaze, height: 5 }, meta).toBeTruthy().error?.includes('height'))
-    expect(sanitizeMazeLevel({ ...validMaze, height: 17 }, meta).toBeTruthy().error?.includes('height'))
+    expect(sanitizeMazeLevel({ ...validMaze, height: 5 }, meta).error).toBeTruthy() // includes 'height'
+    expect(sanitizeMazeLevel({ ...validMaze, height: 17 }, meta).error).toBeTruthy() // includes 'height'
   })
 
   it('rejects grid with wrong row count', () => {
     const bad = { ...validMaze, grid: validMaze.grid.slice(0, 5) }
-    expect(sanitizeMazeLevel(bad, meta).toBeTruthy().error?.includes('rows'))
+    expect(sanitizeMazeLevel(bad, meta).error).toBeTruthy() // includes 'rows'
   })
 
   it('rejects grid with invalid cell type', () => {
     const badGrid = validMaze.grid.map((r) => [...r])
     badGrid[0][1] = 'invalid'
-    expect(sanitizeMazeLevel({ ...validMaze, grid: badGrid }, meta).toBeTruthy().error?.includes('cell type'))
+    expect(sanitizeMazeLevel({ ...validMaze, grid: badGrid }, meta).error).toBeTruthy() // includes 'cell type'
   })
 
   it('rejects grid without exactly one start', () => {
     const badGrid = validMaze.grid.map((r) => [...r])
     badGrid[0][0] = 'open'
-    expect(sanitizeMazeLevel({ ...validMaze, grid: badGrid }, meta).toBeTruthy().error?.includes('start'))
+    expect(sanitizeMazeLevel({ ...validMaze, grid: badGrid }, meta).error).toBeTruthy() // includes 'start'
   })
 
   it('rejects grid without exactly one goal', () => {
     const badGrid = validMaze.grid.map((r) => [...r])
     badGrid[5][6] = 'open'
-    expect(sanitizeMazeLevel({ ...validMaze, grid: badGrid }, meta).toBeTruthy().error?.includes('goal'))
+    expect(sanitizeMazeLevel({ ...validMaze, grid: badGrid }, meta).error).toBeTruthy() // includes 'goal'
   })
 
   it('rejects door out of bounds', () => {
     const bad = { ...validMaze, doors: [{ row: 10, col: 0, requiredMotion: 'w' }] }
-    expect(sanitizeMazeLevel(bad, meta).toBeTruthy().error?.includes('out of bounds'))
+    expect(sanitizeMazeLevel(bad, meta).error).toBeTruthy() // includes 'out of bounds'
   })
 
   it('rejects marker with bad key format', () => {
     const bad = { ...validMaze, markers: { 'bad': 'a' } }
-    expect(sanitizeMazeLevel(bad, meta).toBeTruthy().error?.includes('row,col'))
+    expect(sanitizeMazeLevel(bad, meta).error).toBeTruthy() // includes 'row,col'
   })
 
   it('rejects more than 2 hints', () => {
     const bad = { ...validMaze, hints: ['a', 'b', 'c'] }
-    expect(sanitizeMazeLevel(bad, meta).toBeTruthy().error?.includes('at most 2'))
+    expect(sanitizeMazeLevel(bad, meta).error).toBeTruthy() // includes 'at most 2'
   })
 
   it('accepts optional hints', () => {
@@ -159,13 +159,13 @@ describe('sanitizeRhythmLevel', () => {
   })
 
   it('rejects bpm out of range', () => {
-    expect(sanitizeRhythmLevel({ ...validRhythm, bpm: 69 }, meta).toBeTruthy().error?.includes('bpm'))
-    expect(sanitizeRhythmLevel({ ...validRhythm, bpm: 161 }, meta).toBeTruthy().error?.includes('bpm'))
+    expect(sanitizeRhythmLevel({ ...validRhythm, bpm: 69 }, meta).error).toBeTruthy() // includes 'bpm'
+    expect(sanitizeRhythmLevel({ ...validRhythm, bpm: 161 }, meta).error).toBeTruthy() // includes 'bpm'
   })
 
   it('rejects mismatched laneKeys length', () => {
     const bad = { ...validRhythm, laneKeys: ['h', 'j'] }
-    expect(sanitizeRhythmLevel(bad, meta).toBeTruthy().error?.includes('laneKeys'))
+    expect(sanitizeRhythmLevel(bad, meta).error).toBeTruthy() // includes 'laneKeys'
   })
 
   it('rejects notes in same lane within 200ms', () => {
@@ -176,11 +176,11 @@ describe('sanitizeRhythmLevel', () => {
         { lane: 0, timeMs: 1100 },
       ],
     }
-    expect(sanitizeRhythmLevel(bad, meta).toBeTruthy().error?.includes('200ms'))
+    expect(sanitizeRhythmLevel(bad, meta).error).toBeTruthy() // includes '200ms'
   })
 
   it('rejects invalid difficulty', () => {
-    expect(sanitizeRhythmLevel({ ...validRhythm, difficulty: 'extreme' }, meta).toBeTruthy().error?.includes('difficulty'))
+    expect(sanitizeRhythmLevel({ ...validRhythm, difficulty: 'extreme' }, meta).error).toBeTruthy() // includes 'difficulty'
   })
 
   it('rejects note out of duration bounds', () => {
@@ -188,7 +188,7 @@ describe('sanitizeRhythmLevel', () => {
       ...validRhythm,
       notes: [{ lane: 0, timeMs: 35000 }],
     }
-    expect(sanitizeRhythmLevel(bad, meta).toBeTruthy().error?.includes('timeMs'))
+    expect(sanitizeRhythmLevel(bad, meta).error).toBeTruthy() // includes 'timeMs'
   })
 })
 
@@ -211,20 +211,20 @@ describe('sanitizeDefenderWave', () => {
   })
 
   it('rejects empty commands', () => {
-    expect(sanitizeDefenderWave({ ...validDefender, commands: [] }, meta).toBeTruthy().error?.includes('commands'))
+    expect(sanitizeDefenderWave({ ...validDefender, commands: [] }, meta).error).toBeTruthy() // includes 'commands'
   })
 
   it('rejects enemyCount out of range', () => {
-    expect(sanitizeDefenderWave({ ...validDefender, enemyCount: 5 }, meta).toBeTruthy().error?.includes('enemyCount'))
-    expect(sanitizeDefenderWave({ ...validDefender, enemyCount: 31 }, meta).toBeTruthy().error?.includes('enemyCount'))
+    expect(sanitizeDefenderWave({ ...validDefender, enemyCount: 5 }, meta).error).toBeTruthy() // includes 'enemyCount'
+    expect(sanitizeDefenderWave({ ...validDefender, enemyCount: 31 }, meta).error).toBeTruthy() // includes 'enemyCount'
   })
 
   it('rejects speedVariance exceeding 40% of baseSpeed', () => {
-    expect(sanitizeDefenderWave({ ...validDefender, speedVariance: 13 }, meta).toBeTruthy().error?.includes('speedVariance'))
+    expect(sanitizeDefenderWave({ ...validDefender, speedVariance: 13 }, meta).error).toBeTruthy() // includes 'speedVariance'
   })
 
   it('rejects non-positive wave number', () => {
-    expect(sanitizeDefenderWave({ ...validDefender, wave: 0 }, meta).toBeTruthy().error?.includes('wave'))
+    expect(sanitizeDefenderWave({ ...validDefender, wave: 0 }, meta).error).toBeTruthy() // includes 'wave'
   })
 })
 
@@ -258,7 +258,7 @@ describe('sanitizeSnakeLevel', () => {
       ...validSnake,
       walls: [{ row: 3, col: 5 }],
     }
-    expect(sanitizeSnakeLevel(bad, meta).toBeTruthy().error?.includes('on a wall'))
+    expect(sanitizeSnakeLevel(bad, meta).error).toBeTruthy() // includes 'on a wall'
   })
 
   it('rejects duplicate wall positions', () => {
@@ -266,7 +266,7 @@ describe('sanitizeSnakeLevel', () => {
       ...validSnake,
       walls: [{ row: 0, col: 0 }, { row: 0, col: 0 }],
     }
-    expect(sanitizeSnakeLevel(bad, meta).toBeTruthy().error?.includes('duplicate wall'))
+    expect(sanitizeSnakeLevel(bad, meta).error).toBeTruthy() // includes 'duplicate wall'
   })
 
   it('rejects duplicate food positions', () => {
@@ -277,18 +277,18 @@ describe('sanitizeSnakeLevel', () => {
         { position: { row: 3, col: 5 }, label: 'yy', tip: 'Yank', points: 10 },
       ],
     }
-    expect(sanitizeSnakeLevel(bad, meta).toBeTruthy().error?.includes('duplicate food'))
+    expect(sanitizeSnakeLevel(bad, meta).error).toBeTruthy() // includes 'duplicate food'
   })
 
   it('rejects missing allowWordMotions', () => {
     const bad = { ...validSnake }
     delete bad.allowWordMotions
-    expect(sanitizeSnakeLevel(bad, meta).toBeTruthy().error?.includes('allowWordMotions'))
+    expect(sanitizeSnakeLevel(bad, meta).error).toBeTruthy() // includes 'allowWordMotions'
   })
 
   it('rejects spawnRate out of range', () => {
-    expect(sanitizeSnakeLevel({ ...validSnake, spawnRate: 400 }, meta).toBeTruthy().error?.includes('spawnRate'))
-    expect(sanitizeSnakeLevel({ ...validSnake, spawnRate: 6000 }, meta).toBeTruthy().error?.includes('spawnRate'))
+    expect(sanitizeSnakeLevel({ ...validSnake, spawnRate: 400 }, meta).error).toBeTruthy() // includes 'spawnRate'
+    expect(sanitizeSnakeLevel({ ...validSnake, spawnRate: 6000 }, meta).error).toBeTruthy() // includes 'spawnRate'
   })
 })
 
@@ -323,17 +323,17 @@ describe('sanitizeMemoryLevel', () => {
         { id: 'p2', command: 'k', description: 'Move up', category: 'motion' },
       ],
     }
-    expect(sanitizeMemoryLevel(bad, meta).toBeTruthy().error?.includes('duplicate pair id'))
+    expect(sanitizeMemoryLevel(bad, meta).error).toBeTruthy() // includes 'duplicate pair id'
   })
 
   it('rejects grid size mismatch', () => {
     const bad = { ...validMemory, gridCols: 4 }
-    expect(sanitizeMemoryLevel(bad, meta).toBeTruthy().error?.includes('gridCols*gridRows'))
+    expect(sanitizeMemoryLevel(bad, meta).error).toBeTruthy() // includes 'gridCols*gridRows'
   })
 
   it('rejects parMoves less than pairs.length', () => {
     const bad = { ...validMemory, parMoves: 2 }
-    expect(sanitizeMemoryLevel(bad, meta).toBeTruthy().error?.includes('parMoves'))
+    expect(sanitizeMemoryLevel(bad, meta).error).toBeTruthy() // includes 'parMoves'
   })
 
   it('rejects invalid category', () => {
@@ -345,7 +345,7 @@ describe('sanitizeMemoryLevel', () => {
         { id: 'p3', command: 'k', description: 'Move up', category: 'motion' },
       ],
     }
-    expect(sanitizeMemoryLevel(bad, meta).toBeTruthy().error?.includes('category'))
+    expect(sanitizeMemoryLevel(bad, meta).error).toBeTruthy() // includes 'category'
   })
 })
 
@@ -385,7 +385,7 @@ describe('validateMazePlayability', () => {
       markers: {},
     }
     const errors = validateMazePlayability(level)
-    expect(errors.some((e).toBeTruthy() => e.includes('not reachable')))
+    expect(errors.some((e) => e.includes('not reachable'))).toBeTruthy()
   })
 
   it('fails when collectible is unreachable', () => {
@@ -403,7 +403,7 @@ describe('validateMazePlayability', () => {
       markers: {},
     }
     const errors = validateMazePlayability(level)
-    expect(errors.some((e).toBeTruthy() => e.includes('collectible') && e.includes('not reachable')))
+    expect(errors.some((e) => e.includes('collectible') && e.includes('not reachable'))).toBeTruthy()
   })
 
   it('fails when door references missing marker', () => {
@@ -421,7 +421,7 @@ describe('validateMazePlayability', () => {
       markers: {},
     }
     const errors = validateMazePlayability(level)
-    expect(errors.some((e).toBeTruthy() => e.includes('marker')))
+    expect(errors.some((e) => e.includes('marker'))).toBeTruthy()
   })
 })
 
@@ -482,7 +482,7 @@ describe('validateSnakePlayability', () => {
       initialFood: [{ position: { row: 0, col: 0 }, label: 'dd', tip: 'Delete', points: 10 }],
     }
     const errors = validateSnakePlayability(level)
-    expect(errors.some((e).toBeTruthy() => e.includes('connected')))
+    expect(errors.some((e) => e.includes('connected'))).toBeTruthy()
   })
 
   it('fails with no food', () => {
