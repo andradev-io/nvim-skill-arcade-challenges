@@ -1,8 +1,7 @@
-// Unit tests for arcade-lib.mjs — uses Node.js built-in test runner (node:test) and assert.
-// Run: node scripts/arcade-lib.test.mjs
+// Unit tests for arcade-lib.mjs — uses Vitest (matches daily-lib.test.mjs pattern).
+// Run: npx vitest run scripts/arcade-lib.test.mjs
 
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, expect, it } from 'vitest'
 import {
   sanitizeMazeLevel,
   sanitizeRhythmLevel,
@@ -43,85 +42,85 @@ describe('sanitizeMazeLevel', () => {
 
   it('accepts a valid maze level', () => {
     const result = sanitizeMazeLevel(validMaze, meta)
-    assert.ok(result.level, 'should return { level }')
-    assert.equal(result.level.name, 'Test Maze')
-    assert.equal(result.level.width, 8)
-    assert.equal(result.level.height, 6)
+    expect(result.level).toBeTruthy() // should return { level }
+    expect(result.level.name).toBe('Test Maze')
+    expect(result.level.width).toBe(8)
+    expect(result.level.height).toBe(6)
   })
 
   it('assigns deterministic ID when missing', () => {
     const result = sanitizeMazeLevel(validMaze, meta)
-    assert.equal(result.level.id, 'maze-20261116-0')
+    expect(result.level.id).toBe('maze-20261116-0')
   })
 
   it('rejects non-object input', () => {
-    assert.equal(sanitizeMazeLevel(null, meta).error, 'not an object')
-    assert.equal(sanitizeMazeLevel('string', meta).error, 'not an object')
+    expect(sanitizeMazeLevel(null, meta).error).toBe('not an object')
+    expect(sanitizeMazeLevel('string', meta).error).toBe('not an object')
   })
 
   it('rejects missing name', () => {
     const bad = { ...validMaze, name: '' }
-    assert.ok(sanitizeMazeLevel(bad, meta).error?.includes('name'))
+    expect(sanitizeMazeLevel(bad, meta).toBeTruthy().error?.includes('name'))
   })
 
   it('rejects name over 40 chars', () => {
     const bad = { ...validMaze, name: 'A'.repeat(41) }
-    assert.ok(sanitizeMazeLevel(bad, meta).error?.includes('name'))
+    expect(sanitizeMazeLevel(bad, meta).toBeTruthy().error?.includes('name'))
   })
 
   it('rejects width out of range', () => {
-    assert.ok(sanitizeMazeLevel({ ...validMaze, width: 7 }, meta).error?.includes('width'))
-    assert.ok(sanitizeMazeLevel({ ...validMaze, width: 21 }, meta).error?.includes('width'))
+    expect(sanitizeMazeLevel({ ...validMaze, width: 7 }, meta).toBeTruthy().error?.includes('width'))
+    expect(sanitizeMazeLevel({ ...validMaze, width: 21 }, meta).toBeTruthy().error?.includes('width'))
   })
 
   it('rejects height out of range', () => {
-    assert.ok(sanitizeMazeLevel({ ...validMaze, height: 5 }, meta).error?.includes('height'))
-    assert.ok(sanitizeMazeLevel({ ...validMaze, height: 17 }, meta).error?.includes('height'))
+    expect(sanitizeMazeLevel({ ...validMaze, height: 5 }, meta).toBeTruthy().error?.includes('height'))
+    expect(sanitizeMazeLevel({ ...validMaze, height: 17 }, meta).toBeTruthy().error?.includes('height'))
   })
 
   it('rejects grid with wrong row count', () => {
     const bad = { ...validMaze, grid: validMaze.grid.slice(0, 5) }
-    assert.ok(sanitizeMazeLevel(bad, meta).error?.includes('rows'))
+    expect(sanitizeMazeLevel(bad, meta).toBeTruthy().error?.includes('rows'))
   })
 
   it('rejects grid with invalid cell type', () => {
     const badGrid = validMaze.grid.map((r) => [...r])
     badGrid[0][1] = 'invalid'
-    assert.ok(sanitizeMazeLevel({ ...validMaze, grid: badGrid }, meta).error?.includes('cell type'))
+    expect(sanitizeMazeLevel({ ...validMaze, grid: badGrid }, meta).toBeTruthy().error?.includes('cell type'))
   })
 
   it('rejects grid without exactly one start', () => {
     const badGrid = validMaze.grid.map((r) => [...r])
     badGrid[0][0] = 'open'
-    assert.ok(sanitizeMazeLevel({ ...validMaze, grid: badGrid }, meta).error?.includes('start'))
+    expect(sanitizeMazeLevel({ ...validMaze, grid: badGrid }, meta).toBeTruthy().error?.includes('start'))
   })
 
   it('rejects grid without exactly one goal', () => {
     const badGrid = validMaze.grid.map((r) => [...r])
     badGrid[5][6] = 'open'
-    assert.ok(sanitizeMazeLevel({ ...validMaze, grid: badGrid }, meta).error?.includes('goal'))
+    expect(sanitizeMazeLevel({ ...validMaze, grid: badGrid }, meta).toBeTruthy().error?.includes('goal'))
   })
 
   it('rejects door out of bounds', () => {
     const bad = { ...validMaze, doors: [{ row: 10, col: 0, requiredMotion: 'w' }] }
-    assert.ok(sanitizeMazeLevel(bad, meta).error?.includes('out of bounds'))
+    expect(sanitizeMazeLevel(bad, meta).toBeTruthy().error?.includes('out of bounds'))
   })
 
   it('rejects marker with bad key format', () => {
     const bad = { ...validMaze, markers: { 'bad': 'a' } }
-    assert.ok(sanitizeMazeLevel(bad, meta).error?.includes('row,col'))
+    expect(sanitizeMazeLevel(bad, meta).toBeTruthy().error?.includes('row,col'))
   })
 
   it('rejects more than 2 hints', () => {
     const bad = { ...validMaze, hints: ['a', 'b', 'c'] }
-    assert.ok(sanitizeMazeLevel(bad, meta).error?.includes('at most 2'))
+    expect(sanitizeMazeLevel(bad, meta).toBeTruthy().error?.includes('at most 2'))
   })
 
   it('accepts optional hints', () => {
     const withHints = { ...validMaze, hints: ['Use hjkl to move.'] }
     const result = sanitizeMazeLevel(withHints, meta)
-    assert.ok(result.level)
-    assert.deepEqual(result.level.hints, ['Use hjkl to move.'])
+    expect(result.level).toBeTruthy()
+    expect(result.level.hints).toEqual(['Use hjkl to move.'])
   })
 })
 
@@ -145,28 +144,28 @@ describe('sanitizeRhythmLevel', () => {
 
   it('accepts a valid rhythm level', () => {
     const result = sanitizeRhythmLevel(validRhythm, meta)
-    assert.ok(result.level)
-    assert.equal(result.level.bpm, 90)
-    assert.equal(result.level.notes.length, 4)
+    expect(result.level).toBeTruthy()
+    expect(result.level.bpm).toBe(90)
+    expect(result.level.notes.length).toBe(4)
   })
 
   it('expands pattern string into notes', () => {
     const withPattern = { ...validRhythm, pattern: 'hjkl', notes: undefined }
     const result = sanitizeRhythmLevel(withPattern, meta)
-    assert.ok(result.level)
-    assert.equal(result.level.notes.length, 4)
-    assert.equal(result.level.notes[0].lane, 0) // h
-    assert.equal(result.level.notes[1].lane, 1) // j
+    expect(result.level).toBeTruthy()
+    expect(result.level.notes.length).toBe(4)
+    expect(result.level.notes[0].lane).toBe(0) // h
+    expect(result.level.notes[1].lane).toBe(1) // j
   })
 
   it('rejects bpm out of range', () => {
-    assert.ok(sanitizeRhythmLevel({ ...validRhythm, bpm: 69 }, meta).error?.includes('bpm'))
-    assert.ok(sanitizeRhythmLevel({ ...validRhythm, bpm: 161 }, meta).error?.includes('bpm'))
+    expect(sanitizeRhythmLevel({ ...validRhythm, bpm: 69 }, meta).toBeTruthy().error?.includes('bpm'))
+    expect(sanitizeRhythmLevel({ ...validRhythm, bpm: 161 }, meta).toBeTruthy().error?.includes('bpm'))
   })
 
   it('rejects mismatched laneKeys length', () => {
     const bad = { ...validRhythm, laneKeys: ['h', 'j'] }
-    assert.ok(sanitizeRhythmLevel(bad, meta).error?.includes('laneKeys'))
+    expect(sanitizeRhythmLevel(bad, meta).toBeTruthy().error?.includes('laneKeys'))
   })
 
   it('rejects notes in same lane within 200ms', () => {
@@ -177,11 +176,11 @@ describe('sanitizeRhythmLevel', () => {
         { lane: 0, timeMs: 1100 },
       ],
     }
-    assert.ok(sanitizeRhythmLevel(bad, meta).error?.includes('200ms'))
+    expect(sanitizeRhythmLevel(bad, meta).toBeTruthy().error?.includes('200ms'))
   })
 
   it('rejects invalid difficulty', () => {
-    assert.ok(sanitizeRhythmLevel({ ...validRhythm, difficulty: 'extreme' }, meta).error?.includes('difficulty'))
+    expect(sanitizeRhythmLevel({ ...validRhythm, difficulty: 'extreme' }, meta).toBeTruthy().error?.includes('difficulty'))
   })
 
   it('rejects note out of duration bounds', () => {
@@ -189,7 +188,7 @@ describe('sanitizeRhythmLevel', () => {
       ...validRhythm,
       notes: [{ lane: 0, timeMs: 35000 }],
     }
-    assert.ok(sanitizeRhythmLevel(bad, meta).error?.includes('timeMs'))
+    expect(sanitizeRhythmLevel(bad, meta).toBeTruthy().error?.includes('timeMs'))
   })
 })
 
@@ -207,25 +206,25 @@ describe('sanitizeDefenderWave', () => {
 
   it('accepts a valid defender wave', () => {
     const result = sanitizeDefenderWave(validDefender, meta)
-    assert.ok(result.level)
-    assert.equal(result.level.wave, 1)
+    expect(result.level).toBeTruthy()
+    expect(result.level.wave).toBe(1)
   })
 
   it('rejects empty commands', () => {
-    assert.ok(sanitizeDefenderWave({ ...validDefender, commands: [] }, meta).error?.includes('commands'))
+    expect(sanitizeDefenderWave({ ...validDefender, commands: [] }, meta).toBeTruthy().error?.includes('commands'))
   })
 
   it('rejects enemyCount out of range', () => {
-    assert.ok(sanitizeDefenderWave({ ...validDefender, enemyCount: 5 }, meta).error?.includes('enemyCount'))
-    assert.ok(sanitizeDefenderWave({ ...validDefender, enemyCount: 31 }, meta).error?.includes('enemyCount'))
+    expect(sanitizeDefenderWave({ ...validDefender, enemyCount: 5 }, meta).toBeTruthy().error?.includes('enemyCount'))
+    expect(sanitizeDefenderWave({ ...validDefender, enemyCount: 31 }, meta).toBeTruthy().error?.includes('enemyCount'))
   })
 
   it('rejects speedVariance exceeding 40% of baseSpeed', () => {
-    assert.ok(sanitizeDefenderWave({ ...validDefender, speedVariance: 13 }, meta).error?.includes('speedVariance'))
+    expect(sanitizeDefenderWave({ ...validDefender, speedVariance: 13 }, meta).toBeTruthy().error?.includes('speedVariance'))
   })
 
   it('rejects non-positive wave number', () => {
-    assert.ok(sanitizeDefenderWave({ ...validDefender, wave: 0 }, meta).error?.includes('wave'))
+    expect(sanitizeDefenderWave({ ...validDefender, wave: 0 }, meta).toBeTruthy().error?.includes('wave'))
   })
 })
 
@@ -250,8 +249,8 @@ describe('sanitizeSnakeLevel', () => {
 
   it('accepts a valid snake level', () => {
     const result = sanitizeSnakeLevel(validSnake, meta)
-    assert.ok(result.level)
-    assert.equal(result.level.name, 'Test Snake')
+    expect(result.level).toBeTruthy()
+    expect(result.level.name).toBe('Test Snake')
   })
 
   it('rejects food on wall', () => {
@@ -259,7 +258,7 @@ describe('sanitizeSnakeLevel', () => {
       ...validSnake,
       walls: [{ row: 3, col: 5 }],
     }
-    assert.ok(sanitizeSnakeLevel(bad, meta).error?.includes('on a wall'))
+    expect(sanitizeSnakeLevel(bad, meta).toBeTruthy().error?.includes('on a wall'))
   })
 
   it('rejects duplicate wall positions', () => {
@@ -267,7 +266,7 @@ describe('sanitizeSnakeLevel', () => {
       ...validSnake,
       walls: [{ row: 0, col: 0 }, { row: 0, col: 0 }],
     }
-    assert.ok(sanitizeSnakeLevel(bad, meta).error?.includes('duplicate wall'))
+    expect(sanitizeSnakeLevel(bad, meta).toBeTruthy().error?.includes('duplicate wall'))
   })
 
   it('rejects duplicate food positions', () => {
@@ -278,18 +277,18 @@ describe('sanitizeSnakeLevel', () => {
         { position: { row: 3, col: 5 }, label: 'yy', tip: 'Yank', points: 10 },
       ],
     }
-    assert.ok(sanitizeSnakeLevel(bad, meta).error?.includes('duplicate food'))
+    expect(sanitizeSnakeLevel(bad, meta).toBeTruthy().error?.includes('duplicate food'))
   })
 
   it('rejects missing allowWordMotions', () => {
     const bad = { ...validSnake }
     delete bad.allowWordMotions
-    assert.ok(sanitizeSnakeLevel(bad, meta).error?.includes('allowWordMotions'))
+    expect(sanitizeSnakeLevel(bad, meta).toBeTruthy().error?.includes('allowWordMotions'))
   })
 
   it('rejects spawnRate out of range', () => {
-    assert.ok(sanitizeSnakeLevel({ ...validSnake, spawnRate: 400 }, meta).error?.includes('spawnRate'))
-    assert.ok(sanitizeSnakeLevel({ ...validSnake, spawnRate: 6000 }, meta).error?.includes('spawnRate'))
+    expect(sanitizeSnakeLevel({ ...validSnake, spawnRate: 400 }, meta).toBeTruthy().error?.includes('spawnRate'))
+    expect(sanitizeSnakeLevel({ ...validSnake, spawnRate: 6000 }, meta).toBeTruthy().error?.includes('spawnRate'))
   })
 })
 
@@ -311,8 +310,8 @@ describe('sanitizeMemoryLevel', () => {
 
   it('accepts a valid memory level', () => {
     const result = sanitizeMemoryLevel(validMemory, meta)
-    assert.ok(result.level)
-    assert.equal(result.level.pairs.length, 3)
+    expect(result.level).toBeTruthy()
+    expect(result.level.pairs.length).toBe(3)
   })
 
   it('rejects duplicate pair IDs', () => {
@@ -324,17 +323,17 @@ describe('sanitizeMemoryLevel', () => {
         { id: 'p2', command: 'k', description: 'Move up', category: 'motion' },
       ],
     }
-    assert.ok(sanitizeMemoryLevel(bad, meta).error?.includes('duplicate pair id'))
+    expect(sanitizeMemoryLevel(bad, meta).toBeTruthy().error?.includes('duplicate pair id'))
   })
 
   it('rejects grid size mismatch', () => {
     const bad = { ...validMemory, gridCols: 4 }
-    assert.ok(sanitizeMemoryLevel(bad, meta).error?.includes('gridCols*gridRows'))
+    expect(sanitizeMemoryLevel(bad, meta).toBeTruthy().error?.includes('gridCols*gridRows'))
   })
 
   it('rejects parMoves less than pairs.length', () => {
     const bad = { ...validMemory, parMoves: 2 }
-    assert.ok(sanitizeMemoryLevel(bad, meta).error?.includes('parMoves'))
+    expect(sanitizeMemoryLevel(bad, meta).toBeTruthy().error?.includes('parMoves'))
   })
 
   it('rejects invalid category', () => {
@@ -346,7 +345,7 @@ describe('sanitizeMemoryLevel', () => {
         { id: 'p3', command: 'k', description: 'Move up', category: 'motion' },
       ],
     }
-    assert.ok(sanitizeMemoryLevel(bad, meta).error?.includes('category'))
+    expect(sanitizeMemoryLevel(bad, meta).toBeTruthy().error?.includes('category'))
   })
 })
 
@@ -368,7 +367,7 @@ describe('validateMazePlayability', () => {
       markers: {},
     }
     const errors = validateMazePlayability(level)
-    assert.equal(errors.length, 0, `unexpected errors: ${errors.join(', ')}`)
+    expect(errors.length).toBe(0) // no unexpected playability errors
   })
 
   it('fails when goal is unreachable', () => {
@@ -386,7 +385,7 @@ describe('validateMazePlayability', () => {
       markers: {},
     }
     const errors = validateMazePlayability(level)
-    assert.ok(errors.some((e) => e.includes('not reachable')))
+    expect(errors.some((e).toBeTruthy() => e.includes('not reachable')))
   })
 
   it('fails when collectible is unreachable', () => {
@@ -404,7 +403,7 @@ describe('validateMazePlayability', () => {
       markers: {},
     }
     const errors = validateMazePlayability(level)
-    assert.ok(errors.some((e) => e.includes('collectible') && e.includes('not reachable')))
+    expect(errors.some((e).toBeTruthy() => e.includes('collectible') && e.includes('not reachable')))
   })
 
   it('fails when door references missing marker', () => {
@@ -422,7 +421,7 @@ describe('validateMazePlayability', () => {
       markers: {},
     }
     const errors = validateMazePlayability(level)
-    assert.ok(errors.some((e) => e.includes('marker')))
+    expect(errors.some((e).toBeTruthy() => e.includes('marker')))
   })
 })
 
@@ -434,12 +433,12 @@ describe('validateRhythmPlayability', () => {
       laneKeys: ['h', 'j', 'k', 'l'],
       laneCount: 4,
     }
-    assert.equal(validateRhythmPlayability(level).length, 0)
+    expect(validateRhythmPlayability(level).length).toBe(0)
   })
 
   it('fails with no notes', () => {
     const level = { notes: [], durationMs: 30000, laneKeys: ['h', 'j', 'k', 'l'], laneCount: 4 }
-    assert.ok(validateRhythmPlayability(level).some((e) => e.includes('note')))
+    expect(validateRhythmPlayability(level).toBeTruthy().some((e) => e.includes('note')))
   })
 
   it('fails with notes too close in same lane', () => {
@@ -449,19 +448,19 @@ describe('validateRhythmPlayability', () => {
       laneKeys: ['h', 'j', 'k', 'l'],
       laneCount: 4,
     }
-    assert.ok(validateRhythmPlayability(level).some((e) => e.includes('200ms')))
+    expect(validateRhythmPlayability(level).toBeTruthy().some((e) => e.includes('200ms')))
   })
 })
 
 describe('validateDefenderPlayability', () => {
   it('passes for a valid defender wave', () => {
     const level = { commands: ['h', 'j'], enemyCount: 8, spawnIntervalMs: 2500, baseSpeed: 30, speedVariance: 10 }
-    assert.equal(validateDefenderPlayability(level).length, 0)
+    expect(validateDefenderPlayability(level).length).toBe(0)
   })
 
   it('fails with empty commands', () => {
     const level = { commands: [], enemyCount: 8, spawnIntervalMs: 2500, baseSpeed: 30, speedVariance: 10 }
-    assert.ok(validateDefenderPlayability(level).some((e) => e.includes('commands')))
+    expect(validateDefenderPlayability(level).toBeTruthy().some((e) => e.includes('commands')))
   })
 })
 
@@ -471,7 +470,7 @@ describe('validateSnakePlayability', () => {
       width: 10, height: 8, walls: [],
       initialFood: [{ position: { row: 3, col: 5 }, label: 'dd', tip: 'Delete', points: 10 }],
     }
-    assert.equal(validateSnakePlayability(level).length, 0)
+    expect(validateSnakePlayability(level).length).toBe(0)
   })
 
   it('fails when open cells are disconnected', () => {
@@ -483,12 +482,12 @@ describe('validateSnakePlayability', () => {
       initialFood: [{ position: { row: 0, col: 0 }, label: 'dd', tip: 'Delete', points: 10 }],
     }
     const errors = validateSnakePlayability(level)
-    assert.ok(errors.some((e) => e.includes('connected')))
+    expect(errors.some((e).toBeTruthy() => e.includes('connected')))
   })
 
   it('fails with no food', () => {
     const level = { width: 10, height: 8, walls: [], initialFood: [] }
-    assert.ok(validateSnakePlayability(level).some((e) => e.includes('food')))
+    expect(validateSnakePlayability(level).toBeTruthy().some((e) => e.includes('food')))
   })
 })
 
@@ -498,7 +497,7 @@ describe('validateMemoryPlayability', () => {
       pairs: [{ id: 'p1' }, { id: 'p2' }, { id: 'p3' }],
       gridCols: 3, gridRows: 2, parMoves: 6,
     }
-    assert.equal(validateMemoryPlayability(level).length, 0)
+    expect(validateMemoryPlayability(level).length).toBe(0)
   })
 
   it('fails with grid size mismatch', () => {
@@ -506,7 +505,7 @@ describe('validateMemoryPlayability', () => {
       pairs: [{ id: 'p1' }, { id: 'p2' }, { id: 'p3' }],
       gridCols: 4, gridRows: 2, parMoves: 6,
     }
-    assert.ok(validateMemoryPlayability(level).some((e) => e.includes('gridCols')))
+    expect(validateMemoryPlayability(level).toBeTruthy().some((e) => e.includes('gridCols')))
   })
 
   it('fails with duplicate pair IDs', () => {
@@ -514,7 +513,7 @@ describe('validateMemoryPlayability', () => {
       pairs: [{ id: 'p1' }, { id: 'p1' }, { id: 'p2' }],
       gridCols: 3, gridRows: 2, parMoves: 6,
     }
-    assert.ok(validateMemoryPlayability(level).some((e) => e.includes('duplicate')))
+    expect(validateMemoryPlayability(level).toBeTruthy().some((e) => e.includes('duplicate')))
   })
 })
 
@@ -541,10 +540,10 @@ describe('serializeToTypeScript', () => {
       parMotions: 4,
     }
     const { code, varName } = serializeToTypeScript(level, 'maze')
-    assert.ok(code.includes('// Generated by arcade phase pipeline'))
-    assert.ok(code.includes(`const ${varName}: MazeLevel`))
-    assert.ok(code.includes("id: 'maze-test'"))
-    assert.ok(code.includes('width: 8'))
+    expect(code.includes('// Generated by arcade phase pipeline').toBeTruthy())
+    expect(code.includes(`const ${varName}: MazeLevel`).toBeTruthy())
+    expect(code.includes("id: 'maze-test'").toBeTruthy())
+    expect(code.includes('width: 8').toBeTruthy())
   })
 
   it('produces valid TypeScript for a rhythm level', () => {
@@ -559,8 +558,8 @@ describe('serializeToTypeScript', () => {
       difficulty: 'basic',
     }
     const { code } = serializeToTypeScript(level, 'rhythm')
-    assert.ok(code.includes('RhythmLevel'))
-    assert.ok(code.includes('bpm: 90'))
+    expect(code.includes('RhythmLevel').toBeTruthy())
+    expect(code.includes('bpm: 90').toBeTruthy())
   })
 
   it('produces valid TypeScript for a defender wave', () => {
@@ -573,8 +572,8 @@ describe('serializeToTypeScript', () => {
       speedVariance: 10,
     }
     const { code } = serializeToTypeScript(level, 'defender')
-    assert.ok(code.includes('WaveConfig'))
-    assert.ok(code.includes('wave: 1'))
+    expect(code.includes('WaveConfig').toBeTruthy())
+    expect(code.includes('wave: 1').toBeTruthy())
   })
 
   it('throws for unknown game', () => {
@@ -588,11 +587,11 @@ describe('generateCampaignStage', () => {
   it('produces correct structure for first stage', () => {
     const level = { name: 'Test Level' }
     const stage = generateCampaignStage(level, 'maze', [], 'easy')
-    assert.equal(stage.gameId, 'maze')
-    assert.equal(stage.levelIndex, 0)
-    assert.equal(stage.chapter, 1)
-    assert.equal(stage.unlockCondition.type, 'initial')
-    assert.equal(stage.starThresholds.metric, 'parRatio')
+    expect(stage.gameId).toBe('maze')
+    expect(stage.levelIndex).toBe(0)
+    expect(stage.chapter).toBe(1)
+    expect(stage.unlockCondition.type).toBe('initial')
+    expect(stage.starThresholds.metric).toBe('parRatio')
   })
 
   it('chains unlock after previous game stage', () => {
@@ -601,9 +600,9 @@ describe('generateCampaignStage', () => {
     ]
     const level = { name: 'Second Level' }
     const stage = generateCampaignStage(level, 'maze', existing, 'medium')
-    assert.equal(stage.levelIndex, 1)
-    assert.equal(stage.unlockCondition.type, 'completePrevious')
-    assert.equal(stage.unlockCondition.previousStageId, 'ch1-maze-l0')
+    expect(stage.levelIndex).toBe(1)
+    expect(stage.unlockCondition.type).toBe('completePrevious')
+    expect(stage.unlockCondition.previousStageId).toBe('ch1-maze-l0')
   })
 
   it('increments chapter every 5 stages', () => {
@@ -611,14 +610,14 @@ describe('generateCampaignStage', () => {
       id: `ch1-maze-l${i}`, gameId: 'maze', levelIndex: i,
     }))
     const stage = generateCampaignStage({ name: 'Ch2 Start' }, 'rhythm', existing, 'easy')
-    assert.equal(stage.chapter, 2)
+    expect(stage.chapter).toBe(2)
   })
 
   it('uses correct metric per game', () => {
     const rhythmStage = generateCampaignStage({ name: 'R' }, 'rhythm', [], 'easy')
-    assert.equal(rhythmStage.starThresholds.metric, 'accuracy')
+    expect(rhythmStage.starThresholds.metric).toBe('accuracy')
 
     const defenderStage = generateCampaignStage({ name: 'D' }, 'defender', [], 'easy')
-    assert.equal(defenderStage.starThresholds.metric, 'score')
+    expect(defenderStage.starThresholds.metric).toBe('score')
   })
 })
