@@ -1,0 +1,24 @@
+{
+  "id": "d20261118-repair-the-ascii-box",
+  "title": "Repair the ASCII box",
+  "area": "editing",
+  "level": 1,
+  "brief": "Fix the broken bottom-left corner of this ASCII art box by changing the 'x' to '+'.",
+  "text": "+------+ \n|      | \n|      | \nx------+ ",
+  "solution": "r+",
+  "expect": {
+    "text": "+------+ \n|      | \n|      | \n+------+ "
+  },
+  "why": "The 'r' command replaces the character under the cursor with the next typed character, perfect for single-character fixes in diagrams.",
+  "author": "claude (daily)",
+  "date": "2026-11-18",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:ec0ab8694d45",
+  "cursor": [
+    4,
+    0
+  ],
+  "par_seconds": 5,
+  "hint": "Use replace mode."
+}

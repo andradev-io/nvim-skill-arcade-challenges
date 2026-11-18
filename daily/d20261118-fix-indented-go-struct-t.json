@@ -1,0 +1,25 @@
+{
+  "id": "d20261118-fix-indented-go-struct-t",
+  "title": "Fix indented Go struct tags",
+  "area": "refactor",
+  "level": 3,
+  "brief": "Go struct fields have inconsistent tag formatting. Normalize all json tags to use double quotes consistently.",
+  "text": "type User struct {\n\tName string `json:\"name\"`\n\tAge int `json: 'age'`\n\tEmail string `json:\"email\"`\n}",
+  "solution": ":%s/json: '\\([^']*\\)'/json:\"\\1\"/g<CR>",
+  "expect": {
+    "text": "type User struct {\n\tName string `json:\"name\"`\n\tAge int `json:\"age\"`\n\tEmail string `json:\"email\"`\n}"
+  },
+  "why": "A global substitute captures the tag value between single quotes and replaces with double-quoted format.",
+  "author": "claude (daily)",
+  "date": "2026-11-18",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:ec0ab8694d45",
+  "ft": "go",
+  "cursor": [
+    3,
+    15
+  ],
+  "par_seconds": 18,
+  "hint": "Match the pattern with single quotes and replace with double quotes."
+}

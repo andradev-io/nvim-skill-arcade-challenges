@@ -1,0 +1,20 @@
+{
+  "id": "d20261118-align-csv-columns-manual",
+  "title": "Align CSV columns manually",
+  "area": "editing",
+  "level": 3,
+  "brief": "A small CSV table has uneven spacing after commas. Add spaces so all values align in neat columns.",
+  "text": "name,age,city\nAlice,30,NYC\nBob,25,LA\nCharlie,35,Chicago",
+  "solution": ":%s/,\\zs/ /g<CR>",
+  "expect": {
+    "text": "name, age, city\nAlice, 30, NYC\nBob, 25, LA\nCharlie, 35, Chicago"
+  },
+  "why": "Using :%s with \\zs (start of match) inserts a space after each comma without replacing the comma itself.",
+  "author": "claude (daily)",
+  "date": "2026-11-18",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:ec0ab8694d45",
+  "par_seconds": 15,
+  "hint": "Use substitute with a zero-width assertion."
+}
