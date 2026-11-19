@@ -1,0 +1,22 @@
+{
+  "id": "d20261119-mark-and-restore-cursor",
+  "title": "Mark and restore cursor",
+  "area": "marks",
+  "level": 1,
+  "brief": "Jump to a marked position, make an edit, then return to where you were.",
+  "text": "first line\nsecond line\nthird line\nfourth line",
+  "solution": "ma3jdd`a",
+  "expect": {
+    "text": "first line\nsecond line\nthird line"
+  },
+  "why": "ma sets mark a, 3j moves down three lines, dd deletes that line, `a returns to the original position.",
+  "author": "claude (daily)",
+  "date": "2026-11-19",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:ca34c536e5f6",
+  "cursor": [
+    1,
+    0
+  ]
+}

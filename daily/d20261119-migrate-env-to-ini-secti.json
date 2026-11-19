@@ -1,0 +1,18 @@
+{
+  "id": "d20261119-migrate-env-to-ini-secti",
+  "title": "Migrate env to INI section",
+  "area": "search",
+  "level": 2,
+  "brief": "Convert a .env file into an INI [section] with key=value pairs.",
+  "text": "DB_HOST=localhost\nDB_PORT=5432\nAPI_KEY=secret123",
+  "solution": ":%s/^\\(.*\\)=\\(.*\\)$/\\1 = \\2/g<CR>ggO[section]<Esc>",
+  "expect": {
+    "text": "[section]\nDB_HOST = localhost\nDB_PORT = 5432\nAPI_KEY = secret123"
+  },
+  "why": "Global substitution adds spaces around equals, then ggO inserts the section header at the top.",
+  "author": "claude (daily)",
+  "date": "2026-11-19",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:ca34c536e5f6"
+}
