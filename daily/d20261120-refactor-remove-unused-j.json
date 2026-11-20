@@ -1,0 +1,25 @@
+{
+  "id": "d20261120-refactor-remove-unused-j",
+  "title": "Refactor: remove unused JS param",
+  "area": "refactor",
+  "level": 2,
+  "brief": "The 'config' parameter is never used inside this function. Remove it from the signature.",
+  "text": "function init(db, config) {\n  db.connect();\n}",
+  "solution": "diw",
+  "expect": {
+    "text": "function init(db, ) {\n  db.connect();\n}"
+  },
+  "why": "diw deletes the inner word under the cursor. It is the fastest way to drop a single identifier when your cursor is already on it.",
+  "author": "claude (daily)",
+  "date": "2026-11-20",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:04f85cc3f463",
+  "ft": "javascript",
+  "cursor": [
+    1,
+    18
+  ],
+  "par_seconds": 5,
+  "hint": "Place the cursor on the word and use a text object deletion."
+}
