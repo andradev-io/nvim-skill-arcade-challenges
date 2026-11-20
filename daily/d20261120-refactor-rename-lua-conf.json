@@ -1,0 +1,25 @@
+{
+  "id": "d20261120-refactor-rename-lua-conf",
+  "title": "Refactor: rename Lua config key",
+  "area": "refactor",
+  "level": 3,
+  "brief": "The key 'timeout' in a Lua configuration table was renamed to 'delay'. Update all three occurrences safely.",
+  "text": "local opts = {\n  timeout = 100,\n  retries = 3,\n}\napply(opts.timeout)\nprint(opts.timeout)",
+  "solution": ":%s/\\.timeout/.delay/g<CR>:%s/timeout =/delay =/g<CR>",
+  "expect": {
+    "text": "local opts = {\n  delay = 100,\n  retries = 3,\n}\napply(opts.delay)\nprint(opts.delay)"
+  },
+  "why": "Two targeted substitutions handle both the table definition and the field accesses without accidentally touching other words.",
+  "author": "claude (daily)",
+  "date": "2026-11-20",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:04f85cc3f463",
+  "ft": "lua",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 25,
+  "hint": "Match the dot or equals sign to avoid replacing unrelated text."
+}
