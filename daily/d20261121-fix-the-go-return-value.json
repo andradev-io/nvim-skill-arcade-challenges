@@ -1,0 +1,25 @@
+{
+  "id": "d20261121-fix-the-go-return-value",
+  "title": "Fix the Go return value",
+  "area": "editing",
+  "level": 1,
+  "brief": "A junior dev returned nil by mistake in a Go health check. Change it to true so the service reports healthy.",
+  "text": "func ok() bool {\n\treturn nil\n}",
+  "solution": "cwtrue<Esc>",
+  "expect": {
+    "text": "func ok() bool {\n\treturn true\n}"
+  },
+  "why": "cw replaces the word under the cursor. In typed languages like Go, fixing a single wrong literal is a one-motion task.",
+  "author": "claude (daily)",
+  "date": "2026-11-21",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:9ec857d69bd4",
+  "ft": "go",
+  "cursor": [
+    2,
+    8
+  ],
+  "par_seconds": 5,
+  "hint": "Change the incorrect word to the right boolean."
+}

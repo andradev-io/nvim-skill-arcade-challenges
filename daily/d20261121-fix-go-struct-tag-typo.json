@@ -1,0 +1,25 @@
+{
+  "id": "d20261121-fix-go-struct-tag-typo",
+  "title": "Fix Go struct tag typo",
+  "area": "editing",
+  "level": 3,
+  "brief": "The JSON tag says 'naem' instead of 'name'. Fix the typo inside the backticks so the API serializes correctly.",
+  "text": "type User struct {\n\tID   int    `json:\"id\"`\n\tName string `json:\"naem\"`\n}",
+  "solution": "ciwname<Esc>",
+  "expect": {
+    "text": "type User struct {\n\tID   int    `json:\"id\"`\n\tName string `json:\"name\"`\n}"
+  },
+  "why": "Inside backticks, naem is a word. ciw replaces it cleanly without disturbing the surrounding quotes or braces.",
+  "author": "claude (daily)",
+  "date": "2026-11-21",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:9ec857d69bd4",
+  "ft": "go",
+  "cursor": [
+    3,
+    20
+  ],
+  "par_seconds": 8,
+  "hint": "Change the inner word where the cursor sits."
+}
