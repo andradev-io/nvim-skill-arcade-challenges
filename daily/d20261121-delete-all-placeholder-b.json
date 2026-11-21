@@ -1,0 +1,24 @@
+{
+  "id": "d20261121-delete-all-placeholder-b",
+  "title": "Delete all placeholder brackets",
+  "area": "editing",
+  "level": 3,
+  "brief": "Remove every pair of square brackets in this form snippet, leaving just the words inside them.",
+  "text": "Welcome [USER]!\nYour role is [ROLE].\nRegion: [REGION]",
+  "solution": ":%s/[\\[\\]]//g<CR>",
+  "expect": {
+    "text": "Welcome USER!\nYour role is ROLE.\nRegion: REGION"
+  },
+  "why": "A global substitute over the whole buffer removes every opening and closing bracket in one pass. The character class matches either bracket literal.",
+  "author": "claude (daily)",
+  "date": "2026-11-21",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:9ec857d69bd4",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 15,
+  "hint": "Substitute globally using a character class that matches both bracket types."
+}
