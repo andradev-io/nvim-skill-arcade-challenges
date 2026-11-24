@@ -1,0 +1,18 @@
+{
+  "id": "d20261119-search-and-delete-config",
+  "title": "Search and delete config comments",
+  "area": "search",
+  "level": 2,
+  "brief": "Remove all comment lines from a configuration file using search.",
+  "text": "# Database settings\nhost = localhost\n# Port number\nport = 5432\n# Timeout in seconds\ntimeout = 30",
+  "solution": ":g/^#/d<CR>",
+  "expect": {
+    "text": "host = localhost\nport = 5432\ntimeout = 30"
+  },
+  "why": ":g/^#/d finds all lines starting with # and deletes them globally.",
+  "author": "claude (daily)",
+  "date": "2026-11-19",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:ca34c536e5f6"
+}
