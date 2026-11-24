@@ -1,0 +1,24 @@
+{
+  "id": "d20261120-macro-star-the-vocab-lis",
+  "title": "Macro: star the vocab list",
+  "area": "macros",
+  "level": 3,
+  "brief": "Turn plain vocabulary pairs into a bulleted study list by prepending a dash and space to every line using a macro.",
+  "text": "bonjour hello\nmerci thanks\noui yes\nnon no",
+  "solution": "qqI- <Esc>jq3@q",
+  "expect": {
+    "text": "- bonjour hello\n- merci thanks\n- oui yes\n- non no"
+  },
+  "why": "A macro records the insertion at the start of a line and the jump down, letting you format an entire list with one replay loop.",
+  "author": "claude (daily)",
+  "date": "2026-11-20",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:04f85cc3f463",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 15,
+  "hint": "I inserts at the very beginning of the line. Record that and a downward move."
+}
