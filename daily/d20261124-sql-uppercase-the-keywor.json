@@ -1,0 +1,24 @@
+{
+  "id": "d20261124-sql-uppercase-the-keywor",
+  "title": "SQL: Uppercase the keyword",
+  "area": "search",
+  "level": 1,
+  "brief": "A junior dev wrote a query in lowercase. Change the first 'select' to 'SELECT' using search and replace-char.",
+  "text": "select id, name from users;",
+  "solution": "/select<CR>gUe",
+  "expect": {
+    "text": "SELECT id, name from users;"
+  },
+  "why": "/select jumps to the word, gUe uppercases from cursor to its end. Search plus an operator is faster than retyping.",
+  "author": "claude (daily)",
+  "date": "2026-11-24",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:2c6b6389490e",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 8,
+  "hint": "Search for the word, then apply an uppercase operator to its end."
+}
