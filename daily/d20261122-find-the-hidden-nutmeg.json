@@ -1,0 +1,24 @@
+{
+  "id": "d20261122-find-the-hidden-nutmeg",
+  "title": "Find the hidden nutmeg",
+  "area": "search",
+  "level": 2,
+  "brief": "The scaled-up cookie recipe has a secret ingredient hidden among the steps. Search for 'nutmeg' and change it to 'cardamom'.",
+  "text": "Mix flour and sugar.\nFold in butter.\nSprinkle nutmeg evenly.\nBake at 180C for 15 min.",
+  "solution": "/nutmeg<CR>ciwcardamom<Esc>",
+  "expect": {
+    "text": "Mix flour and sugar.\nFold in butter.\nSprinkle cardamom evenly.\nBake at 180C for 15 min."
+  },
+  "why": "Searching with / jumps directly to the target word. Once there, ciw changes the whole word under the cursor so you can type the replacement immediately.",
+  "author": "claude (daily)",
+  "date": "2026-11-22",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:edbbf14cfaff",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 12,
+  "hint": "Search with /, then use change-inner-word to replace what you found."
+}
