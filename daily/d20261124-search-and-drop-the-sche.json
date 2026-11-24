@@ -1,0 +1,21 @@
+{
+  "id": "d20261124-search-and-drop-the-sche",
+  "title": "Search and drop the schema",
+  "area": "search",
+  "level": 2,
+  "brief": "Remove the public. prefix from every table reference in this SQL dump.",
+  "text": "INSERT INTO public.users VALUES (1);\nINSERT INTO public.orders VALUES (2);\nINSERT INTO public.items VALUES (3);",
+  "solution": ":%s/public\\.//g<CR>",
+  "expect": {
+    "text": "INSERT INTO users VALUES (1);\nINSERT INTO orders VALUES (2);\nINSERT INTO items VALUES (3);"
+  },
+  "why": "A single substitute command with % range and g flag strips the prefix everywhere at once.",
+  "author": "claude (daily)",
+  "date": "2026-11-24",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:2c6b6389490e",
+  "ft": "text",
+  "par_seconds": 8,
+  "hint": "Use :%s to replace across all lines."
+}
