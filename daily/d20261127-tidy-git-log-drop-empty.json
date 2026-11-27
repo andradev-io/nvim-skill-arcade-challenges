@@ -1,0 +1,24 @@
+{
+  "id": "d20261127-tidy-git-log-drop-empty",
+  "title": "Tidy git log: drop empty lines",
+  "area": "search",
+  "level": 4,
+  "brief": "A raw git log has blank lines between commits. Delete every completely empty line to compact the history for a release note.",
+  "text": "commit a1b2c3\nAuthor: dev\nDate: 2026-11-27\n    fix login bug\n\ncommit d4e5f6\nAuthor: qa\nDate: 2026-11-26\n    add tests\n\ncommit g7h8i9\nAuthor: ops\nDate: 2026-11-25\n    deploy v2",
+  "solution": ":g/^$/d<CR>",
+  "expect": {
+    "text": "commit a1b2c3\nAuthor: dev\nDate: 2026-11-27\n    fix login bug\ncommit d4e5f6\nAuthor: qa\nDate: 2026-11-26\n    add tests\ncommit g7h8i9\nAuthor: ops\nDate: 2026-11-25\n    deploy v2"
+  },
+  "why": "The global command :g matches every line fitting a pattern and runs an Ex command on it. /^$/ finds blank lines; d deletes them all in one pass.",
+  "author": "claude (daily)",
+  "date": "2026-11-27",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:d6f4019ce8c1",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 12,
+  "hint": "Use a global command to target blank lines."
+}
