@@ -1,0 +1,25 @@
+{
+  "id": "d20261127-mark-the-anchor-fix-the",
+  "title": "Mark the anchor, fix the typo",
+  "area": "marks",
+  "level": 2,
+  "brief": "You are reviewing a Python changelog parser. Mark your current spot, jump down to fix a misspelled key, then return.",
+  "text": "def parse_changelog(text):\n    entries = []\n    for line in text.splitlines():\n        if line.startswith(\"commit\"):\n            hash_val = line.split()[1]\n            entires.append({\"hash\": hash_val})\n    return entires",
+  "solution": "ma/entires<CR>cwentries<Esc>'a:%s/entires/entries/g<CR>",
+  "expect": {
+    "text": "def parse_changelog(text):\n    entries = []\n    for line in text.splitlines():\n        if line.startswith(\"commit\"):\n            hash_val = line.split()[1]\n            entries.append({\"hash\": hash_val})\n    return entries"
+  },
+  "why": "ma saves your place so you can explore freely. After fixing the first hit with cw, 'a returns you home to run a global substitute for the rest.",
+  "author": "claude (daily)",
+  "date": "2026-11-27",
+  "generated": true,
+  "model": "claude-fable-5.2",
+  "prompt": "v2.3:35c3776ad1a5",
+  "ft": "python",
+  "cursor": [
+    2,
+    4
+  ],
+  "par_seconds": 20,
+  "hint": "Use ma to drop a mark before you leave."
+}

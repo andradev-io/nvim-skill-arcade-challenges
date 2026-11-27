@@ -1,0 +1,25 @@
+{
+  "id": "d20261127-find-the-rogue-console-l",
+  "title": "Find the rogue console.log",
+  "area": "search",
+  "level": 4,
+  "brief": "A junior dev left debug statements in the production build. Search for console.log and delete that entire line so the CI pipeline passes.",
+  "text": "function processOrder(cart) {\n  const total = calcTotal(cart);\n  console.log('debug total:', total);\n  applyDiscount(total);\n  return checkout(total);\n}",
+  "solution": "/console<CR>dd",
+  "expect": {
+    "text": "function processOrder(cart) {\n  const total = calcTotal(cart);\n  applyDiscount(total);\n  return checkout(total);\n}"
+  },
+  "why": "Searching jumps straight to the offending line regardless of how far down it is. Once there, dd removes the whole line instantly.",
+  "author": "claude (daily)",
+  "date": "2026-11-27",
+  "generated": true,
+  "model": "claude-opus-5-5",
+  "prompt": "v2.3:d6f4019ce8c1",
+  "ft": "javascript",
+  "cursor": [
+    1,
+    0
+  ],
+  "par_seconds": 10,
+  "hint": "Search forward to jump directly to the line you need to remove."
+}
