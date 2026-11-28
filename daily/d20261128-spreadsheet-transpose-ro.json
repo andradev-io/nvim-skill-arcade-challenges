@@ -1,0 +1,22 @@
+{
+  "id": "d20261128-spreadsheet-transpose-ro",
+  "title": "Spreadsheet: Transpose rows to columns",
+  "area": "textobjects",
+  "level": 1,
+  "brief": "Swap the first two columns of this CSV-like text so names come before scores.",
+  "text": "Score, Name\n95, Alice\n87, Bob\n92, Carol",
+  "solution": ":%s/^\\([^,]*\\), \\(.*\\)$/\\2, \\1/<CR>",
+  "expect": {
+    "text": "Name, Score\nAlice, 95\nBob, 87\nCarol, 92"
+  },
+  "why": "Use a global substitution with capture groups to swap the two comma-separated fields on every line.",
+  "author": "claude (daily)",
+  "date": "2026-11-28",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:fb3ac3046e19",
+  "cursor": [
+    1,
+    0
+  ]
+}

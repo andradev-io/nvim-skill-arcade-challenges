@@ -1,0 +1,20 @@
+{
+  "id": "d20261128-spreadsheet-remove-empty",
+  "title": "Spreadsheet: Remove empty rows",
+  "area": "textobjects",
+  "level": 1,
+  "brief": "Delete all completely empty lines from this pasted spreadsheet data.",
+  "text": "Name,Age,City\n\nAlice,30,NYC\n\nBob,25,LA\n\nCharlie,35,SF\n",
+  "solution": ":g/^$/d<CR>",
+  "expect": {
+    "text": "Name,Age,City\nAlice,30,NYC\nBob,25,LA\nCharlie,35,SF"
+  },
+  "why": "The :g command applies a delete to every line matching the pattern (empty lines).",
+  "author": "claude (daily)",
+  "date": "2026-11-28",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:fb3ac3046e19",
+  "par_seconds": 10,
+  "hint": "Use :g with a pattern for empty lines."
+}
