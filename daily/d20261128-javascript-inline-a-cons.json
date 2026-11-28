@@ -1,0 +1,23 @@
+{
+  "id": "d20261128-javascript-inline-a-cons",
+  "title": "JavaScript: Inline a constant",
+  "area": "refactor",
+  "level": 1,
+  "brief": "Replace all uses of the constant MAX_RETRIES with its literal value 3.",
+  "text": "const MAX_RETRIES = 3;\nfunction connect() {\n    for (let i = 0; i < MAX_RETRIES; i++) {\n        if (MAX_RETRIES > 0) {\n            tryConnect();\n        }\n    }\n}",
+  "solution": ":%s/MAX_RETRIES/3/g<CR>",
+  "expect": {
+    "text": "const 3 = 3;\nfunction connect() {\n    for (let i = 0; i < 3; i++) {\n        if (3 > 0) {\n            tryConnect();\n        }\n    }\n}"
+  },
+  "why": "A simple global substitution replaces every occurrence of the constant name with its value.",
+  "author": "claude (daily)",
+  "date": "2026-11-28",
+  "generated": true,
+  "model": "claude-sonnet-5",
+  "prompt": "v2.3:fb3ac3046e19",
+  "ft": "javascript",
+  "cursor": [
+    1,
+    0
+  ]
+}
